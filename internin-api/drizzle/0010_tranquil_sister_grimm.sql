@@ -1,0 +1,1 @@
+ALTER TABLE "conventions_stage" ADD COLUMN "validee_par_universite" boolean DEFAULT false;

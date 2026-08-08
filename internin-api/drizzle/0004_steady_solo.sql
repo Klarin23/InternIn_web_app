@@ -1,0 +1,1 @@
+ALTER TABLE "offres_finales" ADD COLUMN "numero" serial NOT NULL;

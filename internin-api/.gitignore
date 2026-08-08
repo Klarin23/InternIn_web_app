@@ -1,0 +1,25 @@
+
+# Keep environment variables out of version control
+node_modules
+.env
+.env.local
+.env.*.local
+uploads/
+
+/generated/prisma
+
+/generated/prisma
+
+/generated/prisma
+
+/generated/prisma
+
+/generated/prisma
+
+/generated/prisma
+
+/generated/prisma
+
+/generated/prisma
+
+/generated/prisma

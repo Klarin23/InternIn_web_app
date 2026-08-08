@@ -1,0 +1,1 @@
+ALTER TABLE "universites" ADD COLUMN "date_verification" timestamp;

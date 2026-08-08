@@ -1,0 +1,3517 @@
+{
+  "id": "286c9e21-1f84-444d-b7a1-020f8cf1cb9e",
+  "prevId": "47004dc6-6c7f-4232-908b-0036c458a184",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.administrateurs": {
+      "name": "administrateurs",
+      "schema": "",
+      "columns": {
+        "id_admin": {
+          "name": "id_admin",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_utilisateur": {
+          "name": "id_utilisateur",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role_admin": {
+          "name": "role_admin",
+          "type": "role_admin",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "administrateurs_id_utilisateur_utilisateurs_id_utilisateur_fk": {
+          "name": "administrateurs_id_utilisateur_utilisateurs_id_utilisateur_fk",
+          "tableFrom": "administrateurs",
+          "tableTo": "utilisateurs",
+          "columnsFrom": [
+            "id_utilisateur"
+          ],
+          "columnsTo": [
+            "id_utilisateur"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "administrateurs_id_utilisateur_unique": {
+          "name": "administrateurs_id_utilisateur_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id_utilisateur"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.badges": {
+      "name": "badges",
+      "schema": "",
+      "columns": {
+        "id_badge": {
+          "name": "id_badge",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_stagiaire": {
+          "name": "id_stagiaire",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_stage": {
+          "name": "id_stage",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type_badge": {
+          "name": "type_badge",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_obtention": {
+          "name": "date_obtention",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "badges_id_stagiaire_stagiaires_id_stagiaire_fk": {
+          "name": "badges_id_stagiaire_stagiaires_id_stagiaire_fk",
+          "tableFrom": "badges",
+          "tableTo": "stagiaires",
+          "columnsFrom": [
+            "id_stagiaire"
+          ],
+          "columnsTo": [
+            "id_stagiaire"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "badges_id_stage_stages_id_stage_fk": {
+          "name": "badges_id_stage_stages_id_stage_fk",
+          "tableFrom": "badges",
+          "tableTo": "stages",
+          "columnsFrom": [
+            "id_stage"
+          ],
+          "columnsTo": [
+            "id_stage"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.bibliotheque_ressources": {
+      "name": "bibliotheque_ressources",
+      "schema": "",
+      "columns": {
+        "id_ressource": {
+          "name": "id_ressource",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "titre": {
+          "name": "titre",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type_ressource": {
+          "name": "type_ressource",
+          "type": "type_ressource",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "categorie": {
+          "name": "categorie",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "url_contenu": {
+          "name": "url_contenu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.candidatures": {
+      "name": "candidatures",
+      "schema": "",
+      "columns": {
+        "id_candidature": {
+          "name": "id_candidature",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_stagiaire": {
+          "name": "id_stagiaire",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_offre": {
+          "name": "id_offre",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "origine": {
+          "name": "origine",
+          "type": "origine_candidature",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_candidature",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'soumise'"
+        },
+        "lettre_motivation": {
+          "name": "lettre_motivation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "message_rejet": {
+          "name": "message_rejet",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_candidature": {
+          "name": "date_candidature",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "date_maj_statut": {
+          "name": "date_maj_statut",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "candidatures_id_stagiaire_stagiaires_id_stagiaire_fk": {
+          "name": "candidatures_id_stagiaire_stagiaires_id_stagiaire_fk",
+          "tableFrom": "candidatures",
+          "tableTo": "stagiaires",
+          "columnsFrom": [
+            "id_stagiaire"
+          ],
+          "columnsTo": [
+            "id_stagiaire"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "candidatures_id_offre_offres_stage_id_offre_fk": {
+          "name": "candidatures_id_offre_offres_stage_id_offre_fk",
+          "tableFrom": "candidatures",
+          "tableTo": "offres_stage",
+          "columnsFrom": [
+            "id_offre"
+          ],
+          "columnsTo": [
+            "id_offre"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "uq_candidature_stagiaire_offre": {
+          "name": "uq_candidature_stagiaire_offre",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id_stagiaire",
+            "id_offre"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.centres_interet": {
+      "name": "centres_interet",
+      "schema": "",
+      "columns": {
+        "id_centre_interet": {
+          "name": "id_centre_interet",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "centres_interet_nom_unique": {
+          "name": "centres_interet_nom_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "nom"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.certificats": {
+      "name": "certificats",
+      "schema": "",
+      "columns": {
+        "id_certificat": {
+          "name": "id_certificat",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_stage": {
+          "name": "id_stage",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url_fichier": {
+          "name": "url_fichier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "code_verification": {
+          "name": "code_verification",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_emission": {
+          "name": "date_emission",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "certificats_id_stage_stages_id_stage_fk": {
+          "name": "certificats_id_stage_stages_id_stage_fk",
+          "tableFrom": "certificats",
+          "tableTo": "stages",
+          "columnsFrom": [
+            "id_stage"
+          ],
+          "columnsTo": [
+            "id_stage"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "certificats_id_stage_unique": {
+          "name": "certificats_id_stage_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id_stage"
+          ]
+        },
+        "certificats_code_verification_unique": {
+          "name": "certificats_code_verification_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code_verification"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.coaching_ia_sessions": {
+      "name": "coaching_ia_sessions",
+      "schema": "",
+      "columns": {
+        "id_session_coaching": {
+          "name": "id_session_coaching",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_stage": {
+          "name": "id_stage",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_evaluation": {
+          "name": "id_evaluation",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "forces": {
+          "name": "forces",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "axes_amelioration": {
+          "name": "axes_amelioration",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actions_recommandees": {
+          "name": "actions_recommandees",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resume_progression": {
+          "name": "resume_progression",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_generation": {
+          "name": "date_generation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "coaching_ia_sessions_id_stage_stages_id_stage_fk": {
+          "name": "coaching_ia_sessions_id_stage_stages_id_stage_fk",
+          "tableFrom": "coaching_ia_sessions",
+          "tableTo": "stages",
+          "columnsFrom": [
+            "id_stage"
+          ],
+          "columnsTo": [
+            "id_stage"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "coaching_ia_sessions_id_evaluation_evaluations_hebdomadaires_id_evaluation_fk": {
+          "name": "coaching_ia_sessions_id_evaluation_evaluations_hebdomadaires_id_evaluation_fk",
+          "tableFrom": "coaching_ia_sessions",
+          "tableTo": "evaluations_hebdomadaires",
+          "columnsFrom": [
+            "id_evaluation"
+          ],
+          "columnsTo": [
+            "id_evaluation"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "coaching_ia_sessions_id_evaluation_unique": {
+          "name": "coaching_ia_sessions_id_evaluation_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id_evaluation"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.competences": {
+      "name": "competences",
+      "schema": "",
+      "columns": {
+        "id_competence": {
+          "name": "id_competence",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type_competence": {
+          "name": "type_competence",
+          "type": "type_competence",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.contacts_entreprise": {
+      "name": "contacts_entreprise",
+      "schema": "",
+      "columns": {
+        "id_contact": {
+          "name": "id_contact",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_entreprise": {
+          "name": "id_entreprise",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fonction": {
+          "name": "fonction",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "telephone": {
+          "name": "telephone",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "est_contact_principal": {
+          "name": "est_contact_principal",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "peut_etre_superviseur": {
+          "name": "peut_etre_superviseur",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "contacts_entreprise_id_entreprise_entreprises_id_entreprise_fk": {
+          "name": "contacts_entreprise_id_entreprise_entreprises_id_entreprise_fk",
+          "tableFrom": "contacts_entreprise",
+          "tableTo": "entreprises",
+          "columnsFrom": [
+            "id_entreprise"
+          ],
+          "columnsTo": [
+            "id_entreprise"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.conventions_stage": {
+      "name": "conventions_stage",
+      "schema": "",
+      "columns": {
+        "id_convention": {
+          "name": "id_convention",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_offre_finale": {
+          "name": "id_offre_finale",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "acceptee_par_entreprise": {
+          "name": "acceptee_par_entreprise",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "date_acceptation_entreprise": {
+          "name": "date_acceptation_entreprise",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acceptee_par_stagiaire": {
+          "name": "acceptee_par_stagiaire",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "date_acceptation_stagiaire": {
+          "name": "date_acceptation_stagiaire",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "approuvee_par_plateforme": {
+          "name": "approuvee_par_plateforme",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "conventions_stage_id_offre_finale_offres_finales_id_offre_finale_fk": {
+          "name": "conventions_stage_id_offre_finale_offres_finales_id_offre_finale_fk",
+          "tableFrom": "conventions_stage",
+          "tableTo": "offres_finales",
+          "columnsFrom": [
+            "id_offre_finale"
+          ],
+          "columnsTo": [
+            "id_offre_finale"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "conventions_stage_id_offre_finale_unique": {
+          "name": "conventions_stage_id_offre_finale_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id_offre_finale"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.conversations": {
+      "name": "conversations",
+      "schema": "",
+      "columns": {
+        "id_conversation": {
+          "name": "id_conversation",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_stage": {
+          "name": "id_stage",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_conversation",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "conversations_id_stage_stages_id_stage_fk": {
+          "name": "conversations_id_stage_stages_id_stage_fk",
+          "tableFrom": "conversations",
+          "tableTo": "stages",
+          "columnsFrom": [
+            "id_stage"
+          ],
+          "columnsTo": [
+            "id_stage"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "conversations_id_stage_unique": {
+          "name": "conversations_id_stage_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id_stage"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.disponibilites_stagiaire": {
+      "name": "disponibilites_stagiaire",
+      "schema": "",
+      "columns": {
+        "id_disponibilite": {
+          "name": "id_disponibilite",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_stagiaire": {
+          "name": "id_stagiaire",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jour_semaine": {
+          "name": "jour_semaine",
+          "type": "jour_semaine",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "heure_debut": {
+          "name": "heure_debut",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "heure_fin": {
+          "name": "heure_fin",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "disponibilites_stagiaire_id_stagiaire_stagiaires_id_stagiaire_fk": {
+          "name": "disponibilites_stagiaire_id_stagiaire_stagiaires_id_stagiaire_fk",
+          "tableFrom": "disponibilites_stagiaire",
+          "tableTo": "stagiaires",
+          "columnsFrom": [
+            "id_stagiaire"
+          ],
+          "columnsTo": [
+            "id_stagiaire"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.documents": {
+      "name": "documents",
+      "schema": "",
+      "columns": {
+        "id_document": {
+          "name": "id_document",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_utilisateur": {
+          "name": "id_utilisateur",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type_document": {
+          "name": "type_document",
+          "type": "type_document",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url_fichier": {
+          "name": "url_fichier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom_fichier": {
+          "name": "nom_fichier",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_upload": {
+          "name": "date_upload",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "documents_id_utilisateur_utilisateurs_id_utilisateur_fk": {
+          "name": "documents_id_utilisateur_utilisateurs_id_utilisateur_fk",
+          "tableFrom": "documents",
+          "tableTo": "utilisateurs",
+          "columnsFrom": [
+            "id_utilisateur"
+          ],
+          "columnsTo": [
+            "id_utilisateur"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.entreprises": {
+      "name": "entreprises",
+      "schema": "",
+      "columns": {
+        "id_entreprise": {
+          "name": "id_entreprise",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_utilisateur": {
+          "name": "id_utilisateur",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom_entreprise": {
+          "name": "nom_entreprise",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "logo_url": {
+          "name": "logo_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "secteur_activite": {
+          "name": "secteur_activite",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "taille_entreprise": {
+          "name": "taille_entreprise",
+          "type": "taille_entreprise",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "site_web": {
+          "name": "site_web",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "linkedin_url": {
+          "name": "linkedin_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pays": {
+          "name": "pays",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ville": {
+          "name": "ville",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "adresse": {
+          "name": "adresse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "a_propos": {
+          "name": "a_propos",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mission": {
+          "name": "mission",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "culture_entreprise": {
+          "name": "culture_entreprise",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statut_verification": {
+          "name": "statut_verification",
+          "type": "statut_verification",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'en_attente'"
+        },
+        "date_verification": {
+          "name": "date_verification",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "admin_verificateur_id": {
+          "name": "admin_verificateur_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "entreprises_id_utilisateur_utilisateurs_id_utilisateur_fk": {
+          "name": "entreprises_id_utilisateur_utilisateurs_id_utilisateur_fk",
+          "tableFrom": "entreprises",
+          "tableTo": "utilisateurs",
+          "columnsFrom": [
+            "id_utilisateur"
+          ],
+          "columnsTo": [
+            "id_utilisateur"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "entreprises_admin_verificateur_id_administrateurs_id_admin_fk": {
+          "name": "entreprises_admin_verificateur_id_administrateurs_id_admin_fk",
+          "tableFrom": "entreprises",
+          "tableTo": "administrateurs",
+          "columnsFrom": [
+            "admin_verificateur_id"
+          ],
+          "columnsTo": [
+            "id_admin"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "entreprises_id_utilisateur_unique": {
+          "name": "entreprises_id_utilisateur_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id_utilisateur"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.entretiens": {
+      "name": "entretiens",
+      "schema": "",
+      "columns": {
+        "id_entretien": {
+          "name": "id_entretien",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_candidature": {
+          "name": "id_candidature",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_heure": {
+          "name": "date_heure",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_heure_proposee": {
+          "name": "date_heure_proposee",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lien_google_meet": {
+          "name": "lien_google_meet",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mode_entretien": {
+          "name": "mode_entretien",
+          "type": "mode_entretien",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'video'"
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_entretien",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'planifie'"
+        },
+        "retour_entretien": {
+          "name": "retour_entretien",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "raison_annulation": {
+          "name": "raison_annulation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "entretiens_id_candidature_candidatures_id_candidature_fk": {
+          "name": "entretiens_id_candidature_candidatures_id_candidature_fk",
+          "tableFrom": "entretiens",
+          "tableTo": "candidatures",
+          "columnsFrom": [
+            "id_candidature"
+          ],
+          "columnsTo": [
+            "id_candidature"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.evaluations_hebdomadaires": {
+      "name": "evaluations_hebdomadaires",
+      "schema": "",
+      "columns": {
+        "id_evaluation": {
+          "name": "id_evaluation",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_stage": {
+          "name": "id_stage",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "numero_semaine": {
+          "name": "numero_semaine",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "note_assiduite": {
+          "name": "note_assiduite",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note_communication": {
+          "name": "note_communication",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note_initiative": {
+          "name": "note_initiative",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note_professionnalisme": {
+          "name": "note_professionnalisme",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note_travail_equipe": {
+          "name": "note_travail_equipe",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note_performance_technique": {
+          "name": "note_performance_technique",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "commentaires": {
+          "name": "commentaires",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_evaluation",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'en_attente'"
+        },
+        "date_soumission": {
+          "name": "date_soumission",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "evaluations_hebdomadaires_id_stage_stages_id_stage_fk": {
+          "name": "evaluations_hebdomadaires_id_stage_stages_id_stage_fk",
+          "tableFrom": "evaluations_hebdomadaires",
+          "tableTo": "stages",
+          "columnsFrom": [
+            "id_stage"
+          ],
+          "columnsTo": [
+            "id_stage"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "uq_evaluation_stage_semaine": {
+          "name": "uq_evaluation_stage_semaine",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id_stage",
+            "numero_semaine"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.formations": {
+      "name": "formations",
+      "schema": "",
+      "columns": {
+        "id_formation": {
+          "name": "id_formation",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_stagiaire": {
+          "name": "id_stagiaire",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type_formation": {
+          "name": "type_formation",
+          "type": "type_formation",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom_universite": {
+          "name": "nom_universite",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "faculte": {
+          "name": "faculte",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "departement": {
+          "name": "departement",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "diplome": {
+          "name": "diplome",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "annee_etude": {
+          "name": "annee_etude",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "annee_obtention": {
+          "name": "annee_obtention",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "formations_id_stagiaire_stagiaires_id_stagiaire_fk": {
+          "name": "formations_id_stagiaire_stagiaires_id_stagiaire_fk",
+          "tableFrom": "formations",
+          "tableTo": "stagiaires",
+          "columnsFrom": [
+            "id_stagiaire"
+          ],
+          "columnsTo": [
+            "id_stagiaire"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.litiges_reclamations": {
+      "name": "litiges_reclamations",
+      "schema": "",
+      "columns": {
+        "id_litige": {
+          "name": "id_litige",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_stage": {
+          "name": "id_stage",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_utilisateur_plaignant": {
+          "name": "id_utilisateur_plaignant",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_admin_assigne": {
+          "name": "id_admin_assigne",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type_litige": {
+          "name": "type_litige",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_litige",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ouvert'"
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "date_resolution": {
+          "name": "date_resolution",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "litiges_reclamations_id_stage_stages_id_stage_fk": {
+          "name": "litiges_reclamations_id_stage_stages_id_stage_fk",
+          "tableFrom": "litiges_reclamations",
+          "tableTo": "stages",
+          "columnsFrom": [
+            "id_stage"
+          ],
+          "columnsTo": [
+            "id_stage"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "litiges_reclamations_id_utilisateur_plaignant_utilisateurs_id_utilisateur_fk": {
+          "name": "litiges_reclamations_id_utilisateur_plaignant_utilisateurs_id_utilisateur_fk",
+          "tableFrom": "litiges_reclamations",
+          "tableTo": "utilisateurs",
+          "columnsFrom": [
+            "id_utilisateur_plaignant"
+          ],
+          "columnsTo": [
+            "id_utilisateur"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "litiges_reclamations_id_admin_assigne_administrateurs_id_admin_fk": {
+          "name": "litiges_reclamations_id_admin_assigne_administrateurs_id_admin_fk",
+          "tableFrom": "litiges_reclamations",
+          "tableTo": "administrateurs",
+          "columnsFrom": [
+            "id_admin_assigne"
+          ],
+          "columnsTo": [
+            "id_admin"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.messages": {
+      "name": "messages",
+      "schema": "",
+      "columns": {
+        "id_message": {
+          "name": "id_message",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_conversation": {
+          "name": "id_conversation",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_expediteur": {
+          "name": "id_expediteur",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contenu": {
+          "name": "contenu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statut_lecture": {
+          "name": "statut_lecture",
+          "type": "statut_lecture_message",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'envoye'"
+        },
+        "date_envoi": {
+          "name": "date_envoi",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "messages_id_conversation_conversations_id_conversation_fk": {
+          "name": "messages_id_conversation_conversations_id_conversation_fk",
+          "tableFrom": "messages",
+          "tableTo": "conversations",
+          "columnsFrom": [
+            "id_conversation"
+          ],
+          "columnsTo": [
+            "id_conversation"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "messages_id_expediteur_utilisateurs_id_utilisateur_fk": {
+          "name": "messages_id_expediteur_utilisateurs_id_utilisateur_fk",
+          "tableFrom": "messages",
+          "tableTo": "utilisateurs",
+          "columnsFrom": [
+            "id_expediteur"
+          ],
+          "columnsTo": [
+            "id_utilisateur"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.modeles_email": {
+      "name": "modeles_email",
+      "schema": "",
+      "columns": {
+        "id_modele": {
+          "name": "id_modele",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "code_modele": {
+          "name": "code_modele",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sujet": {
+          "name": "sujet",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "corps_html": {
+          "name": "corps_html",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "modeles_email_code_modele_unique": {
+          "name": "modeles_email_code_modele_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code_modele"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.notifications": {
+      "name": "notifications",
+      "schema": "",
+      "columns": {
+        "id_notification": {
+          "name": "id_notification",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_utilisateur": {
+          "name": "id_utilisateur",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type_notification": {
+          "name": "type_notification",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "titre": {
+          "name": "titre",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contenu": {
+          "name": "contenu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lien_action": {
+          "name": "lien_action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "canal": {
+          "name": "canal",
+          "type": "canal_notification",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'in_app'"
+        },
+        "statut_lecture": {
+          "name": "statut_lecture",
+          "type": "statut_lecture_notif",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'non_lue'"
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "notifications_id_utilisateur_utilisateurs_id_utilisateur_fk": {
+          "name": "notifications_id_utilisateur_utilisateurs_id_utilisateur_fk",
+          "tableFrom": "notifications",
+          "tableTo": "utilisateurs",
+          "columnsFrom": [
+            "id_utilisateur"
+          ],
+          "columnsTo": [
+            "id_utilisateur"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.objectifs_developpement": {
+      "name": "objectifs_developpement",
+      "schema": "",
+      "columns": {
+        "id_objectif": {
+          "name": "id_objectif",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "objectifs_developpement_nom_unique": {
+          "name": "objectifs_developpement_nom_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "nom"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.offres_finales": {
+      "name": "offres_finales",
+      "schema": "",
+      "columns": {
+        "id_offre_finale": {
+          "name": "id_offre_finale",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_entretien": {
+          "name": "id_entretien",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_contact_superviseur": {
+          "name": "id_contact_superviseur",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "intitule_poste": {
+          "name": "intitule_poste",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "objectifs_apprentissage": {
+          "name": "objectifs_apprentissage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "volume_horaire_hebdo": {
+          "name": "volume_horaire_hebdo",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duree_stage": {
+          "name": "duree_stage",
+          "type": "duree_stage",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mode_travail": {
+          "name": "mode_travail",
+          "type": "mode_travail",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "remuneration_type": {
+          "name": "remuneration_type",
+          "type": "remuneration_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_debut": {
+          "name": "date_debut",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statut_validation_plateforme": {
+          "name": "statut_validation_plateforme",
+          "type": "statut_validation_plateforme",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'en_attente'"
+        },
+        "id_admin_validateur": {
+          "name": "id_admin_validateur",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_validation": {
+          "name": "date_validation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statut_reponse_stagiaire": {
+          "name": "statut_reponse_stagiaire",
+          "type": "statut_reponse_stagiaire",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'en_attente'"
+        },
+        "date_reponse_stagiaire": {
+          "name": "date_reponse_stagiaire",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "offres_finales_id_entretien_entretiens_id_entretien_fk": {
+          "name": "offres_finales_id_entretien_entretiens_id_entretien_fk",
+          "tableFrom": "offres_finales",
+          "tableTo": "entretiens",
+          "columnsFrom": [
+            "id_entretien"
+          ],
+          "columnsTo": [
+            "id_entretien"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "offres_finales_id_contact_superviseur_contacts_entreprise_id_contact_fk": {
+          "name": "offres_finales_id_contact_superviseur_contacts_entreprise_id_contact_fk",
+          "tableFrom": "offres_finales",
+          "tableTo": "contacts_entreprise",
+          "columnsFrom": [
+            "id_contact_superviseur"
+          ],
+          "columnsTo": [
+            "id_contact"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "offres_finales_id_admin_validateur_administrateurs_id_admin_fk": {
+          "name": "offres_finales_id_admin_validateur_administrateurs_id_admin_fk",
+          "tableFrom": "offres_finales",
+          "tableTo": "administrateurs",
+          "columnsFrom": [
+            "id_admin_validateur"
+          ],
+          "columnsTo": [
+            "id_admin"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.offres_stage": {
+      "name": "offres_stage",
+      "schema": "",
+      "columns": {
+        "id_offre": {
+          "name": "id_offre",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_entreprise": {
+          "name": "id_entreprise",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "titre": {
+          "name": "titre",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "departement": {
+          "name": "departement",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "secteur_activite": {
+          "name": "secteur_activite",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "responsabilites": {
+          "name": "responsabilites",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "competences_requises": {
+          "name": "competences_requises",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "opportunites_apprentissage": {
+          "name": "opportunites_apprentissage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mode_travail": {
+          "name": "mode_travail",
+          "type": "mode_travail",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "remuneration_type": {
+          "name": "remuneration_type",
+          "type": "remuneration_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "montant_remuneration": {
+          "name": "montant_remuneration",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nombre_postes": {
+          "name": "nombre_postes",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 1
+        },
+        "id_contact_superviseur": {
+          "name": "id_contact_superviseur",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_offre_stage",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'brouillon'"
+        },
+        "date_publication": {
+          "name": "date_publication",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "offres_stage_id_entreprise_entreprises_id_entreprise_fk": {
+          "name": "offres_stage_id_entreprise_entreprises_id_entreprise_fk",
+          "tableFrom": "offres_stage",
+          "tableTo": "entreprises",
+          "columnsFrom": [
+            "id_entreprise"
+          ],
+          "columnsTo": [
+            "id_entreprise"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "offres_stage_id_contact_superviseur_contacts_entreprise_id_contact_fk": {
+          "name": "offres_stage_id_contact_superviseur_contacts_entreprise_id_contact_fk",
+          "tableFrom": "offres_stage",
+          "tableTo": "contacts_entreprise",
+          "columnsFrom": [
+            "id_contact_superviseur"
+          ],
+          "columnsTo": [
+            "id_contact"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.personnel_universite": {
+      "name": "personnel_universite",
+      "schema": "",
+      "columns": {
+        "id_personnel": {
+          "name": "id_personnel",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_universite": {
+          "name": "id_universite",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "role_personnel_universite",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statut_invitation": {
+          "name": "statut_invitation",
+          "type": "statut_invitation",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'invite'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "personnel_universite_id_universite_universites_id_universite_fk": {
+          "name": "personnel_universite_id_universite_universites_id_universite_fk",
+          "tableFrom": "personnel_universite",
+          "tableTo": "universites",
+          "columnsFrom": [
+            "id_universite"
+          ],
+          "columnsTo": [
+            "id_universite"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.pieces_jointes_message": {
+      "name": "pieces_jointes_message",
+      "schema": "",
+      "columns": {
+        "id_piece_jointe": {
+          "name": "id_piece_jointe",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_message": {
+          "name": "id_message",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url_fichier": {
+          "name": "url_fichier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom_fichier": {
+          "name": "nom_fichier",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "pieces_jointes_message_id_message_messages_id_message_fk": {
+          "name": "pieces_jointes_message_id_message_messages_id_message_fk",
+          "tableFrom": "pieces_jointes_message",
+          "tableTo": "messages",
+          "columnsFrom": [
+            "id_message"
+          ],
+          "columnsTo": [
+            "id_message"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.recommandations": {
+      "name": "recommandations",
+      "schema": "",
+      "columns": {
+        "id_recommandation": {
+          "name": "id_recommandation",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_stage": {
+          "name": "id_stage",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_contact_auteur": {
+          "name": "id_contact_auteur",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contenu": {
+          "name": "contenu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "visible_linkedin": {
+          "name": "visible_linkedin",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "recommandations_id_stage_stages_id_stage_fk": {
+          "name": "recommandations_id_stage_stages_id_stage_fk",
+          "tableFrom": "recommandations",
+          "tableTo": "stages",
+          "columnsFrom": [
+            "id_stage"
+          ],
+          "columnsTo": [
+            "id_stage"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "recommandations_id_contact_auteur_contacts_entreprise_id_contact_fk": {
+          "name": "recommandations_id_contact_auteur_contacts_entreprise_id_contact_fk",
+          "tableFrom": "recommandations",
+          "tableTo": "contacts_entreprise",
+          "columnsFrom": [
+            "id_contact_auteur"
+          ],
+          "columnsTo": [
+            "id_contact"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "recommandations_id_stage_unique": {
+          "name": "recommandations_id_stage_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id_stage"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ressources_consultees": {
+      "name": "ressources_consultees",
+      "schema": "",
+      "columns": {
+        "id_stagiaire": {
+          "name": "id_stagiaire",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_ressource": {
+          "name": "id_ressource",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_consultation": {
+          "name": "date_consultation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ressources_consultees_id_stagiaire_stagiaires_id_stagiaire_fk": {
+          "name": "ressources_consultees_id_stagiaire_stagiaires_id_stagiaire_fk",
+          "tableFrom": "ressources_consultees",
+          "tableTo": "stagiaires",
+          "columnsFrom": [
+            "id_stagiaire"
+          ],
+          "columnsTo": [
+            "id_stagiaire"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ressources_consultees_id_ressource_bibliotheque_ressources_id_ressource_fk": {
+          "name": "ressources_consultees_id_ressource_bibliotheque_ressources_id_ressource_fk",
+          "tableFrom": "ressources_consultees",
+          "tableTo": "bibliotheque_ressources",
+          "columnsFrom": [
+            "id_ressource"
+          ],
+          "columnsTo": [
+            "id_ressource"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "ressources_consultees_id_stagiaire_id_ressource_pk": {
+          "name": "ressources_consultees_id_stagiaire_id_ressource_pk",
+          "columns": [
+            "id_stagiaire",
+            "id_ressource"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sessions_utilisateur": {
+      "name": "sessions_utilisateur",
+      "schema": "",
+      "columns": {
+        "id_session": {
+          "name": "id_session",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_utilisateur": {
+          "name": "id_utilisateur",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jeton": {
+          "name": "jeton",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "adresse_ip": {
+          "name": "adresse_ip",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_expiration": {
+          "name": "date_expiration",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sessions_utilisateur_id_utilisateur_utilisateurs_id_utilisateur_fk": {
+          "name": "sessions_utilisateur_id_utilisateur_utilisateurs_id_utilisateur_fk",
+          "tableFrom": "sessions_utilisateur",
+          "tableTo": "utilisateurs",
+          "columnsFrom": [
+            "id_utilisateur"
+          ],
+          "columnsTo": [
+            "id_utilisateur"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.stages": {
+      "name": "stages",
+      "schema": "",
+      "columns": {
+        "id_stage": {
+          "name": "id_stage",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_convention": {
+          "name": "id_convention",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_stagiaire": {
+          "name": "id_stagiaire",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_entreprise": {
+          "name": "id_entreprise",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_contact_superviseur": {
+          "name": "id_contact_superviseur",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_universite": {
+          "name": "id_universite",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "objectifs_apprentissage": {
+          "name": "objectifs_apprentissage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_debut": {
+          "name": "date_debut",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_fin_prevue": {
+          "name": "date_fin_prevue",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_fin_reelle": {
+          "name": "date_fin_reelle",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_stage",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'actif'"
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "stages_id_convention_conventions_stage_id_convention_fk": {
+          "name": "stages_id_convention_conventions_stage_id_convention_fk",
+          "tableFrom": "stages",
+          "tableTo": "conventions_stage",
+          "columnsFrom": [
+            "id_convention"
+          ],
+          "columnsTo": [
+            "id_convention"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "stages_id_stagiaire_stagiaires_id_stagiaire_fk": {
+          "name": "stages_id_stagiaire_stagiaires_id_stagiaire_fk",
+          "tableFrom": "stages",
+          "tableTo": "stagiaires",
+          "columnsFrom": [
+            "id_stagiaire"
+          ],
+          "columnsTo": [
+            "id_stagiaire"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "stages_id_entreprise_entreprises_id_entreprise_fk": {
+          "name": "stages_id_entreprise_entreprises_id_entreprise_fk",
+          "tableFrom": "stages",
+          "tableTo": "entreprises",
+          "columnsFrom": [
+            "id_entreprise"
+          ],
+          "columnsTo": [
+            "id_entreprise"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "stages_id_contact_superviseur_contacts_entreprise_id_contact_fk": {
+          "name": "stages_id_contact_superviseur_contacts_entreprise_id_contact_fk",
+          "tableFrom": "stages",
+          "tableTo": "contacts_entreprise",
+          "columnsFrom": [
+            "id_contact_superviseur"
+          ],
+          "columnsTo": [
+            "id_contact"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "stages_id_universite_universites_id_universite_fk": {
+          "name": "stages_id_universite_universites_id_universite_fk",
+          "tableFrom": "stages",
+          "tableTo": "universites",
+          "columnsFrom": [
+            "id_universite"
+          ],
+          "columnsTo": [
+            "id_universite"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "stages_id_convention_unique": {
+          "name": "stages_id_convention_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id_convention"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.stagiaire_centres_interet": {
+      "name": "stagiaire_centres_interet",
+      "schema": "",
+      "columns": {
+        "id_stagiaire": {
+          "name": "id_stagiaire",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_centre_interet": {
+          "name": "id_centre_interet",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "stagiaire_centres_interet_id_stagiaire_stagiaires_id_stagiaire_fk": {
+          "name": "stagiaire_centres_interet_id_stagiaire_stagiaires_id_stagiaire_fk",
+          "tableFrom": "stagiaire_centres_interet",
+          "tableTo": "stagiaires",
+          "columnsFrom": [
+            "id_stagiaire"
+          ],
+          "columnsTo": [
+            "id_stagiaire"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "stagiaire_centres_interet_id_centre_interet_centres_interet_id_centre_interet_fk": {
+          "name": "stagiaire_centres_interet_id_centre_interet_centres_interet_id_centre_interet_fk",
+          "tableFrom": "stagiaire_centres_interet",
+          "tableTo": "centres_interet",
+          "columnsFrom": [
+            "id_centre_interet"
+          ],
+          "columnsTo": [
+            "id_centre_interet"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "stagiaire_centres_interet_id_stagiaire_id_centre_interet_pk": {
+          "name": "stagiaire_centres_interet_id_stagiaire_id_centre_interet_pk",
+          "columns": [
+            "id_stagiaire",
+            "id_centre_interet"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.stagiaire_competences": {
+      "name": "stagiaire_competences",
+      "schema": "",
+      "columns": {
+        "id_stagiaire": {
+          "name": "id_stagiaire",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_competence": {
+          "name": "id_competence",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "niveau": {
+          "name": "niveau",
+          "type": "niveau_competence",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "stagiaire_competences_id_stagiaire_stagiaires_id_stagiaire_fk": {
+          "name": "stagiaire_competences_id_stagiaire_stagiaires_id_stagiaire_fk",
+          "tableFrom": "stagiaire_competences",
+          "tableTo": "stagiaires",
+          "columnsFrom": [
+            "id_stagiaire"
+          ],
+          "columnsTo": [
+            "id_stagiaire"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "stagiaire_competences_id_competence_competences_id_competence_fk": {
+          "name": "stagiaire_competences_id_competence_competences_id_competence_fk",
+          "tableFrom": "stagiaire_competences",
+          "tableTo": "competences",
+          "columnsFrom": [
+            "id_competence"
+          ],
+          "columnsTo": [
+            "id_competence"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "stagiaire_competences_id_stagiaire_id_competence_pk": {
+          "name": "stagiaire_competences_id_stagiaire_id_competence_pk",
+          "columns": [
+            "id_stagiaire",
+            "id_competence"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.stagiaire_objectifs_developpement": {
+      "name": "stagiaire_objectifs_developpement",
+      "schema": "",
+      "columns": {
+        "id_stagiaire": {
+          "name": "id_stagiaire",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_objectif": {
+          "name": "id_objectif",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "stagiaire_objectifs_developpement_id_stagiaire_stagiaires_id_stagiaire_fk": {
+          "name": "stagiaire_objectifs_developpement_id_stagiaire_stagiaires_id_stagiaire_fk",
+          "tableFrom": "stagiaire_objectifs_developpement",
+          "tableTo": "stagiaires",
+          "columnsFrom": [
+            "id_stagiaire"
+          ],
+          "columnsTo": [
+            "id_stagiaire"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "stagiaire_objectifs_developpement_id_objectif_objectifs_developpement_id_objectif_fk": {
+          "name": "stagiaire_objectifs_developpement_id_objectif_objectifs_developpement_id_objectif_fk",
+          "tableFrom": "stagiaire_objectifs_developpement",
+          "tableTo": "objectifs_developpement",
+          "columnsFrom": [
+            "id_objectif"
+          ],
+          "columnsTo": [
+            "id_objectif"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "stagiaire_objectifs_developpement_id_stagiaire_id_objectif_pk": {
+          "name": "stagiaire_objectifs_developpement_id_stagiaire_id_objectif_pk",
+          "columns": [
+            "id_stagiaire",
+            "id_objectif"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.stagiaires": {
+      "name": "stagiaires",
+      "schema": "",
+      "columns": {
+        "id_stagiaire": {
+          "name": "id_stagiaire",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_utilisateur": {
+          "name": "id_utilisateur",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prenom": {
+          "name": "prenom",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "photo_profil_url": {
+          "name": "photo_profil_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "telephone": {
+          "name": "telephone",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pays": {
+          "name": "pays",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ville": {
+          "name": "ville",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_naissance": {
+          "name": "date_naissance",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statut_academique": {
+          "name": "statut_academique",
+          "type": "statut_academique",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cv_url": {
+          "name": "cv_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "linkedin_url": {
+          "name": "linkedin_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "github_url": {
+          "name": "github_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "behance_url": {
+          "name": "behance_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "portfolio_url": {
+          "name": "portfolio_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "site_web_url": {
+          "name": "site_web_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duree_stage_souhaitee": {
+          "name": "duree_stage_souhaitee",
+          "type": "duree_stage",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "heures_hebdo_souhaitees": {
+          "name": "heures_hebdo_souhaitees",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_debut_souhaitee": {
+          "name": "date_debut_souhaitee",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "score_completude_profil": {
+          "name": "score_completude_profil",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "statut_stage": {
+          "name": "statut_stage",
+          "type": "statut_stage_stagiaire",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'disponible'"
+        },
+        "id_universite": {
+          "name": "id_universite",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "stagiaires_id_utilisateur_utilisateurs_id_utilisateur_fk": {
+          "name": "stagiaires_id_utilisateur_utilisateurs_id_utilisateur_fk",
+          "tableFrom": "stagiaires",
+          "tableTo": "utilisateurs",
+          "columnsFrom": [
+            "id_utilisateur"
+          ],
+          "columnsTo": [
+            "id_utilisateur"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "stagiaires_id_universite_universites_id_universite_fk": {
+          "name": "stagiaires_id_universite_universites_id_universite_fk",
+          "tableFrom": "stagiaires",
+          "tableTo": "universites",
+          "columnsFrom": [
+            "id_universite"
+          ],
+          "columnsTo": [
+            "id_universite"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "stagiaires_id_utilisateur_unique": {
+          "name": "stagiaires_id_utilisateur_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id_utilisateur"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.universites": {
+      "name": "universites",
+      "schema": "",
+      "columns": {
+        "id_universite": {
+          "name": "id_universite",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_utilisateur": {
+          "name": "id_utilisateur",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom_universite": {
+          "name": "nom_universite",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email_officiel": {
+          "name": "email_officiel",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "logo_url": {
+          "name": "logo_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "site_web": {
+          "name": "site_web",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pays": {
+          "name": "pays",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type_etablissement": {
+          "name": "type_etablissement",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nombre_etudiants": {
+          "name": "nombre_etudiants",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contact_service_carriere": {
+          "name": "contact_service_carriere",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "periode_stage_habituelle": {
+          "name": "periode_stage_habituelle",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "heures_recommandees_semaine": {
+          "name": "heures_recommandees_semaine",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nom_coordinateur_stage": {
+          "name": "nom_coordinateur_stage",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statut_verification": {
+          "name": "statut_verification",
+          "type": "statut_verification",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'en_attente'"
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "universites_id_utilisateur_utilisateurs_id_utilisateur_fk": {
+          "name": "universites_id_utilisateur_utilisateurs_id_utilisateur_fk",
+          "tableFrom": "universites",
+          "tableTo": "utilisateurs",
+          "columnsFrom": [
+            "id_utilisateur"
+          ],
+          "columnsTo": [
+            "id_utilisateur"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "universites_id_utilisateur_unique": {
+          "name": "universites_id_utilisateur_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id_utilisateur"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.utilisateurs": {
+      "name": "utilisateurs",
+      "schema": "",
+      "columns": {
+        "id_utilisateur": {
+          "name": "id_utilisateur",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mot_de_passe_hash": {
+          "name": "mot_de_passe_hash",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type_utilisateur": {
+          "name": "type_utilisateur",
+          "type": "type_utilisateur",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "methode_connexion": {
+          "name": "methode_connexion",
+          "type": "methode_connexion",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'email'"
+        },
+        "email_verifie": {
+          "name": "email_verifie",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "statut_compte": {
+          "name": "statut_compte",
+          "type": "statut_compte",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'inactif'"
+        },
+        "derniere_connexion": {
+          "name": "derniere_connexion",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_creation": {
+          "name": "date_creation",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "date_maj": {
+          "name": "date_maj",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "utilisateurs_email_unique": {
+          "name": "utilisateurs_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.verifications_email": {
+      "name": "verifications_email",
+      "schema": "",
+      "columns": {
+        "id_verification": {
+          "name": "id_verification",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "id_utilisateur": {
+          "name": "id_utilisateur",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "type_verification",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code_jeton": {
+          "name": "code_jeton",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_verification_token",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'en_attente'"
+        },
+        "date_expiration": {
+          "name": "date_expiration",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "verifications_email_id_utilisateur_utilisateurs_id_utilisateur_fk": {
+          "name": "verifications_email_id_utilisateur_utilisateurs_id_utilisateur_fk",
+          "tableFrom": "verifications_email",
+          "tableTo": "utilisateurs",
+          "columnsFrom": [
+            "id_utilisateur"
+          ],
+          "columnsTo": [
+            "id_utilisateur"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.canal_notification": {
+      "name": "canal_notification",
+      "schema": "public",
+      "values": [
+        "in_app",
+        "email"
+      ]
+    },
+    "public.duree_stage": {
+      "name": "duree_stage",
+      "schema": "public",
+      "values": [
+        "1_mois",
+        "2_mois",
+        "3_mois"
+      ]
+    },
+    "public.jour_semaine": {
+      "name": "jour_semaine",
+      "schema": "public",
+      "values": [
+        "lundi",
+        "mardi",
+        "mercredi",
+        "jeudi",
+        "vendredi",
+        "samedi",
+        "dimanche"
+      ]
+    },
+    "public.methode_connexion": {
+      "name": "methode_connexion",
+      "schema": "public",
+      "values": [
+        "email",
+        "google"
+      ]
+    },
+    "public.mode_entretien": {
+      "name": "mode_entretien",
+      "schema": "public",
+      "values": [
+        "video",
+        "telephone",
+        "presentiel"
+      ]
+    },
+    "public.mode_travail": {
+      "name": "mode_travail",
+      "schema": "public",
+      "values": [
+        "distance",
+        "hybride",
+        "presentiel"
+      ]
+    },
+    "public.niveau_competence": {
+      "name": "niveau_competence",
+      "schema": "public",
+      "values": [
+        "debutant",
+        "intermediaire",
+        "avance"
+      ]
+    },
+    "public.origine_candidature": {
+      "name": "origine_candidature",
+      "schema": "public",
+      "values": [
+        "candidature_spontanee",
+        "invitation_entreprise"
+      ]
+    },
+    "public.remuneration_type": {
+      "name": "remuneration_type",
+      "schema": "public",
+      "values": [
+        "aucune",
+        "indemnite_transport",
+        "indemnite_repas",
+        "allocation_mensuelle"
+      ]
+    },
+    "public.role_admin": {
+      "name": "role_admin",
+      "schema": "public",
+      "values": [
+        "super_admin",
+        "operations",
+        "support",
+        "relations_entreprises",
+        "relations_universites",
+        "conformite"
+      ]
+    },
+    "public.role_personnel_universite": {
+      "name": "role_personnel_universite",
+      "schema": "public",
+      "values": [
+        "conseiller_carriere",
+        "coordinateur_pedagogique",
+        "coordinateur_stage"
+      ]
+    },
+    "public.statut_academique": {
+      "name": "statut_academique",
+      "schema": "public",
+      "values": [
+        "etudiant",
+        "jeune_diplome"
+      ]
+    },
+    "public.statut_candidature": {
+      "name": "statut_candidature",
+      "schema": "public",
+      "values": [
+        "soumise",
+        "consultee",
+        "preselectionnee",
+        "rejetee",
+        "retiree",
+        "acceptee"
+      ]
+    },
+    "public.statut_compte": {
+      "name": "statut_compte",
+      "schema": "public",
+      "values": [
+        "inactif",
+        "actif",
+        "suspendu"
+      ]
+    },
+    "public.statut_conversation": {
+      "name": "statut_conversation",
+      "schema": "public",
+      "values": [
+        "active",
+        "archivee"
+      ]
+    },
+    "public.statut_entretien": {
+      "name": "statut_entretien",
+      "schema": "public",
+      "values": [
+        "planifie",
+        "valide",
+        "confirme",
+        "reprogramme",
+        "termine",
+        "annule",
+        "absent"
+      ]
+    },
+    "public.statut_evaluation": {
+      "name": "statut_evaluation",
+      "schema": "public",
+      "values": [
+        "en_attente",
+        "soumise",
+        "en_retard"
+      ]
+    },
+    "public.statut_invitation": {
+      "name": "statut_invitation",
+      "schema": "public",
+      "values": [
+        "invite",
+        "actif",
+        "desactive"
+      ]
+    },
+    "public.statut_lecture_message": {
+      "name": "statut_lecture_message",
+      "schema": "public",
+      "values": [
+        "envoye",
+        "lu"
+      ]
+    },
+    "public.statut_lecture_notif": {
+      "name": "statut_lecture_notif",
+      "schema": "public",
+      "values": [
+        "non_lue",
+        "lue"
+      ]
+    },
+    "public.statut_litige": {
+      "name": "statut_litige",
+      "schema": "public",
+      "values": [
+        "ouvert",
+        "en_cours",
+        "resolu",
+        "rejete"
+      ]
+    },
+    "public.statut_offre_stage": {
+      "name": "statut_offre_stage",
+      "schema": "public",
+      "values": [
+        "brouillon",
+        "publie",
+        "ferme",
+        "archive"
+      ]
+    },
+    "public.statut_reponse_stagiaire": {
+      "name": "statut_reponse_stagiaire",
+      "schema": "public",
+      "values": [
+        "en_attente",
+        "acceptee",
+        "refusee"
+      ]
+    },
+    "public.statut_stage": {
+      "name": "statut_stage",
+      "schema": "public",
+      "values": [
+        "actif",
+        "termine",
+        "interrompu"
+      ]
+    },
+    "public.statut_stage_stagiaire": {
+      "name": "statut_stage_stagiaire",
+      "schema": "public",
+      "values": [
+        "disponible",
+        "en_processus",
+        "actif",
+        "termine"
+      ]
+    },
+    "public.statut_validation_plateforme": {
+      "name": "statut_validation_plateforme",
+      "schema": "public",
+      "values": [
+        "en_attente",
+        "approuve",
+        "renvoye_modification",
+        "rejete"
+      ]
+    },
+    "public.statut_verification": {
+      "name": "statut_verification",
+      "schema": "public",
+      "values": [
+        "en_attente",
+        "verifiee",
+        "rejetee"
+      ]
+    },
+    "public.statut_verification_token": {
+      "name": "statut_verification_token",
+      "schema": "public",
+      "values": [
+        "en_attente",
+        "utilise",
+        "expire"
+      ]
+    },
+    "public.taille_entreprise": {
+      "name": "taille_entreprise",
+      "schema": "public",
+      "values": [
+        "1-10",
+        "11-50",
+        "51-200",
+        "201-500",
+        "500+"
+      ]
+    },
+    "public.type_competence": {
+      "name": "type_competence",
+      "schema": "public",
+      "values": [
+        "technique",
+        "professionnelle",
+        "langue"
+      ]
+    },
+    "public.type_document": {
+      "name": "type_document",
+      "schema": "public",
+      "values": [
+        "cv",
+        "registre_commerce",
+        "certificat_constitution",
+        "justificatif_entreprise",
+        "accreditation_universite",
+        "enregistrement_officiel",
+        "autorisation_administrative",
+        "autre"
+      ]
+    },
+    "public.type_formation": {
+      "name": "type_formation",
+      "schema": "public",
+      "values": [
+        "en_cours",
+        "obtenue"
+      ]
+    },
+    "public.type_ressource": {
+      "name": "type_ressource",
+      "schema": "public",
+      "values": [
+        "article",
+        "question_reflexion",
+        "scenario_professionnel",
+        "modele_communication",
+        "checklist",
+        "exemple_email",
+        "guide_reunion"
+      ]
+    },
+    "public.type_utilisateur": {
+      "name": "type_utilisateur",
+      "schema": "public",
+      "values": [
+        "stagiaire",
+        "entreprise",
+        "universite",
+        "administrateur"
+      ]
+    },
+    "public.type_verification": {
+      "name": "type_verification",
+      "schema": "public",
+      "values": [
+        "verification_email",
+        "reinitialisation_mdp"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

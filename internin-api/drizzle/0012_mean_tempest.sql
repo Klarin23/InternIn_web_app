@@ -1,0 +1,1 @@
+ALTER TYPE "public"."remuneration_type" ADD VALUE 'indemnite_internet_appel';

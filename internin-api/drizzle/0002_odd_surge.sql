@@ -1,0 +1,1 @@
+ALTER TABLE "candidatures" ADD COLUMN "message_rejet" text;

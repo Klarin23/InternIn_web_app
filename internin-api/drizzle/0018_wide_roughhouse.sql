@@ -1,0 +1,1 @@
+ALTER TYPE "public"."statut_offre_stage" ADD VALUE 'pause' BEFORE 'ferme';

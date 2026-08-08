@@ -1,0 +1,1 @@
+ALTER TYPE "public"."type_utilisateur" ADD VALUE 'membre_entreprise';

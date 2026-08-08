@@ -1,0 +1,1 @@
+ALTER TABLE "entretiens" ADD COLUMN "notes_preparation" text;
