@@ -25,6 +25,7 @@ if (process.env.JWT_SECRET.length < 32) {
 
 const PORT = process.env.PORT || 4000;
 
-app.listen(PORT, () => {
-  console.log(`InternIn API démarrée sur http://localhost:${PORT}`);
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`InternIn API démarrée sur le port ${PORT}`);
 });
