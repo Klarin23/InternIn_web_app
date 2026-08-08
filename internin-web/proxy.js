@@ -64,7 +64,7 @@ async function verifyJwt(token) {
   }
 }
 
-export async function middleware(request) {
+export async function proxy(request) {
   const { pathname } = request.nextUrl;
 
   const rule = ROLE_ROUTES.find((r) => matchesPrefix(pathname, r.prefix));

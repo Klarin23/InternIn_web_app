@@ -8,6 +8,7 @@ import { FiFileText, FiSearch } from "react-icons/fi";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function CandidaturesEmptyState({ variante, onReinitialiser }) {
+  const { t } = useTranslation();
   const estFiltre = variante === "filtre";
 
   return (
