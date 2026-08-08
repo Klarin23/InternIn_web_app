@@ -73,3 +73,47 @@ export async function sendPasswordResetEmail({ email, token }) {
     `,
   });
 }
+
+export async function sendInvitationEmail({
+  email,
+  nomEntreprise,
+  roleEquipe,
+  invitationUrl,
+}) {
+  const roleLabel = roleEquipe || "membre";
+
+  await sendMail({
+    to: email,
+    subject: `Invitation à rejoindre ${nomEntreprise || "une équipe"} — InternIn`,
+    text: `
+Vous êtes invité(e) à rejoindre ${nomEntreprise || "une entreprise"} sur InternIn
+en tant que ${roleLabel}.
+
+Acceptez l'invitation en cliquant sur ce lien :
+${invitationUrl}
+
+Si vous n'êtes pas à l'origine de cette invitation, ignorez cet e-mail.
+
+L'équipe InternIn
+    `.trim(),
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 24px;">
+        <h1>Invitation à rejoindre une équipe</h1>
+        <p>
+          Vous êtes invité(e) à rejoindre
+          <strong>${nomEntreprise || "une entreprise"}</strong>
+          sur InternIn en tant que <strong>${roleLabel}</strong>.
+        </p>
+        <p style="margin: 24px 0;">
+          <a href="${invitationUrl}"
+             style="background:#111;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;">
+            Accepter l'invitation
+          </a>
+        </p>
+        <p style="color:#666;font-size:13px;">
+          Si vous n'êtes pas à l'origine de cette invitation, ignorez cet e-mail.
+        </p>
+      </div>
+    `,
+  });
+}
