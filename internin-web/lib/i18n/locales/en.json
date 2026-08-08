@@ -1,0 +1,1496 @@
+{
+  "nav": {
+    "home": "Home",
+    "howItWorks": "How it works",
+    "students": "Students",
+    "companies": "Companies",
+    "universities": "Universities",
+    "login": "Log in",
+    "signup": "Create account",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "internshipOffers": "Internship offers",
+    "applications": "Applications",
+    "interviews": "Interviews",
+    "myInternship": "My internship",
+    "certificates": "Certificates",
+    "messages": "Messages",
+    "myProfile": "My profile",
+    "universityPartnerships": "University partnerships",
+    "internTracking": "Intern tracking",
+    "team": "Team",
+    "studentsUniv": "Students",
+    "companiesUniv": "Companies",
+    "conventions": "Agreements",
+    "internshipSupervisors": "Internship supervisors",
+    "reports": "Reports",
+    "statistics": "Statistics",
+    "settings": "Settings",
+    "myInterns": "My interns",
+    "evaluations": "Evaluations",
+    "universitiesMgmt": "Universities",
+    "companiesMgmt": "Companies",
+    "users": "Users",
+    "flaggedReports": "Flagged reports",
+    "logout": "Logout",
+    "brand": "InternIn",
+    "mainMenu": "Main menu",
+    "requiresAttention": "Requires your attention"
+  },
+  "roles": {
+    "internSpace": "Intern Space",
+    "companySpace": "Company Space",
+    "universitySpace": "University Space",
+    "adminConsole": "Admin Console",
+    "supervisorSpace": "Supervisor Space",
+    "superAdmin": "Super admin",
+    "operations": "Operations",
+    "support": "Support",
+    "companyRelations": "Company Relations",
+    "universityRelations": "University Relations",
+    "compliance": "Compliance",
+    "administrator": "Administrator",
+    "supervisorFallback": "Supervisor",
+    "stageManager": "Internship coordinator",
+    "verified": "Verified",
+    "pending": "Pending",
+    "noSpaceAvailable": "No space available for your role yet.",
+    "dashboardUnavailable": "Dashboard unavailable for your profile."
+  },
+  "header": {
+    "searchPlaceholder": "Search...",
+    "notifications": "Notifications",
+    "markAllRead": "Mark all as read",
+    "deleteAll": "Delete all",
+    "deleteAllConfirm": "Delete all notifications?",
+    "noNotifications": "No notifications",
+    "deleteNotification": "Delete notification",
+    "logout": "Log out",
+    "openMenu": "Open menu",
+    "justNow": "just now",
+    "minutesAgo": "{n} min ago",
+    "hoursAgo": "{n} h ago",
+    "daysAgo": "{n} d ago"
+  },
+  "footer": {
+    "tagline": "Internship and employability platform connecting students, companies, and universities across Africa.",
+    "platform": "Platform",
+    "company": "Company",
+    "stayInformed": "Stay informed",
+    "newsletterText": "Get the latest news and internship opportunities.",
+    "emailPlaceholder": "Your email",
+    "emailAria": "Email address",
+    "subscribe": "Subscribe",
+    "about": "About",
+    "careers": "Careers",
+    "contact": "Contact",
+    "rights": "© 2026 InternIn. All rights reserved.",
+    "terms": "Terms of use · Privacy"
+  },
+  "languageSwitcher": {
+    "french": "Français",
+    "english": "English",
+    "selectLanguage": "Select language"
+  },
+  "marketing": {
+    "home": {
+      "hero": {
+        "eyebrow": "Connecting Education, Experience, and Opportunity",
+        "title": "Launch your career through internships that matter.",
+        "tagline": "Learn. Grow. Get recommended.",
+        "description": "InternIn connects students, universities, and companies through structured internship programs designed to build real professional experience and prepare the next generation of professionals.",
+        "checklist": [
+          "Discover verified opportunities matched to your skills",
+          "Get AI-powered coaching throughout your internship",
+          "Build a verified track record and recognized recommendations"
+        ],
+        "primaryCta": {
+          "label": "Create a free account",
+          "href": "/inscription"
+        },
+        "secondaryCta": {
+          "label": "See how it works",
+          "href": "#comment-ca-marche"
+        },
+        "floatCards": [
+          {
+            "icon": "shield",
+            "title": "Verified company",
+            "subtitle": "CodeLab · Software Engineering"
+          },
+          {
+            "icon": "award",
+            "title": "Certificate earned",
+            "subtitle": "Verified experience"
+          }
+        ],
+        "stats": [
+          ["120+", "Verified companies"],
+          ["340+", "Active internships"],
+          ["18", "Partner universities"],
+          ["560+", "Students placed"]
+        ]
+      },
+      "howItWorks": {
+        "eyebrow": "How it works for interns",
+        "title": "Your journey in 5 simple steps",
+        "steps": [
+          [
+            "Create your profile",
+            "Fill in your education, availability, skills, and interests."
+          ],
+          [
+            "Apply or get invited",
+            "Browse verified offers or receive direct invitations from companies."
+          ],
+          [
+            "Interview",
+            "Interviews scheduled and conducted directly on InternIn, with automatic reminders."
+          ],
+          [
+            "Learn & grow",
+            "Weekly evaluations from your supervisor and support from the AI Coach."
+          ],
+          [
+            "Get recognized",
+            "Certificate of completion and an official recommendation from your employer."
+          ]
+        ]
+      },
+      "features": {
+        "eyebrow": "Everything you need to grow",
+        "title": "Tools built for your success",
+        "features": [
+          {
+            "icon": "shield",
+            "title": "Verified Opportunities",
+            "desc": "Every company is verified before joining the platform.",
+            "color": "teal"
+          },
+          {
+            "icon": "sparkles",
+            "title": "AI Development Coach",
+            "desc": "Personalized guidance based on your real progress during the internship.",
+            "color": "violet"
+          },
+          {
+            "icon": "users",
+            "title": "Structured Mentorship",
+            "desc": "A dedicated supervisor to guide you and give weekly feedback.",
+            "color": "gold"
+          },
+          {
+            "icon": "clipboard",
+            "title": "Weekly Evaluations",
+            "desc": "Regular, concrete tracking of your progress, week after week.",
+            "color": "teal"
+          },
+          {
+            "icon": "award",
+            "title": "Verified Experience",
+            "desc": "Finish your internships with a recognized certificate and a verified-experience badge.",
+            "color": "violet"
+          },
+          {
+            "icon": "share",
+            "title": "Employer Recommendations",
+            "desc": "Get an official recommendation, shareable directly on LinkedIn.",
+            "color": "gold"
+          }
+        ]
+      },
+      "testimonial": {
+        "quote": "Thanks to the weekly follow-ups and the AI Coach, I finished my internship with a certificate and a recommendation that made a real difference on my resume.",
+        "name": "Amara K.",
+        "role": "Former intern, Software Engineering"
+      },
+      "faq": {
+        "eyebrow": "Frequently asked questions",
+        "title": "Questions? We have answers.",
+        "questions": [
+          [
+            "Can I apply to several internships?",
+            "Yes, as long as you don't have an active internship. As soon as an offer is accepted, your other pending applications are automatically deactivated."
+          ],
+          [
+            "Can companies see my contact details?",
+            "No. Your direct contact details are only visible to the company once your internship is activated, after the agreement is accepted."
+          ],
+          ["Is InternIn free?", "Yes, InternIn is entirely free for interns."]
+        ]
+      },
+      "cta": {
+        "title": "Ready to get started?",
+        "description": "Create your free account today and start building your future.",
+        "ctaLabel": "Create an account"
+      }
+    },
+    "students": {
+      "hero": {
+        "eyebrow": "For Students",
+        "title": "Find the internship that launches your career.",
+        "tagline": "Learn. Grow. Succeed.",
+        "description": "InternIn helps you discover meaningful internship opportunities, develop essential skills, and build an experience that sets you apart.",
+        "checklist": [
+          "Find opportunities matched to your skills and interests",
+          "Get AI-powered mentorship and coaching",
+          "Build a verified track record and get recommended"
+        ],
+        "primaryCta": {
+          "label": "Create a student account",
+          "href": "/inscription/stagiaire"
+        },
+        "secondaryCta": { "label": "Explore internships", "href": "/offres" },
+        "floatCards": [
+          {
+            "icon": "users",
+            "title": "10K+ active interns",
+            "subtitle": "Growing community"
+          },
+          {
+            "icon": "award",
+            "title": "560+ certificates issued",
+            "subtitle": "Verified experience"
+          }
+        ],
+        "stats": []
+      },
+      "howItWorks": {
+        "eyebrow": "How it works for interns",
+        "title": "Your journey in 4 steps",
+        "steps": [
+          [
+            "Discover",
+            "Browse internships matched to your skills, interests, and availability."
+          ],
+          [
+            "Apply or get invited",
+            "Apply to opportunities or receive invitations from interested companies."
+          ],
+          [
+            "Interview & selection",
+            "Interview directly on the platform and get selected for the right role."
+          ],
+          [
+            "Learn & get recommended",
+            "Complete your internship, receive mentorship, and earn verified recommendations."
+          ]
+        ]
+      },
+      "features": {
+        "eyebrow": "Everything you need to grow",
+        "title": "Tools built for your success",
+        "features": [
+          {
+            "icon": "sparkles",
+            "title": "AI Career Coach",
+            "desc": "Personalized guidance to help you progress and reach your goals.",
+            "color": "violet"
+          },
+          {
+            "icon": "clipboard",
+            "title": "Skill Development",
+            "desc": "Access resources and recommendations tailored to your progress.",
+            "color": "teal"
+          },
+          {
+            "icon": "message",
+            "title": "Weekly Feedback",
+            "desc": "Receive feedback from your supervisor to track your progress every week.",
+            "color": "gold"
+          },
+          {
+            "icon": "shield",
+            "title": "Verified Experience",
+            "desc": "Showcase your internships with verified certificates and stronger credibility.",
+            "color": "teal"
+          },
+          {
+            "icon": "award",
+            "title": "Get Recommended",
+            "desc": "Get recommended by your supervisor to stand out to employers.",
+            "color": "violet"
+          },
+          {
+            "icon": "target",
+            "title": "Development Goals",
+            "desc": "Work on targeted soft skills throughout your internship.",
+            "color": "gold"
+          }
+        ]
+      },
+      "faq": {
+        "eyebrow": "Questions for interns",
+        "title": "Questions? We have answers.",
+        "questions": [
+          [
+            "How do I create an account?",
+            "Click \"Create a student account\", enter your email, and complete your profile in a few steps."
+          ],
+          [
+            "Is there a fee to use InternIn?",
+            "No, using InternIn is entirely free for interns."
+          ],
+          [
+            "How are internships matched to my profile?",
+            "Our filters and your profile (skills, availability, interests) are used to suggest relevant offers."
+          ],
+          [
+            "What kind of support will I receive?",
+            "A dedicated supervisor at the company, weekly evaluations, and a personalized AI Coach throughout the internship."
+          ]
+        ]
+      },
+      "cta": {
+        "title": "Ready for the next step in your career?",
+        "description": "Join thousands of students gaining real professional experience.",
+        "ctaLabel": "Create my account"
+      }
+    },
+    "companies": {
+      "hero": {
+        "eyebrow": "For Companies",
+        "title": "Build today's talent. Train tomorrow's leaders.",
+        "tagline": "",
+        "description": "InternIn helps companies discover, mentor, and develop top student talent through a complete internship management platform.",
+        "checklist": [
+          "Find and recruit the right interns, faster",
+          "Provide structured mentorship and track their progress",
+          "Build a pipeline of future full-time talent"
+        ],
+        "primaryCta": {
+          "label": "Post an internship offer",
+          "href": "/inscription/entreprise"
+        },
+        "secondaryCta": {
+          "label": "Create a company account",
+          "href": "/inscription/entreprise"
+        },
+        "floatCards": [
+          {
+            "icon": "briefcase",
+            "title": "120+ partner companies",
+            "subtitle": "Verified community"
+          },
+          {
+            "icon": "chart",
+            "title": "95% satisfaction",
+            "subtitle": "On supervised internships"
+          }
+        ],
+        "stats": [
+          ["120+", "Partner companies"],
+          ["340+", "Active interns"],
+          ["95%", "Satisfaction rate"]
+        ]
+      },
+      "howItWorks": {
+        "eyebrow": "How it works for companies",
+        "title": "A simple process, a powerful impact",
+        "steps": [
+          [
+            "Post an offer",
+            "Create and publish your internship offer in minutes."
+          ],
+          [
+            "Discover talent",
+            "Browse matching profiles or invite students directly."
+          ],
+          [
+            "Interview & selection",
+            "Schedule interviews, evaluate candidates, and choose the right fit."
+          ],
+          [
+            "Onboard & mentor",
+            "Onboard the intern, set learning goals, and track their progress."
+          ],
+          [
+            "Guide & grow",
+            "Give feedback, support their growth, and build a talent pipeline."
+          ]
+        ]
+      },
+      "features": {
+        "eyebrow": "Everything you need to manage your internships",
+        "title": "Powerful tools for your team",
+        "features": [
+          {
+            "icon": "users",
+            "title": "Talent Matching",
+            "desc": "Find qualified candidates based on skills, interests, and availability.",
+            "color": "teal"
+          },
+          {
+            "icon": "calendar",
+            "title": "Interview Scheduling",
+            "desc": "Schedule interviews directly with Google Meet integration.",
+            "color": "violet"
+          },
+          {
+            "icon": "clipboard",
+            "title": "Internship Management",
+            "desc": "Track your interns' tasks, goals, and progress in one place.",
+            "color": "gold"
+          },
+          {
+            "icon": "message",
+            "title": "Weekly Feedback",
+            "desc": "Provide weekly evaluations and help your interns improve.",
+            "color": "teal"
+          },
+          {
+            "icon": "target",
+            "title": "Learning Goals",
+            "desc": "Set clear goals and measure real skill development.",
+            "color": "violet"
+          },
+          {
+            "icon": "award",
+            "title": "Recommend & Hire",
+            "desc": "Recommend your best interns and convert them into full-time employees.",
+            "color": "gold"
+          }
+        ]
+      },
+      "testimonial": {
+        "quote": "InternIn transformed the way we manage our internship program. We find great talent, mentor them effectively, and build strong teams for the future.",
+        "name": "Chinedu Okafor",
+        "role": "HR Manager, CodeLab"
+      },
+      "faq": {
+        "eyebrow": "Questions for companies",
+        "title": "Frequently asked questions",
+        "questions": [
+          [
+            "How much does it cost to post an internship offer?",
+            "Posting offers is free to start. A freemium model with advanced options is available for companies wanting more visibility."
+          ],
+          [
+            "How do I find the right interns?",
+            "Use our matching filters (skills, availability, interests) or invite verified profiles directly."
+          ],
+          [
+            "Can I invite students directly?",
+            "Yes, you can browse verified profiles and directly invite candidates you're interested in to an interview."
+          ],
+          [
+            "How does the interview process work?",
+            "Interviews are scheduled and conducted directly on the platform, with Google Meet integration and automatic reminders."
+          ],
+          [
+            "Can I convert an intern into a full-time employee?",
+            "Yes, at the end of the internship you can recommend and offer full-time employment directly through the platform."
+          ]
+        ]
+      },
+      "cta": {
+        "title": "Ready to build your next generation of talent?",
+        "description": "Join hundreds of companies already recruiting and developing interns on InternIn.",
+        "ctaLabel": "Post an internship offer"
+      }
+    },
+    "universities": {
+      "hero": {
+        "eyebrow": "For Universities",
+        "title": "Strengthen your students' employability. Build ties with the professional world.",
+        "tagline": "",
+        "description": "InternIn helps universities bridge the gap between the classroom and real professional experience, through quality internships and real-time tracking.",
+        "checklist": [
+          "Strengthen employability with relevant internship opportunities",
+          "Track your students' progress and outcomes in real time",
+          "Build strong partnerships with leading companies"
+        ],
+        "primaryCta": {
+          "label": "Become an InternIn partner",
+          "href": "/inscription/universite"
+        },
+        "secondaryCta": { "label": "Request a demo", "href": "#" },
+        "floatCards": [
+          {
+            "icon": "users",
+            "title": "18 partner universities",
+            "subtitle": "Growing network"
+          },
+          {
+            "icon": "chart",
+            "title": "560+ students placed",
+            "subtitle": "Real-time tracking"
+          }
+        ],
+        "stats": [
+          ["18", "Partner universities"],
+          ["560+", "Students placed"],
+          ["340+", "Active internships"]
+        ]
+      },
+      "howItWorks": {
+        "eyebrow": "How it works for universities",
+        "title": "A streamlined partnership for real impact",
+        "steps": [
+          [
+            "Onboard your institution",
+            "Become an InternIn partner and set up your university on the platform."
+          ],
+          [
+            "Invite your students",
+            "Onboard your students and set their internship availability."
+          ],
+          [
+            "Opportunities & matching",
+            "Your students discover and apply to offers from verified companies."
+          ],
+          [
+            "Track & support",
+            "Track progress, provide support, and ensure a quality experience."
+          ],
+          [
+            "Measure & improve",
+            "Access reports and metrics to strengthen your partnerships."
+          ]
+        ]
+      },
+      "features": {
+        "eyebrow": "Everything you need to support your students",
+        "title": "Tools and benefits for your institution",
+        "features": [
+          {
+            "icon": "users",
+            "title": "Student Management",
+            "desc": "Easily manage profiles, availability, and placement status.",
+            "color": "teal"
+          },
+          {
+            "icon": "briefcase",
+            "title": "Access to Opportunities",
+            "desc": "Your students access verified internships with leading companies.",
+            "color": "violet"
+          },
+          {
+            "icon": "linechart",
+            "title": "Real-Time Tracking",
+            "desc": "Track progress, feedback, and learning outcomes.",
+            "color": "gold"
+          },
+          {
+            "icon": "shield",
+            "title": "Mentorship Oversight",
+            "desc": "Ensure your students receive quality mentorship and support.",
+            "color": "teal"
+          },
+          {
+            "icon": "barchart",
+            "title": "Performance Metrics",
+            "desc": "Concrete data to measure impact and student employability.",
+            "color": "violet"
+          },
+          {
+            "icon": "handshake",
+            "title": "Industry Partnerships",
+            "desc": "Connect with companies and build lasting collaborations.",
+            "color": "gold"
+          }
+        ]
+      },
+      "testimonial": {
+        "quote": "InternIn has become a core part of our commitment to experiential learning. Our students gain real-world experience, and our institution gets valuable data to improve outcomes.",
+        "name": "Dr. Amina Yusuf",
+        "role": "Director of Career Services, Greenfield University"
+      },
+      "faq": {
+        "eyebrow": "Questions for universities",
+        "title": "We have answers.",
+        "questions": [
+          [
+            "How can my university become an InternIn partner?",
+            "Contact our team via the \"Become a partner\" button to set up your institution on the platform."
+          ],
+          [
+            "How do students get started?",
+            "Once your university is onboarded, you invite your students, who then create their profile to search for internships."
+          ],
+          [
+            "Can we track student performance and feedback?",
+            "Yes, a dedicated dashboard lets you track your students' progress, weekly evaluations, and outcomes in real time."
+          ],
+          [
+            "What kinds of companies are on InternIn?",
+            "All companies are verified by our team before they can publish internship offers."
+          ],
+          [
+            "Is there a cost for universities?",
+            "The basic partnership is free. Contact us to discuss advanced reporting and support options."
+          ]
+        ]
+      },
+      "cta": {
+        "title": "Let's build a better future for your students together",
+        "description": "Join universities already supporting their students through meaningful internships and strong partnerships.",
+        "ctaLabel": "Become an InternIn partner"
+      }
+    },
+    "about": {
+      "hero": {
+        "eyebrow": "Our mission",
+        "title": "Connecting Education, Experience, and Opportunity.",
+        "tagline": "",
+        "description": "InternIn was born from a simple observation: too many students finish their studies without real experience, and too many companies struggle to spot tomorrow's talent. We're building the bridge between the two.",
+        "checklist": [
+          "Structured, measurable, and meaningful internships",
+          "Human support, strengthened by artificial intelligence",
+          "A platform built for Africa, by and for its youth"
+        ],
+        "primaryCta": {
+          "label": "Create a free account",
+          "href": "/inscription"
+        },
+        "secondaryCta": { "label": "Contact us", "href": "#" },
+        "floatCards": [],
+        "stats": []
+      },
+      "missionStory": {
+        "eyebrow": "About InternIn",
+        "title": "Training future-ready professionals across Africa",
+        "tiles": [
+          ["12", "Internship cycle stages"],
+          ["4", "Connected communities"],
+          ["100%", "Free for interns"],
+          ["AI", "Personalized coaching"]
+        ],
+        "paragraphs": [
+          "InternIn was created to close the gap between education and employment. Too many students graduate without hands-on experience, while companies struggle to identify and develop emerging talent.",
+          "We're changing that by making internships structured, measurable, and geared toward professional development. Our platform brings together students, universities, and employers to create enriching internship experiences, backed by mentorship, accountability, and AI-assisted professional development.",
+          "Because every student deserves the chance to gain real experience before entering the job market."
+        ]
+      },
+      "features": {
+        "eyebrow": "What guides us",
+        "title": "Our values",
+        "features": [
+          {
+            "icon": "target",
+            "title": "Clarity first",
+            "desc": "Every interaction has a clear purpose, with no unnecessary clutter.",
+            "color": "teal"
+          },
+          {
+            "icon": "sparkles",
+            "title": "Room to breathe",
+            "desc": "A calm, considered experience — never overwhelming.",
+            "color": "violet"
+          },
+          {
+            "icon": "shield",
+            "title": "Consistency",
+            "desc": "The same landmarks everywhere on the platform, so you never get lost.",
+            "color": "gold"
+          },
+          {
+            "icon": "users",
+            "title": "Professional yet approachable",
+            "desc": "\"I belong here\" — never intimidation.",
+            "color": "teal"
+          },
+          {
+            "icon": "handshake",
+            "title": "People first",
+            "desc": "Behind every profile, a real person to support.",
+            "color": "violet"
+          },
+          {
+            "icon": "linechart",
+            "title": "Growth-focused",
+            "desc": "Built to help people progress, not just connect.",
+            "color": "gold"
+          }
+        ]
+      },
+      "cta": {
+        "title": "Join the movement",
+        "description": "Student, company, or university — let's build tomorrow's employability together.",
+        "ctaLabel": "Create an account"
+      }
+    },
+    "categoriesGrid": {
+      "eyebrow": "Internship fields",
+      "title": "Explore internships by field",
+      "description": "From tech to marketing, finance to design — find opportunities at verified companies.",
+      "browseAll": "Browse all internships",
+      "categories": [
+        [
+          "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=500&q=80",
+          "Software Engineering",
+          "Web & mobile development"
+        ],
+        [
+          "https://images.unsplash.com/photo-1553877522-43269d4ea984?auto=format&fit=crop&w=500&q=80",
+          "Marketing",
+          "Campaigns & social media"
+        ],
+        [
+          "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=500&q=80",
+          "Finance",
+          "Analysis & reporting"
+        ],
+        [
+          "https://images.unsplash.com/photo-1587440871875-191322ee64b0?auto=format&fit=crop&w=500&q=80",
+          "UI/UX Design",
+          "Interfaces & experience"
+        ]
+      ]
+    },
+    "audienceCards": {
+      "eyebrow": "Built for everyone",
+      "title": "An ecosystem for every player in the internship journey",
+      "students": {
+        "title": "Students",
+        "desc": "Launch your career with a rewarding professional experience.",
+        "cta": "Create a student account"
+      },
+      "companies": {
+        "title": "Companies",
+        "desc": "Spot tomorrow's talent and help develop the next generation.",
+        "cta": "Register my company"
+      },
+      "universities": {
+        "title": "Universities",
+        "desc": "Boost your students' employability and track their progress.",
+        "cta": "Become a partner"
+      }
+    }
+  },
+  "auth": {
+    "brandPanel": {
+      "title": "Launch your career through internships that matter.",
+      "description": "Join a community of students, companies, and universities building tomorrow's employability.",
+      "stats": [
+        ["120+", "Verified companies"],
+        ["340+", "Active internships"],
+        ["560+", "Students placed"]
+      ],
+      "quote": "Thanks to the weekly follow-ups and the AI Coach, I finished my internship with a certificate and a recommendation that made a real difference on my resume.",
+      "quoteName": "Amara K.",
+      "quoteRole": "Former intern, Software Engineering"
+    },
+    "shared": {
+      "emailLabel": "Email address",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "Password",
+      "confirmPasswordLabel": "Confirm password",
+      "orContinueWith": "or continue with",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "continueWithGoogle": "Continue with Google"
+    },
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Log in to access your internships, applications, and messages.",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "submitting": "Logging in...",
+      "submit": "Log in",
+      "noAccount": "Don't have an account yet?",
+      "createAccount": "Create an account"
+    },
+    "signup": {
+      "changeProfile": "Change profile",
+      "subtitle": "This step only takes a minute — you'll complete your profile next.",
+      "passwordPlaceholder": "8 characters minimum",
+      "acceptTermsPrefix": "I agree to the",
+      "termsOfUse": "Terms of Use",
+      "and": "and the",
+      "privacyPolicy": "Privacy Policy",
+      "acceptTermsSuffix": "of InternIn.",
+      "submitting": "Creating account...",
+      "submit": "Create my account",
+      "alreadyAccount": "Already have an account?",
+      "login": "Log in",
+      "roleLabels": {
+        "stagiaire": "Student",
+        "entreprise": "Company",
+        "universite": "University"
+      },
+      "titles": {
+        "stagiaire": "Create your student account",
+        "entreprise": "Create your company account",
+        "universite": "Create your university account"
+      }
+    },
+    "forgotPassword": {
+      "backToLogin": "Back to login",
+      "title": "Forgot your password?",
+      "subtitle": "Enter your email address and we'll send you a link to reset it.",
+      "submitting": "Sending...",
+      "submit": "Send reset link",
+      "confirmTitle": "Check your inbox",
+      "confirmIfAccountFor": "If an account exists for",
+      "confirmWillReceive": "you'll receive a link to reset your password within a few minutes."
+    },
+    "invitation": {
+      "checking": "Checking invitation...",
+      "joinCompany": "Join {company}",
+      "invitedAs": "you've been invited as",
+      "choosePassword": "Choose a password to activate your account ({email}).",
+      "submitting": "Activating...",
+      "submit": "Activate my account"
+    },
+    "verifyEmail": {
+      "checking": "Checking...",
+      "successTitle": "Email verified!",
+      "successDesc": "Your email address has been confirmed. You can now log in.",
+      "login": "Log in",
+      "errorTitle": "Invalid or expired link",
+      "errorDesc": "This verification link is no longer valid. Request a new one below.",
+      "resendIn": "Resend in {n}s",
+      "resendVerification": "Resend verification email",
+      "pendingTitle": "Confirm your email address",
+      "pendingDesc": "We've sent you a confirmation link. Click it to activate your InternIn account.",
+      "resend": "Resend email",
+      "sessionRequired": "Your session is required to resend the verification email.",
+      "loginToResend": "Log in again to request a new verification email."
+    },
+    "roleSelection": {
+      "title": "Create an account",
+      "subtitle": "Tell us who you are to personalize your InternIn experience.",
+      "student": {
+        "title": "I'm a student",
+        "desc": "Find an internship and grow your career."
+      },
+      "company": {
+        "title": "I represent a company",
+        "desc": "Post offers and recruit talent."
+      },
+      "university": {
+        "title": "I represent a university",
+        "desc": "Support your students into employment."
+      },
+      "alreadyAccount": "Already have an account?",
+      "login": "Log in"
+    },
+    "passwordRequirements": {
+      "title": "Your password must meet the following requirements",
+      "minLength": "At least 8 characters",
+      "uppercase": "At least one uppercase letter",
+      "lowercase": "At least one lowercase letter",
+      "number": "At least one number",
+      "special": "At least one special character"
+    },
+    "resetPassword": {
+      "title": "Reset your password",
+      "subtitle": "Choose a new password for your InternIn account.",
+      "submit": "Reset password",
+      "submitting": "Resetting...",
+      "successTitle": "Password reset",
+      "successSubtitle": "Your password has been updated. You can now sign in.",
+      "backToLogin": "Back to sign in",
+      "invalidLinkTitle": "Invalid or expired link",
+      "invalidLinkSubtitle": "This reset link is no longer valid. Please request a new one.",
+      "requestNewLink": "Request a new link"
+    }
+  },
+  "dashboard": {
+    "coachIA": {
+      "title": "AI Coach",
+      "description": "Prepare for your interviews with a personalized coach — coming soon.",
+      "comingSoon": "Coming soon",
+      "startSession": "Start session"
+    },
+    "quoteOfDay": {
+      "quotes": [
+        "Success comes to those who dare to apply.",
+        "Every application you send is one step closer to opportunity.",
+        "Perseverance turns rejections into experience.",
+        "A great profile needs upkeep: update it today, get an extra offer tomorrow.",
+        "The best time to apply is now.",
+        "Your next internship starts with the application you haven't sent yet.",
+        "Confidence is built one interview at a time."
+      ]
+    },
+    "nextInterview": {
+      "title": "Next interview",
+      "noneScheduled": "No interview scheduled yet.",
+      "viewDetails": "View details",
+      "modes": {
+        "video": "Video call",
+        "telephone": "Phone call",
+        "presentiel": "In person"
+      }
+    },
+    "quickActions": {
+      "search": "Find an internship",
+      "applications": "My applications",
+      "favorites": "Favorites",
+      "editProfile": "Edit my profile",
+      "comingSoon": "Coming soon"
+    },
+    "nextStep": {
+      "title": "Your next step",
+      "remainingOne": "{n} action left to complete your profile",
+      "remainingMany": "{n} actions left to complete your profile",
+      "complete": "Profile complete, well done!",
+      "steps": {
+        "addCv": "Add your resume",
+        "addPhoto": "Add a profile picture",
+        "verifyEmail": "Verify your email",
+        "addSkills": "Add your skills"
+      }
+    },
+    "welcome": {
+      "greeting": "Hello {name} 👋",
+      "completeProfile": "Complete your profile — {score}%",
+      "verifiedAccount": "Verified account",
+      "editProfile": "Edit profile"
+    },
+    "evolutionCard": {
+      "title": "Application trends",
+      "totalOverMonths": "{total} over 6 months",
+      "seriesName": "Applications",
+      "months": [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec"
+      ]
+    },
+    "profileCard": {
+      "cvUploaded": "Resume uploaded",
+      "noCv": "No resume uploaded",
+      "profileCompleted": "Profile completed",
+      "completeProfile": "Complete my profile",
+      "yearLabel": "Year {n}"
+    },
+    "calendar": {
+      "weekDays": ["M", "T", "W", "T", "F", "S", "S"],
+      "interview": "Interview"
+    },
+    "loading": "Loading your profile...",
+    "loadError": "Unable to load your profile. Check that the backend API is running.",
+    "activity": {
+      "title": "Recent activity",
+      "noActivity": "No activity yet.",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "applied": "You applied to {company}"
+    },
+    "recentApplications": {
+      "title": "Recent applications",
+      "viewAll": "View all",
+      "empty": "No applications yet"
+    },
+    "recommendedOffers": {
+      "title": "Offers picked for you",
+      "viewAll": "View all"
+    },
+    "quickStats": {
+      "applications": "Applications",
+      "thisWeek": "+{n} this week",
+      "companiesViewed": "Companies viewed",
+      "savedOffers": "Saved offers",
+      "comingSoon": "Coming soon",
+      "interviews": "Interviews",
+      "internshipsObtained": "Internships obtained"
+    }
+  },
+  "workMode": {
+    "distance": "Remote",
+    "hybride": "Hybrid",
+    "presentiel": "On-site"
+  },
+  "applicationStatus": {
+    "soumise": "Submitted",
+    "consultee": "Viewed",
+    "preselectionnee": "Shortlisted",
+    "rejetee": "Rejected",
+    "retiree": "Withdrawn",
+    "acceptee": "Accepted",
+    "interview": "Interview",
+    "selected": "Selected"
+  },
+  "pages": {
+    "dashboard": "Tableau de bord",
+    "offers": "Stages disponibles",
+    "offerDetail": "Détail de l'offre"
+  },
+  "offersPage": {
+    "header": {
+      "title": "Available internships",
+      "subtitle": "Discover offers matching your profile"
+    },
+    "count": {
+      "available": "{n} offer available",
+      "availablePlural": "{n} offers available",
+      "new": "✨ {n} new",
+      "newPlural": "✨ {n} new",
+      "filtersActive": "{n} filter active",
+      "filtersActivePlural": "{n} filters active"
+    },
+    "loadError": "Unable to load offers. Make sure the backend API is running.",
+    "empty": {
+      "title": "No offers found",
+      "filtered": "No offer matches your search or selected filters.",
+      "none": "No offers available right now. Check back soon!",
+      "resetFilters": "Reset filters"
+    },
+    "viewToggle": {
+      "grid": "Grid view",
+      "list": "List view"
+    },
+    "filters": {
+      "searchPlaceholder": "Search for an internship, a company, a city...",
+      "filtersButton": "Filters",
+      "all": "All",
+      "city": "City",
+      "allCities": "All cities",
+      "workType": "Work type",
+      "allTypes": "All types",
+      "remuneration": "Compensation",
+      "allRemuneration": "All",
+      "resetFilters": "Reset filters ({n})",
+      "modeLabels": {
+        "distance": "Video / Remote",
+        "hybride": "Hybrid",
+        "presentiel": "On-site"
+      }
+    },
+    "apply": {
+      "cta": "🚀 Apply now",
+      "dialogTitle": "Apply — {title}",
+      "coverLetter": "Cover letter",
+      "optional": "(optional)",
+      "coverLetterPlaceholder": "Explain why this internship interests you...",
+      "sending": "Sending...",
+      "submit": "Submit my application"
+    },
+    "card": {
+      "new": "✨ New",
+      "viewOffer": "View offer",
+      "saveComingSoon": "Coming soon",
+      "saveAria": "Save (coming soon)"
+    },
+    "applicationStatusLong": {
+      "soumise": "Application sent",
+      "consultee": "Application viewed",
+      "preselectionnee": "Shortlisted",
+      "entretien": "Interview in progress",
+      "acceptee": "Application accepted",
+      "rejetee": "Not selected",
+      "retiree": "Application withdrawn"
+    },
+    "notFound": {
+      "title": "Offer not found",
+      "description": "This offer may no longer be available or has been removed.",
+      "back": "Back to offers"
+    },
+    "infoGrid": {
+      "title": "Internship details",
+      "location": "Location",
+      "workType": "Work type",
+      "positions": "Available positions",
+      "position": "{n} position",
+      "positionsPlural": "{n} positions",
+      "remuneration": "Compensation",
+      "duration": "Duration",
+      "publicationDate": "Publication date",
+      "deadline": "Application deadline"
+    },
+    "sidebar": {
+      "summary": "Offer summary",
+      "remuneration": "💰 Compensation",
+      "location": "Location",
+      "mode": "Type",
+      "duration": "Duration",
+      "deadline": "Deadline",
+      "application": "Application",
+      "sent": "✓ Application sent",
+      "openText": "This offer is open for applications. An optional cover letter can accompany your submission.",
+      "saveForLater": "Save for later"
+    },
+    "detail": {
+      "title": "Internship details",
+      "description": "Description",
+      "responsibilities": "Responsibilities",
+      "requiredSkills": "Required skills",
+      "learningOpportunities": "Learning opportunities & what you will learn",
+      "aboutCompany": "About {company}",
+      "companyLogo": "Company logo"
+    }
+  },
+  "remunerationLabels": {
+    "aucune": "Unpaid",
+    "indemnite_transport": "Transport allowance",
+    "indemnite_repas": "Meal allowance",
+    "indemnite_internet_appel": "Internet / phone allowance",
+    "allocation_mensuelle": "Monthly allowance",
+    "perMonthAmount": "{amount} FCFA/month",
+    "paid": "Paid"
+  },
+  "candidaturesPage": {
+    "header": {
+      "title": "My applications",
+      "subtitle": "Track the progress of your internship applications",
+      "countOne": "{n} application",
+      "countOther": "{n} applications"
+    },
+    "loadError": "Unable to load your applications.",
+    "sort": {
+      "recent": "Sort by: Most recent",
+      "oldest": "Sort by: Oldest",
+      "company": "Sort by: Company (A-Z)"
+    },
+    "filters": {
+      "searchPlaceholder": "Search for a company or offer...",
+      "all": "All",
+      "pending": "Pending",
+      "reviewed": "Reviewed",
+      "interview": "Interview",
+      "accepted": "Accepted",
+      "rejected": "Rejected"
+    },
+    "stats": {
+      "total": "Total",
+      "pending": "Pending",
+      "reviewed": "Reviewed",
+      "interviews": "Interviews",
+      "responses": "Responses"
+    },
+    "status": {
+      "rejected": "Rejected",
+      "accepted": "Accepted",
+      "withdrawn": "Withdrawn",
+      "interview": "Interview",
+      "reviewed": "Reviewed",
+      "pending": "Pending",
+      "details": {
+        "startDate": "Starting on {date}",
+        "interviewProposed": "Interview proposed — {date}, to be confirmed",
+        "interviewConfirmedByYou": "Interview confirmed on your side — {date}",
+        "interviewConfirmed": "Interview confirmed — {date}",
+        "rescheduleRequested": "Reschedule requested, awaiting the company's response",
+        "interviewPast": "Interview completed — company response pending",
+        "reviewedByCompany": "Your application has been reviewed by the company",
+        "awaitingResponse": "Awaiting a response from the company"
+      }
+    },
+    "timeline": {
+      "sent": "Sent",
+      "reviewed": "Reviewed",
+      "interview": "Interview",
+      "decision": "Decision",
+      "withdrawnMessage": "You have withdrawn this application."
+    },
+    "card": {
+      "viewOffer": "View offer",
+      "viewTracking": "View tracking",
+      "sentOn": "Sent on {date} · {since}",
+      "modeLabels": {
+        "distance": "Remote",
+        "hybride": "Hybrid",
+        "presentiel": "On-site"
+      }
+    },
+    "since": {
+      "today": "today",
+      "oneDay": "1 day ago",
+      "days": "{n} days ago"
+    },
+    "empty": {
+      "noneTitle": "No applications",
+      "noneText": "You haven't submitted any applications yet. Find your next internship now.",
+      "noneCta": "Explore offers",
+      "filteredTitle": "No applications found",
+      "filteredText": "Try a different filter or show all your applications.",
+      "filteredCta": "Show all applications"
+    },
+    "drawer": {
+      "title": "Application tracking",
+      "closeAria": "Close tracking",
+      "currentStatus": "Current status",
+      "progress": "Progress",
+      "applicationDate": "Application date",
+      "viewOffer": "View offer"
+    }
+  },
+  "durationLabels": {
+    "1_mois": "1 month",
+    "2_mois": "2 months",
+    "3_mois": "3 months"
+  },
+  "candidatures": {
+    "card": {
+      "sentOn": "Sent on {date} ·",
+      "viewOffer": "View offer",
+      "viewTracking": "View application tracking"
+    },
+    "countMany": "{n} applications",
+    "countOne": "{n} application",
+    "drawer": {
+      "applicationDate": "Application date",
+      "closeAria": "Close application tracking",
+      "currentStatus": "Current status",
+      "progress": "Progress",
+      "title": "Application tracking",
+      "viewOffer": "View offer"
+    },
+    "empty": {
+      "exploreButton": "Explore offers",
+      "filteredDesc": "Try another filter or display all your applications.",
+      "filteredTitle": "No applications found",
+      "noneDesc": "You haven't submitted any applications yet. Find your next internship now.",
+      "noneTitle": "No applications",
+      "resetButton": "Show all applications"
+    },
+    "filters": {
+      "accepted": "Accepted",
+      "all": "All",
+      "interview": "Interview",
+      "pending": "Pending",
+      "rejected": "Rejected",
+      "searchPlaceholder": "Search for a company or offer...",
+      "viewed": "Viewed"
+    },
+    "loadError": "Unable to load your applications.",
+    "pageSubtitle": "Track the progress of your internship applications",
+    "pageTitle": "My applications",
+    "since": {
+      "manyDays": "{n} days ago",
+      "oneDay": "1 day ago",
+      "today": "today"
+    },
+    "sort": {
+      "company": "Company (A-Z)",
+      "oldest": "Oldest",
+      "prefix": "Sort:",
+      "recent": "Most recent"
+    },
+    "stats": {
+      "interviews": "Interviews",
+      "pending": "Pending",
+      "responses": "Responses",
+      "total": "Total",
+      "viewed": "Viewed"
+    },
+    "status": {
+      "accepted": {
+        "detail": "Starting on {date}",
+        "label": "Accepted"
+      },
+      "interview": {
+        "confirme": "Interview confirmed — {date}",
+        "label": "Interview",
+        "planifie": "Interview proposed — {date}, confirmation required",
+        "reprogramme": "Rescheduling requested, waiting for the company",
+        "termine": "Interview completed — waiting for the company's response",
+        "valide": "Interview confirmed on your side — {date}"
+      },
+      "pending": {
+        "detail": "Waiting for the company's response",
+        "label": "Pending"
+      },
+      "rejected": {
+        "label": "Rejected"
+      },
+      "viewed": {
+        "detail": "Your application has been viewed by the company",
+        "label": "Viewed"
+      },
+      "withdrawn": {
+        "label": "Withdrawn"
+      }
+    },
+    "timeline": {
+      "decision": "Decision",
+      "interview": "Interview",
+      "sent": "Sent",
+      "viewed": "Viewed",
+      "withdrawn": "You withdrew this application."
+    },
+    "modes": {
+      "remote": "Remote",
+      "hybrid": "Hybrid",
+      "onsite": "On-site"
+    }
+  },
+  "interviews": {
+    "pageTitle": "My interviews",
+    "pageSubtitle": "Manage and track your upcoming internship appointments",
+
+    "error": "Unable to load your interviews.",
+
+    "stats": {
+      "upcoming": "Upcoming",
+      "today": "Today",
+      "completed": "Completed"
+    },
+
+    "filters": {
+      "searchPlaceholder": "Search for a company or offer...",
+      "upcoming": "Upcoming",
+      "today": "Today",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "all": "All",
+      "noResult": "No interviews match this filter.",
+      "showAll": "Show all interviews"
+    },
+
+    "views": {
+      "all": "All my interviews",
+      "cards": "Cards",
+      "agenda": "Agenda",
+      "calendar": "Calendar"
+    },
+
+    "empty": {
+      "title": "No interviews scheduled",
+      "withApplications": "You have ongoing applications, but no interview has been scheduled yet.",
+      "withoutApplications": "You currently have no interview scheduled.",
+      "viewApplications": "View my applications",
+      "exploreApplications": "Explore my applications"
+    },
+
+    "next": {
+      "title": "Next interview",
+      "details": "View details",
+      "join": "Join"
+    },
+
+    "history": {
+      "title": "Previous interviews",
+      "viewAll": "View full history ({n})"
+    },
+
+    "status": {
+      "pendingResponse": "Waiting for your response",
+      "pending": "Pending",
+      "validatedWaiting": "Validated — waiting for confirmation",
+      "validated": "Validated",
+      "confirmed": "Confirmed",
+      "rescheduling": "Rescheduling requested",
+      "rescheduled": "Rescheduled",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "absenceNoted": "Absence noted",
+      "absence": "Absent"
+    },
+
+    "modes": {
+      "video": "Video conference",
+      "phone": "Phone",
+      "phoneCall": "Phone call",
+      "onsite": "On-site"
+    },
+
+    "relative": {
+      "today": "Today",
+      "tomorrow": "Tomorrow"
+    },
+
+    "countdown": {
+      "minutes": "Starts in {n} min",
+      "hoursMinutes": "Starts in {hours}h {minutes}min"
+    },
+
+    "card": {
+      "interviewer": "Interviewer",
+      "preparationNotes": "Preparation notes",
+      "addPreparationNotes": "+ Add preparation notes",
+      "preparationPlaceholder": "Prepare: SQL case study, final-year data project...",
+      "save": "Save",
+      "cancel": "Cancel",
+      "joinVideo": "Join video interview",
+      "rescheduleProposal": "Your proposal ({date}) has been sent to the company. Waiting for their response.",
+      "cancelInterview": "Cancel interview",
+      "cancelInterviewQuestion": "Cancel interview?",
+      "cancellationReasonInfo": "Please provide the reason for cancellation. It will remain visible in your history.",
+      "cancellationPlaceholder": "Explain why you are cancelling this interview...",
+      "back": "Back",
+      "confirmCancellation": "Confirm cancellation",
+      "validateInterview": "Confirm interview",
+      "reschedule": "Reschedule",
+      "reschedulePlaceholder": "Explain why you are proposing another date...",
+      "sendProposal": "Send proposal",
+      "cancelledReason": "Interview cancelled"
+    },
+
+    "drawer": {
+      "title": "Interview details",
+      "close": "Close",
+      "status": "Status",
+      "information": "Information",
+      "cancelInterview": "Cancel interview",
+      "cancelQuestion": "Cancel interview?",
+      "cancelInfo": "This action may require a new appointment to be scheduled with the company.",
+      "cancelPlaceholder": "Cancellation reason...",
+      "back": "Back",
+      "confirm": "Confirm",
+      "validate": "Confirm interview",
+      "reschedule": "Reschedule",
+      "modify": "Modify interview",
+      "reschedulePlaceholder": "Explain why you are proposing another date...",
+      "join": "Join interview",
+      "cancelled": "Interview cancelled"
+    },
+
+    "calendar": {
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month",
+      "days": {
+        "monday": "M",
+        "tuesday": "T",
+        "wednesday": "W",
+        "thursday": "T",
+        "friday": "F",
+        "saturday": "S",
+        "sunday": "S"
+      }
+    },
+    "actions": {
+      "call": "Call",
+      "viewAddress": "View address",
+      "addToCalendar": "Add to calendar"
+    },
+    "announce": {
+      "today": "Interview today at {time}",
+      "tomorrow": "Interview tomorrow at {time}",
+      "inDays": "Interview in {n} days"
+    }
+  },
+  "account": {
+    "inactive": {
+      "badge": "Incomplete account",
+      "title": "Complete your account to access InternIn",
+      "description": "Your account has been created, but some steps still need to be completed. You can access your profile and settings, while internship-related features remain temporarily locked.",
+      "progressTitle": "Account activation",
+      "progressDescription": "Complete your profile to unlock all features.",
+      "progressStatus": "In progress",
+      "availableTitle": "Available now",
+      "availableDescription": "You can still manage the essential parts of your account.",
+      "lockedTitle": "Locked features",
+      "lockedDescription": "These features will become available after activation.",
+      "available": {
+        "profile": "My profile",
+        "settings": "My settings",
+        "onboarding": "Complete my registration"
+      },
+      "locked": {
+        "offers": "Internship offers",
+        "applications": "Applications",
+        "interviews": "Interviews",
+        "internship": "My internship tracking"
+      },
+      "profileButton": "View my profile",
+      "activateButton": "Complete activation",
+      "footer": "Your account will be automatically activated once the required steps are completed."
+    }
+  }
+}
