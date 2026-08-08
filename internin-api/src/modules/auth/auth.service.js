@@ -97,28 +97,39 @@ export async function registerUser({ email, password, typeUtilisateur }, req) {
 
   const motDePasseHash = await hashPassword(password);
 
-  const [nouvelUtilisateur] = await db
-    .insert(utilisateurs)
-    .values({
-      email,
-      motDePasseHash,
-      typeUtilisateur,
-      methodeConnexion: "email",
-      emailVerifie: false,
-    })
-    .returning();
+    const skipEmail =
+      process.env.SKIP_EMAIL_VERIFICATION === "true" ||
+      process.env.NODE_ENV === "development";
 
-  try {
-    await createEmailVerification(
-      nouvelUtilisateur.idUtilisateur,
-      nouvelUtilisateur.email,
-    );
-  } catch (emailError) {
-    console.error(
-      "Erreur lors de l'envoi de l'e-mail de vérification :",
-      emailError,
-    );
-  }
+    const [nouvelUtilisateur] = await db
+      .insert(utilisateurs)
+      .values({
+        email,
+        motDePasseHash,
+        typeUtilisateur,
+        methodeConnexion: "email",
+        emailVerifie: skipEmail, // true en local, false en prod
+      })
+      .returning();
+
+    if (!skipEmail) {
+      try {
+        await createEmailVerification(
+          nouvelUtilisateur.idUtilisateur,
+          nouvelUtilisateur.email,
+        );
+      } catch (emailError) {
+        console.error(
+          "Erreur lors de l'envoi de l'e-mail de vérification :",
+          emailError,
+        );
+      }
+    } else {
+      console.log(
+        "✅ [DEV] E-mail auto-vérifié (SKIP_EMAIL_VERIFICATION / development) →",
+        email,
+      );
+    }
 
   const token = signToken({
     idUtilisateur: nouvelUtilisateur.idUtilisateur,

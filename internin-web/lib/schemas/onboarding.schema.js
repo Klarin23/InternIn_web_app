@@ -56,11 +56,16 @@ export const step5Schema = z.object({
 });
 
 export const step6Schema = z.object({
-  competences: z
-    .array(
-      z.object({ idCompetence: z.string(), niveau: z.string().optional() }),
-    )
-    .min(1, "Sélectionnez au moins une compétence"),
+  competences: z.array(
+    z.object({
+      idCompetence: z.string().optional(),
+      nom: z.string().optional(),
+      typeCompetence: z.string().optional(),
+      niveau: z.string().optional(),
+      isCustom: z.boolean().optional(),
+    }),
+  ),
+  // tableau vide = aucune compétence → autorisé
 });
 
 export const step7Schema = z.object({

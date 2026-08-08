@@ -2,7 +2,7 @@
 // si une étape échoue (ex. contrainte violée), tout est annulé — on ne
 // veut jamais un profil stagiaire à moitié créé en base.
 
-import { eq, getTableColumns } from "drizzle-orm";
+import { eq, getTableColumns, and, ilike } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
   utilisateurs,
@@ -18,6 +18,55 @@ import {
   centresInteret,
   objectifsDeveloppement,
 } from "../../db/schema.js";
+
+/** Résout la liste compétences : id existant OU création par nom (custom). */
+async function resoudreCompetences(tx, liste = []) {
+  const resultat = [];
+
+  for (const c of liste) {
+    const niveau = c.niveau || "intermediaire";
+    const estCustom =
+      c.isCustom ||
+      (typeof c.idCompetence === "string" &&
+        c.idCompetence.startsWith("custom:")) ||
+      (!c.idCompetence && c.nom);
+
+    if (!estCustom && c.idCompetence) {
+      resultat.push({ idCompetence: c.idCompetence, niveau });
+      continue;
+    }
+
+    const nom = (c.nom || "").trim();
+    if (!nom) continue;
+
+    const [existante] = await tx
+      .select()
+      .from(competences)
+      .where(ilike(competences.nom, nom))
+      .limit(1);
+
+    if (existante) {
+      resultat.push({ idCompetence: existante.idCompetence, niveau });
+    } else {
+      const [creee] = await tx
+        .insert(competences)
+        .values({
+          nom,
+          typeCompetence: c.typeCompetence || "technique",
+        })
+        .returning();
+      resultat.push({ idCompetence: creee.idCompetence, niveau });
+    }
+  }
+
+  // déduplique par idCompetence
+  const vus = new Set();
+  return resultat.filter((r) => {
+    if (vus.has(r.idCompetence)) return false;
+    vus.add(r.idCompetence);
+    return true;
+  });
+}
 
 // Calcule un score de complétude simple : base pour les champs obligatoires
 // + bonus pour chaque lien professionnel facultatif renseigné.
@@ -166,13 +215,16 @@ export async function completeStagiaireOnboarding(idUtilisateur, payload) {
 
     // Compétences
     if (payload.competences?.length > 0) {
-      await tx.insert(stagiaireCompetences).values(
-        payload.competences.map((c) => ({
-          idStagiaire,
-          idCompetence: c.idCompetence,
-          niveau: c.niveau || null,
-        })),
-      );
+      const resolues = await resoudreCompetences(tx, payload.competences);
+      if (resolues.length > 0) {
+        await tx.insert(stagiaireCompetences).values(
+          resolues.map((c) => ({
+            idStagiaire,
+            idCompetence: c.idCompetence,
+            niveau: c.niveau,
+          })),
+        );
+      }
     }
 
     // Centres d'intérêt
@@ -368,20 +420,28 @@ export async function updateStagiaireProfile(idUtilisateur, payload) {
       stagiaireMaj = maj;
     }
 
-    if (nouvellesCompetences) {
-      await tx
-        .delete(stagiaireCompetences)
-        .where(eq(stagiaireCompetences.idStagiaire, idStagiaire));
-      if (nouvellesCompetences.length > 0) {
-        await tx.insert(stagiaireCompetences).values(
-          nouvellesCompetences.map((c) => ({
-            idStagiaire,
-            idCompetence: c.idCompetence,
-            niveau: c.niveau || null,
-          })),
-        );
-      }
-    }
+        if (nouvellesCompetences) {
+          await tx
+            .delete(stagiaireCompetences)
+            .where(eq(stagiaireCompetences.idStagiaire, idStagiaire));
+
+          if (nouvellesCompetences.length > 0) {
+            const resolues = await resoudreCompetences(
+              tx,
+              nouvellesCompetences,
+            );
+            if (resolues.length > 0) {
+              await tx.insert(stagiaireCompetences).values(
+                resolues.map((c) => ({
+                  idStagiaire,
+                  idCompetence: c.idCompetence,
+                  niveau: c.niveau || null,
+                })),
+              );
+            }
+          }
+          // si nouvellesCompetences === [] → delete déjà fait = aucune compétence
+        }
 
     if (nouveauxCentresInteret) {
       await tx

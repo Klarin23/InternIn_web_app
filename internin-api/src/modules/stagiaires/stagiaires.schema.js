@@ -34,12 +34,20 @@ export const completeOnboardingSchema = z.object({
   behanceUrl: z.string().optional(),
   portfolioUrl: z.string().optional(),
   siteWebUrl: z.string().optional(),
-  // Étape 6
+  // Étape 6 — liste vide autorisée (aucune compétence)
   competences: z
     .array(
-      z.object({ idCompetence: z.string(), niveau: z.string().optional() }),
+      z.object({
+        idCompetence: z.string().optional(),
+        nom: z.string().optional(),
+        typeCompetence: z
+          .enum(["technique", "professionnelle", "langue"])
+          .optional(),
+        niveau: z.string().optional(),
+        isCustom: z.boolean().optional(),
+      }),
     )
-    .min(1),
+    .default([]),
   // Étape 7
   centresInteret: z.array(z.string()).min(1),
   // Étape 8
@@ -98,9 +106,18 @@ export const updateProfileSchema = z.object({
     .optional(),
 
   // 4. Compétences — remplace entièrement la liste existante si fournie
+  // Tableau vide [] = aucune compétence
   competences: z
     .array(
-      z.object({ idCompetence: z.string(), niveau: z.string().optional() }),
+      z.object({
+        idCompetence: z.string().optional(),
+        nom: z.string().optional(),
+        typeCompetence: z
+          .enum(["technique", "professionnelle", "langue"])
+          .optional(),
+        niveau: z.string().optional(),
+        isCustom: z.boolean().optional(),
+      }),
     )
     .optional(),
 

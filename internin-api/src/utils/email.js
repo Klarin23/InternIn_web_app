@@ -7,28 +7,44 @@ const resend = process.env.RESEND_API_KEY
 const from = process.env.EMAIL_FROM || "InternIn <onboarding@resend.dev>";
 
 async function sendMail({ to, subject, text, html }) {
+  // En local sans Resend (ou si l'envoi échoue) → afficher dans le terminal
   if (!resend) {
-    console.warn(
-      "⚠️ RESEND_API_KEY absente — e-mail non envoyé:",
-      subject,
-      "→",
-      to,
-    );
+    console.warn("⚠️ RESEND_API_KEY absente — e-mail non envoyé");
+    console.log("────────────────────────────────────────");
+    console.log("📧 À      :", to);
+    console.log("📌 Sujet  :", subject);
+    console.log("📄 Contenu:\n", text);
+    console.log("────────────────────────────────────────");
     return;
   }
 
-  await resend.emails.send({
-    from,
-    to,
-    subject,
-    text,
-    html,
-  });
+  try {
+    await resend.emails.send({
+      from,
+      to,
+      subject,
+      text,
+      html,
+    });
+  } catch (err) {
+    console.error("❌ Erreur Resend:", err.message || err);
+    console.log("────────────────────────────────────────");
+    console.log("📧 Lien de secours (terminal):\n", text);
+    console.log("────────────────────────────────────────");
+  }
 }
 
 export async function sendVerificationEmail({ email, token }) {
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
   const verificationUrl = `${frontendUrl}/verification-email?token=${encodeURIComponent(token)}`;
+
+  // Toujours logguer le lien en développement pour faciliter les tests locaux
+  if (process.env.NODE_ENV !== "production") {
+    console.log("────────────────────────────────────────");
+    console.log("✅ LIEN DE VÉRIFICATION (dev) :");
+    console.log(verificationUrl);
+    console.log("────────────────────────────────────────");
+  }
 
   await sendMail({
     to: email,
