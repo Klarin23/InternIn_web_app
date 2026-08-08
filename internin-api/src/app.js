@@ -32,6 +32,10 @@ import cookieParser from "cookie-parser";
 
 const app = express();
 
+// Obligatoire derrière Railway / un reverse proxy
+// sinon express-rate-limit lève ERR_ERL_UNEXPECTED_X_FORWARDED_FOR
+app.set("trust proxy", 1);
+
 app.use(
   helmet({
     // Nécessaire pour que le frontend puisse charger les logos / photos
