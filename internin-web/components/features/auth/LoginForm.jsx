@@ -142,7 +142,7 @@ export default function LoginForm() {
         <span className="h-px flex-1 bg-border" />
       </div>
 
-      <GoogleButton />
+      <GoogleButton onError={setServerError} />
 
       <p className="mt-7 text-center text-sm text-muted-foreground">
         {t("auth.login.noAccount")}{" "}

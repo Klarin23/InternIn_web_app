@@ -56,3 +56,15 @@ export const resetPasswordSchema = z.object({
 });
 
 export { passwordSchema };
+  
+export const googleAuthSchema = z
+  .object({
+    accessToken: z.string().min(1).optional(),
+    idToken: z.string().min(1).optional(),
+    typeUtilisateur: z
+      .enum(["stagiaire", "entreprise", "universite"])
+      .optional(),
+  })
+  .refine((data) => Boolean(data.accessToken || data.idToken), {
+    message: "accessToken ou idToken requis",
+  });

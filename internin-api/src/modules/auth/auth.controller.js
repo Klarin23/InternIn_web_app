@@ -7,6 +7,7 @@ import {
   resetPassword,
   refreshAccessToken,
   logoutUser,
+  loginWithGoogle,
 } from "./auth.service.js";
 
 export async function register(req, res, next) {
@@ -155,6 +156,25 @@ export async function resetPasswordController(req, res, next) {
     const result = await resetPassword(req.body.token, req.body.password);
 
     res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function googleAuth(req, res, next) {
+  try {
+    const result = await loginWithGoogle(req.body, req);
+
+    res.cookie("internin_refresh", result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
+    });
+
+    const { refreshToken, ...safeResult } = result;
+    res.status(result.isNewUser ? 201 : 200).json(safeResult);
   } catch (err) {
     next(err);
   }

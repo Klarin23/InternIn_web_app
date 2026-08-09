@@ -81,3 +81,35 @@ export function logoutRequest(refreshToken, token) {
     token,
   });
 }
+
+export async function googleAuthRequest({
+  idToken,
+  accessToken,
+  typeUtilisateur,
+}) {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+  const response = await fetch(`${API_URL}/auth/google`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({
+      idToken: idToken || undefined,
+      accessToken: accessToken || undefined,
+      typeUtilisateur: typeUtilisateur || undefined,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const err = new Error(
+      data.error || data.message || "Connexion Google échouée",
+    );
+    err.status = response.status;
+    err.code = data.code;
+    throw err;
+  }
+
+  return data; // { user, token, isNewUser }
+}

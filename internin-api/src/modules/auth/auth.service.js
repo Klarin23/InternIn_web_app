@@ -607,6 +607,143 @@ export async function revokeAllSessions(idUtilisateur) {
 }
 
 /**
+ * Connexion / inscription via Google (OAuth).
+ */
+export async function loginWithGoogle({ accessToken, idToken, typeUtilisateur }, req) {
+  const profile = await fetchGoogleProfile({ accessToken, idToken });
+
+  if (!profile.email) {
+    const err = new Error("Impossible de récupérer l'e-mail Google");
+    err.status = 400;
+    throw err;
+  }
+
+  if (profile.emailVerified === false) {
+    const err = new Error("L'adresse e-mail Google n'est pas vérifiée");
+    err.status = 400;
+    throw err;
+  }
+
+  const email = profile.email.toLowerCase().trim();
+
+  const [existing] = await db
+    .select()
+    .from(utilisateurs)
+    .where(eq(utilisateurs.email, email));
+
+  let utilisateur = existing;
+
+  if (!utilisateur) {
+    const rolesAutorises = ["stagiaire", "entreprise", "universite"];
+    if (!typeUtilisateur || !rolesAutorises.includes(typeUtilisateur)) {
+      const err = new Error(
+        "Aucun compte associé à cet e-mail. Inscrivez-vous d'abord en choisissant un type de profil.",
+      );
+      err.status = 404;
+      err.code = "GOOGLE_ACCOUNT_NOT_FOUND";
+      throw err;
+    }
+
+    const [created] = await db
+      .insert(utilisateurs)
+      .values({
+        email,
+        motDePasseHash: null,
+        typeUtilisateur,
+        methodeConnexion: "google",
+        emailVerifie: true,
+        statutCompte: "inactif",
+      })
+      .returning();
+
+    utilisateur = created;
+  } else {
+    if (utilisateur.statutCompte === "suspendu") {
+      const err = new Error(
+        "Ce compte a été suspendu. Contacter le support InternIn pour plus d'informations.",
+      );
+      err.status = 403;
+      throw err;
+    }
+
+    const patch = { derniereConnexion: new Date() };
+    if (!utilisateur.emailVerifie) patch.emailVerifie = true;
+
+    const [updated] = await db
+      .update(utilisateurs)
+      .set({ ...patch, dateMaj: new Date() })
+      .where(eq(utilisateurs.idUtilisateur, utilisateur.idUtilisateur))
+      .returning();
+    utilisateur = updated;
+  }
+
+  const accessJwt = signToken({
+    idUtilisateur: utilisateur.idUtilisateur,
+    typeUtilisateur: utilisateur.typeUtilisateur,
+  });
+
+  const refreshToken = await createSession(utilisateur.idUtilisateur, req);
+
+  return {
+    user: sanitizeUser(utilisateur),
+    token: accessJwt,
+    refreshToken,
+    isNewUser: !existing,
+  };
+}
+
+async function fetchGoogleProfile({ accessToken, idToken }) {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+
+  if (idToken) {
+    const url = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const err = new Error("Jeton Google invalide ou expiré");
+      err.status = 401;
+      throw err;
+    }
+    const data = await res.json();
+    if (clientId && data.aud !== clientId) {
+      const err = new Error("Jeton Google non reconnu (client_id)");
+      err.status = 401;
+      throw err;
+    }
+    return {
+      email: data.email,
+      emailVerified:
+        data.email_verified === true || data.email_verified === "true",
+      name: data.name,
+      picture: data.picture,
+      sub: data.sub,
+    };
+  }
+
+  if (accessToken) {
+    const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) {
+      const err = new Error("Jeton Google invalide ou expiré");
+      err.status = 401;
+      throw err;
+    }
+    const data = await res.json();
+    return {
+      email: data.email,
+      emailVerified: data.email_verified === true,
+      name: data.name,
+      picture: data.picture,
+      sub: data.sub,
+    };
+  }
+
+  const err = new Error("Jeton Google manquant");
+  err.status = 400;
+  throw err;
+}
+
+/**
  * Ne jamais renvoyer le hash du mot de passe au client.
  */
 function sanitizeUser(utilisateur) {

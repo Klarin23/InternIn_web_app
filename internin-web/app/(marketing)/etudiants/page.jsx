@@ -15,13 +15,20 @@ export const metadata = {
 export default function EtudiantsPage() {
   return (
     <>
-      <Hero i18nKey="marketing.students.hero" />
+      <Hero
+        i18nKey="marketing.students.hero"
+        imageUrl="/images/student-hero.svg"
+        imageAlt="Étudiant utilisant InternIn pour trouver un stage"
+      />
       <HowItWorks i18nKey="marketing.students.howItWorks" />
       <FeaturesGrid i18nKey="marketing.students.features" />
       <CategoriesGrid />
       <Testimonial i18nKey="marketing.home.testimonial" />
       <Faq i18nKey="marketing.students.faq" />
-      <CtaFinal i18nKey="marketing.students.cta" ctaHref="/inscription/stagiaire" />
+      <CtaFinal
+        i18nKey="marketing.students.cta"
+        ctaHref="/inscription/stagiaire"
+      />
     </>
   );
 }

@@ -176,7 +176,7 @@ export default function SignupForm({ role }) {
         <span className="h-px flex-1 bg-border" />
       </div>
 
-      <GoogleButton />
+      <GoogleButton role={role} onError={setServerError} />
 
       <p className="mt-7 text-center text-sm text-muted-foreground">
         {t("auth.signup.alreadyAccount")}{" "}

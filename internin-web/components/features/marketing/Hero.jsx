@@ -35,8 +35,8 @@ export default function Hero({
   checklist: checklistProp,
   primaryCta: primaryCtaProp,
   secondaryCta: secondaryCtaProp,
-  imageUrl = "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=900&q=80",
-  imageAlt = "Superviseur accompagnant une stagiaire sur son ordinateur",
+  imageUrl = "/images/hero.svg",
+  imageAlt = "Étudiants, entreprises et universités connectés sur InternIn",
   floatCards: floatCardsProp,
   stats: statsProp,
 }) {
@@ -166,15 +166,14 @@ export default function Hero({
             initial={{ opacity: 0, scale: 1.05 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="relative min-h-105 overflow-hidden rounded-lg shadow-lg"
+            className="relative aspect-[4/3] min-h-[320px] w-full overflow-hidden bg-transparent sm:min-h-[320px] md:aspect-auto md:min-h-[420px] lg:min-h-[480px] "
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imageUrl}
               alt={imageAlt}
-              className="absolute inset-0 h-full w-full object-cover"
+              className="absolute inset-0 h-full w-full object-contain object-center p-3 sm:p-4 md:p-5"
             />
-            <div className="absolute inset-0 bg-linear-to-b from-black/5 to-black/50" />
 
             {floatCards[0] && (
               <motion.div

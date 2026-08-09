@@ -10,6 +10,7 @@ import {
   resetPasswordController,
   refreshController,
   logoutController,
+  googleAuth,
 } from "./auth.controller.js";
 
 import { validate } from "../../middlewares/validate.middleware.js";
@@ -26,6 +27,7 @@ import {
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  googleAuthSchema,
 } from "./auth.schema.js";
 
 const router = Router();
@@ -81,6 +83,6 @@ router.get("/me", requireAuth, me);
 
 router.post("/refresh", refreshLimiter, refreshController);
 router.post("/logout", requireAuth, logoutController);
-
+router.post("/google", authLimiter, validate(googleAuthSchema), googleAuth);
 
 export default router;

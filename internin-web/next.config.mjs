@@ -28,11 +28,15 @@ const nextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // Next.js a besoin de unsafe-eval en dev
-              "style-src 'self' 'unsafe-inline'",
+              // Google Identity Services
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://apis.google.com",
+              "style-src 'self' 'unsafe-inline' https://accounts.google.com",
               "img-src 'self' data: blob: http://localhost:4000 https:",
-              "font-src 'self'",
-              "connect-src 'self' http://localhost:4000 https:",
+              "font-src 'self' data:",
+              // API locale + Google
+              "connect-src 'self' http://localhost:4000 https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https:",
+              // Iframe / popup Google
+              "frame-src 'self' https://accounts.google.com https://apis.google.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
