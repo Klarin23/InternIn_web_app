@@ -309,7 +309,7 @@ export default function PlanifierEntretienDialog({
                     className={`group flex flex-col items-start gap-1.5 rounded-sm border p-3.5 text-left transition-all focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:scale-[0.98] ${
                       selectionne
                         ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-border bg-card hover:border-primary/40 hover:bg-primary/[0.03]"
+                        : "border-border bg-card hover:border-primary/40 hover:bg-primary/3"
                     }`}
                   >
                     <span
@@ -353,7 +353,11 @@ export default function PlanifierEntretienDialog({
                 >
                   <champConfig.Icon className="h-4 w-4 text-primary" />
                   {champConfig.label}{" "}
-                  <span className="text-muted-foreground">(facultatif)</span>
+                  {champConfig.obligatoire ? (
+                    <span className="text-destructive">*</span>
+                  ) : (
+                    <span className="text-muted-foreground">(facultatif)</span>
+                  )}
                 </Label>
                 <Input
                   id="entretien-champ-lien"

@@ -81,9 +81,17 @@ export default function EntretienDetailsDrawer({ entretien, onClose, maintenant 
     entretien.statut === "confirme" &&
     entretien.modeEntretien === "presentiel" &&
     !!entretien.lienGoogleMeet;
-  const lienMaps = entretien.lienGoogleMeet
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(entretien.lienGoogleMeet)}`
-    : null;
+    const lienMaps = (() => {
+      const raw = (entretien.lienGoogleMeet || "").trim();
+      if (!raw) return null;
+      try {
+        const u = new URL(raw);
+        if (u.protocol === "http:" || u.protocol === "https:") return raw;
+      } catch {
+        /* texte d'adresse libre */
+      }
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(raw)}`;
+    })();
   const annonce =
     entretien.statut === "confirme" && maintenant != null
       ? formatAnnonceEntretien(date, maintenant, locale, t)

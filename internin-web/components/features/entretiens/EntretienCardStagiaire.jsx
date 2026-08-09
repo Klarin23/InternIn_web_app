@@ -250,9 +250,19 @@ export default function EntretienCardStagiaire({
     entretien.statut === "confirme" && maintenant != null
       ? formatAnnonceEntretien(date, maintenant, locale, t)
       : null;
-  const lienMaps = entretien.lienGoogleMeet
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(entretien.lienGoogleMeet)}`
-    : null;
+  // Si l'entreprise a collé un lien Google Maps, on l'utilise tel quel ;
+  // sinon on construit une recherche Google Maps à partir de l'adresse.
+  const lienMaps = (() => {
+    const raw = (entretien.lienGoogleMeet || "").trim();
+    if (!raw) return null;
+    try {
+      const u = new URL(raw);
+      if (u.protocol === "http:" || u.protocol === "https:") return raw;
+    } catch {
+      /* texte d'adresse libre */
+    }
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(raw)}`;
+  })();
   const lienCalendrier =
     entretien.statut === "confirme" ? buildLienGoogleCalendar(entretien) : null;
 
@@ -352,15 +362,16 @@ export default function EntretienCardStagiaire({
               {t("interviews.card.joinVideo")}
             </a>
           )}
-          {entretien.modeEntretien === "telephone" && entretien.lienGoogleMeet && (
-            <a
-              href={`tel:${entretien.lienGoogleMeet.replace(/\s+/g, "")}`}
-              className="flex w-fit items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
-            >
-              <FiPhone className="h-4 w-4" />
-              {t("interviews.actions.call")}
-            </a>
-          )}
+          {entretien.modeEntretien === "telephone" &&
+            entretien.lienGoogleMeet && (
+              <a
+                href={`tel:${entretien.lienGoogleMeet.replace(/\s+/g, "")}`}
+                className="flex w-fit items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+              >
+                <FiPhone className="h-4 w-4" />
+                {t("interviews.actions.call")}
+              </a>
+            )}
           {entretien.modeEntretien === "presentiel" && lienMaps && (
             <a
               href={lienMaps}

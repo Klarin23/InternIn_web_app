@@ -117,7 +117,11 @@ export default function OffreCandidatureSidebar({
             <p className="text-xs text-muted-foreground">
               {t("offersPage.sidebar.openText")}
             </p>
-            <PostulerDialog idOffre={offreId} offreTitle={offre.titre} />
+            <PostulerDialog
+              idOffre={offreId}
+              offreTitle={offre.titre}
+              offre={offre}
+            />
             <button
               type="button"
               disabled

@@ -33,29 +33,49 @@ async function getIdUtilisateurStagiaire(idStagiaire) {
   return s?.idUtilisateur;
 }
 
-// Le champ lienGoogleMeet est réutilisé pour 3 usages différents selon
-// modeEntretien (lien vidéo / adresse / numéro de téléphone) — voir
-// PlanifierEntretienDialog côté frontend. Seul le cas "video" est ensuite
-// rendu comme href cliquable côté étudiant (EntretienCardStagiaire,
-// EntretienTodayCard) : c'est le seul cas où on impose un vrai format URL
-// http/https, pour empêcher un `javascript:`/`data:` stocké puis exécuté
-// au clic (XSS stocké).
-function validerLienVisio(modeEntretien, lienGoogleMeet) {
-  if (modeEntretien !== "video" || !lienGoogleMeet) return;
 
-  let url;
-  try {
-    url = new URL(lienGoogleMeet);
-  } catch {
-    const err = new Error("Le lien doit être une URL valide (https://...)");
-    err.status = 400;
-    throw err;
+
+function validerLienVisio(modeEntretien, lienGoogleMeet) {
+  const valeur = (lienGoogleMeet || "").trim();
+
+  if (modeEntretien === "video") {
+    if (!valeur) {
+      const err = new Error(
+        "Le lien de visioconférence (Google Meet, Zoom, Teams...) est obligatoire",
+      );
+      err.status = 400;
+      throw err;
+    }
+    let url;
+    try {
+      url = new URL(valeur);
+    } catch {
+      const err = new Error("Le lien doit être une URL valide[](https://...)");
+      err.status = 400;
+      throw err;
+    }
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      const err = new Error(
+        "Seuls les liens http:// ou https:// sont autorisés",
+      );
+      err.status = 400;
+      throw err;
+    }
+    return;
   }
-  if (url.protocol !== "http:" && url.protocol !== "https:") {
-    const err = new Error("Seuls les liens http:// ou https:// sont autorisés");
-    err.status = 400;
-    throw err;
+
+  if (modeEntretien === "presentiel") {
+    if (!valeur || valeur.length < 5) {
+      const err = new Error(
+        "L'adresse ou la localisation de l'entretien en présentiel est obligatoire",
+      );
+      err.status = 400;
+      throw err;
+    }
+    return;
   }
+
+  // telephone : pas d'obligation stricte
 }
 
 // Vérifie que la candidature appartient bien à une offre de cette entreprise,
@@ -253,7 +273,8 @@ async function getEntretienOwnership(idEntretien) {
       idOffreEntreprise: offresStage.idEntreprise,
       idStagiaire: candidatures.idStagiaire,
       statut: entretiens.statut,
-      modeEntretien: entretiens.modeEntretien,
+        modeEntretien: entretiens.modeEntretien,
+        lienGoogleMeet: entretiens.lienGoogleMeet,
       // Noms réels utilisés pour personnaliser les notifications envoyées
       // à l'autre partie (au lieu d'un message générique "une entreprise"/
       // "le candidat").
@@ -555,10 +576,19 @@ export async function updateEntretienByEntreprise(
     throw err;
   }
 
-  const modeResolu = payload.modeEntretien || ownership.modeEntretien;
-  if (payload.lienGoogleMeet !== undefined) {
-    validerLienVisio(modeResolu, payload.lienGoogleMeet);
-  }
+    const modeResolu = payload.modeEntretien || ownership.modeEntretien;
+    // Si le mode ou le lien change, on revalide avec le mode final et le lien final
+    // (lien existant si non renvoyé dans le payload).
+    const lienResolu =
+      payload.lienGoogleMeet !== undefined
+        ? payload.lienGoogleMeet
+        : ownership.lienGoogleMeet;
+    if (
+      payload.modeEntretien !== undefined ||
+      payload.lienGoogleMeet !== undefined
+    ) {
+      validerLienVisio(modeResolu, lienResolu);
+    }
 
   const updateValues = {};
   if (payload.dateHeure) {

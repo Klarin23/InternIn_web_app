@@ -1,13 +1,10 @@
 // Chemin : internin-web/lib/entretiens/planification.js
 //
 // Configuration partagée pour la planification/l'affichage du mode d'un
-// entretien (vidéo / téléphone / présentiel). Centralise ce qui était
-// dupliqué (MODE_ICONS/MODE_LABELS) dans PlanifierEntretienDialog,
-// EntretienCardEntreprise, EntretienCardStagiaire, EntretienDetailsDrawer.
+// entretien (vidéo / téléphone / présentiel).
 //
 // IMPORTANT : le champ backend reste "lienGoogleMeet" quel que soit le mode
-// (lien vidéo, adresse, ou numéro de téléphone) — voir entretiens.service.js
-// côté API. On ne renomme rien pour ne pas casser l'API existante.
+// (lien vidéo, adresse, ou numéro de téléphone).
 
 import { FiVideo, FiPhone, FiMapPin } from "react-icons/fi";
 
@@ -39,15 +36,15 @@ export const MODE_LABELS = Object.fromEntries(
   MODES_ENTRETIEN.map((m) => [m.valeur, m.label]),
 );
 
-// Libellé du champ dynamique (section 4 de la spec) selon le mode choisi.
 export function champLienConfig(mode) {
   if (mode === "video") {
     return {
       label: "Lien de visioconférence",
       Icon: FiVideo,
-      placeholder: "https://meet.google.com/...",
-      aide: "Vous pouvez utiliser Google Meet, Zoom, Microsoft Teams ou une autre plateforme de visioconférence.",
+      placeholder: "https://meet.google.com/... ou https://zoom.us/j/...",
+      aide: "Obligatoire. Collez le lien Google Meet, Zoom, Microsoft Teams ou une autre plateforme.",
       type: "url",
+      obligatoire: true,
     };
   }
   if (mode === "telephone") {
@@ -55,49 +52,51 @@ export function champLienConfig(mode) {
       label: "Numéro de téléphone",
       Icon: FiPhone,
       placeholder: "+237 6XX XX XX XX",
-      aide: "Numéro sur lequel le candidat pourra être appelé.",
+      aide: "Optionnel. Numéro sur lequel le candidat pourra être appelé.",
       type: "tel",
+      obligatoire: false,
     };
   }
   return {
-    label: "Adresse du rendez-vous",
+    label: "Adresse / localisation",
     Icon: FiMapPin,
-    placeholder: "Ex. : Akwa, Douala — Rue...",
-    aide: "Adresse complète où se déroulera l'entretien.",
+    placeholder: "Ex. : Rue de la Joie, Akwa, Douala — ou lien Google Maps",
+    aide: "Obligatoire. Indiquez l'adresse exacte ou un lien Google Maps pour que le candidat sache où se rendre.",
     type: "text",
+    obligatoire: true,
   };
 }
 
-// Validation légère côté client — le contrôle strict (URL http/https pour
-// le mode vidéo) reste fait côté serveur dans entretiens.service.js
-// (validerLienVisio). Ici on donne juste un feedback immédiat à l'usager.
 export function validerChampLien(mode, valeur) {
   const v = (valeur || "").trim();
-  if (!v) return { valide: true, message: "" }; // facultatif dans les deux cas
 
   if (mode === "video") {
+    if (!v) {
+      return {
+        valide: false,
+        message:
+          "Le lien de visioconférence (Google Meet, Zoom, Teams...) est obligatoire",
+      };
+    }
     try {
       const url = new URL(v);
       if (!["http:", "https:"].includes(url.protocol)) {
         return {
           valide: false,
-          message: "Le lien doit être une URL valide (https://...)",
+          message: "Le lien doit être une URL valide[](https://...)",
         };
       }
       return { valide: true, message: "" };
     } catch {
       return {
         valide: false,
-        message: "Le lien doit être une URL valide (https://...)",
+        message: "Le lien doit être une URL valide[](https://...)",
       };
     }
   }
 
   if (mode === "telephone") {
-    // Validation raisonnable : chiffres, espaces, +, - autorisés, 8 à 20
-    // caractères utiles. Pas de contrainte stricte par pays (candidats
-    // internationaux) — cohérent avec l'absence de validation backend
-    // sur ce champ pour ce mode.
+    if (!v) return { valide: true, message: "" };
     const chiffres = v.replace(/[^\d]/g, "");
     if (chiffres.length < 8 || !/^[\d+\s().-]+$/.test(v)) {
       return { valide: false, message: "Ce numéro ne semble pas valide" };
@@ -105,12 +104,17 @@ export function validerChampLien(mode, valeur) {
     return { valide: true, message: "" };
   }
 
-  // presentiel : pas de format à valider, juste une adresse libre
+  // presentiel
+  if (!v || v.length < 5) {
+    return {
+      valide: false,
+      message:
+        "L'adresse ou la localisation de l'entretien en présentiel est obligatoire",
+    };
+  }
   return { valide: true, message: "" };
 }
 
-// Sépare/combine une date ISO (dateHeure du backend) en deux valeurs
-// pour des inputs date + time distincts (section 2 de la spec).
 export function dateHeureVersChamps(dateHeureIso) {
   if (!dateHeureIso) return { date: "", heure: "" };
   const d = new Date(dateHeureIso);
@@ -124,8 +128,6 @@ export function dateHeureVersChamps(dateHeureIso) {
 
 export function champsVersDateHeure(date, heure) {
   if (!date || !heure) return "";
-  // Format compatible avec `new Date(dateHeure)` côté backend
-  // (entretiens.service.js) — même format que l'ancien input datetime-local.
   return `${date}T${heure}`;
 }
 

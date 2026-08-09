@@ -1,15 +1,36 @@
 import { z } from "zod";
 
-export const createEntretienSchema = z.object({
-  idCandidature: z.string().min(1, "Candidature invalide"),
-  dateHeure: z.string().min(1, "La date et l'heure sont requises"),
-  modeEntretien: z.enum(["video", "telephone", "presentiel"]),
-  // Champ réutilisé selon le mode : lien vidéo, adresse ou numéro de
-  // téléphone — pas de contrainte de format ici. Le contrôle strict
-  // (URL http/https uniquement) se fait dans entretiens.service.js, qui
-  // connaît le mode réellement en vigueur (voir validerLienVisio).
-  lienGoogleMeet: z.string().max(500).optional(),
-});
+export const createEntretienSchema = z
+  .object({
+    idCandidature: z.string().min(1, "Candidature invalide"),
+    dateHeure: z.string().min(1, "La date et l'heure sont requises"),
+    modeEntretien: z.enum(["video", "telephone", "presentiel"]),
+    // Champ réutilisé selon le mode :
+    // - video      → lien Meet / Zoom / Teams (obligatoire)
+    // - presentiel → adresse / localisation (obligatoire)
+    // - telephone  → numéro (optionnel)
+    // Le contrôle détaillé est dans entretiens.service.js (validerLienVisio).
+    lienGoogleMeet: z.string().max(500).optional(),
+  })
+  .superRefine((data, ctx) => {
+    const lien = (data.lienGoogleMeet || "").trim();
+    if (data.modeEntretien === "video" && !lien) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["lienGoogleMeet"],
+        message:
+          "Le lien de visioconférence (Google Meet, Zoom, Teams...) est obligatoire",
+      });
+    }
+    if (data.modeEntretien === "presentiel" && lien.length < 5) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["lienGoogleMeet"],
+        message:
+          "L'adresse ou la localisation de l'entretien en présentiel est obligatoire",
+      });
+    }
+  });
 
 export const updateEntretienEntrepriseSchema = z.object({
   dateHeure: z.string().optional(),
