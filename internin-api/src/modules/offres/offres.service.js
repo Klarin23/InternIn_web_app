@@ -50,6 +50,8 @@ export async function listOffresPubliees({
       nomEntreprise: entreprises.nomEntreprise,
       logoUrl: entreprises.logoUrl,
       villeEntreprise: entreprises.ville,
+      dateLimiteCandidature: offresStage.dateLimiteCandidature,
+      statut: offresStage.statut,
     })
     .from(offresStage)
     .innerJoin(

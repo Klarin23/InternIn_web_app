@@ -132,3 +132,10 @@ export function estNouvelle(datePublication, maintenant) {
     maintenant - new Date(datePublication).getTime() <= SEUIL_NOUVEAU_MS,
   );
 }
+
+/** Offre expirée = date limite de candidature dépassée (jour courant exclus si on compare à minuit local). */
+export function estOffreExpiree(offre) {
+  if (!offre?.dateLimiteCandidature) return false;
+  // Même logique que le côté entreprise (OffreCardEntreprise / OffreListRow)
+  return new Date(offre.dateLimiteCandidature) < new Date();
+}

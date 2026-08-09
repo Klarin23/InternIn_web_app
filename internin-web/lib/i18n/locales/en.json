@@ -1063,7 +1063,7 @@
       }
     },
     "apply": {
-      "cta": "🚀 Apply now",
+      "cta": " Apply now",
       "dialogTitle": "Apply — {title}",
       "coverLetter": "Cover letter",
       "optional": "(optional)",

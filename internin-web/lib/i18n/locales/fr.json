@@ -1066,7 +1066,7 @@
       }
     },
     "apply": {
-      "cta": "🚀 Postuler maintenant",
+      "cta": " Postuler maintenant",
       "dialogTitle": "Postuler — {title}",
       "coverLetter": "Lettre de motivation",
       "optional": "(facultatif)",

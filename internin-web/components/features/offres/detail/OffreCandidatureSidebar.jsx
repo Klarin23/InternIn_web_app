@@ -7,12 +7,14 @@ import {
   FiClock,
   FiFlag,
   FiHeart,
+  FiAlertCircle,
 } from "react-icons/fi";
 import {
   modeBadge as getModeBadge,
   dureeLabel,
   statutCandidature as getStatutCandidature,
   formatRemuneration,
+  estOffreExpiree,
 } from "@/lib/constants/offres";
 import PostulerDialog from "@/components/features/offres/PostulerDialog";
 import CandidatureStatutTimeline from "./CandidatureStatutTimeline";
@@ -40,6 +42,7 @@ export default function OffreCandidatureSidebar({
   const { t, locale } = useTranslation();
   const dateLocale = locale === "en" ? "en-US" : "fr-FR";
   const modeBadge = getModeBadge(t, offre.modeTravail);
+  const expiree = estOffreExpiree(offre);
   const statutInfo = candidature?.statut
     ? getStatutCandidature(t, candidature.statut)
     : null;
@@ -92,7 +95,13 @@ export default function OffreCandidatureSidebar({
           <Ligne
             icon={FiFlag}
             label={t("offersPage.sidebar.deadline")}
-            value={formatDateCourte(offre.dateLimiteCandidature)}
+            value={
+              formatDateCourte(offre.dateLimiteCandidature)
+                ? expiree
+                  ? `${formatDateCourte(offre.dateLimiteCandidature)} · Expirée`
+                  : formatDateCourte(offre.dateLimiteCandidature)
+                : null
+            }
           />
         </div>
       </div>
@@ -103,6 +112,15 @@ export default function OffreCandidatureSidebar({
           {t("offersPage.sidebar.application")}
         </h5>
 
+        {expiree && !candidature && (
+          <div className="mb-3 flex items-start gap-2 rounded-sm border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-xs text-destructive">
+            <FiAlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              Cette offre n&apos;accepte plus de candidatures : la date limite
+              est dépassée.
+            </span>
+          </div>
+        )}
         {candidature ? (
           <div className="space-y-1">
             <div

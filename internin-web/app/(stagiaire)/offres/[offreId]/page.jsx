@@ -156,7 +156,11 @@ export default function OffreDetailPage() {
           className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-3 backdrop-blur-sm lg:hidden"
         >
           <div className="mx-auto max-w-280">
-            <PostulerDialog idOffre={offreId} offreTitle={offre.titre} />
+            <PostulerDialog
+              idOffre={offreId}
+              offreTitle={offre.titre}
+              offre={offre}
+            />
           </div>
         </motion.div>
       )}

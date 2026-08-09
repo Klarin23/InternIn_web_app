@@ -41,7 +41,7 @@ import {
 } from "@/lib/queries/useStagiaireProfile";
 import { calculerCompletionProfil } from "@/lib/utils/profilCompletion";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { dureeLabel } from "@/lib/constants/offres";
+import { dureeLabel, estOffreExpiree } from "@/lib/constants/offres";
 import { toast } from "@/lib/store/useToastStore";
 import { cn } from "@/lib/utils";
 
@@ -778,17 +778,29 @@ export default function PostulerDialog({ idOffre, offreTitle, offre = null }) {
 
   const titreOffre = offre?.titre || offreTitle || "cette offre";
   const nomEntreprise = offre?.nomEntreprise || null;
+    const expiree = estOffreExpiree(offre);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <Button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="group/postuler flex h-12 w-full items-center justify-center gap-2 rounded-sm text-sm font-semibold shadow-sm"
-      >
-        {t("offersPage.apply.cta")}
-        <FiArrowRight className="h-4 w-4 transition-transform group-hover/postuler:translate-x-1" />
-      </Button>
+      {expiree ? (
+        <button
+          type="button"
+          disabled
+          className="flex h-12 w-full cursor-not-allowed items-center justify-center gap-2 rounded-sm border border-destructive/30 bg-destructive/10 text-sm font-semibold text-destructive"
+        >
+          <FiAlertCircle className="h-4 w-4 shrink-0" />
+          Offre expirée
+        </button>
+      ) : (
+        <Button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="group/postuler flex h-12 w-full items-center justify-center gap-2 rounded-sm text-sm font-semibold shadow-sm"
+        >
+          <FiSend className="h-4 w-4 shrink-0" />
+          {t("offersPage.apply.cta")}
+        </Button>
+      )}
 
       <DialogContent
         showCloseButton={false}

@@ -19,6 +19,7 @@ import {
   couleurAvatar,
   parseCompetences,
   formatRemuneration,
+  estOffreExpiree,
 } from "@/lib/constants/offres";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
@@ -44,6 +45,7 @@ export default function OffreCard({
   const secteurStyle = couleurSecteur(offre.secteurActivite);
   const modeBadge = getModeBadge(t, offre.modeTravail);
   const competences = parseCompetences(offre.competencesRequises);
+  
   const statutInfo = candidature?.statut
     ? getStatutCandidature(t, candidature.statut)
     : null;
@@ -52,7 +54,7 @@ export default function OffreCard({
     typeof offre.matchScore === "number" ? offre.matchScore : null;
 
   const estListe = vue === "liste";
-
+  const expiree = estOffreExpiree(offre);
   return (
     <motion.div
       layout
@@ -179,6 +181,12 @@ export default function OffreCard({
                 className={`rounded-full px-2.5 py-1 font-semibold ${modeBadge.className}`}
               >
                 {modeBadge.label}
+              </span>
+            )}
+
+            {expiree && (
+              <span className="rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-1 font-semibold text-destructive">
+                Expirée
               </span>
             )}
           </div>

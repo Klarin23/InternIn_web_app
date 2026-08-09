@@ -53,6 +53,31 @@ export async function createCandidature(
     throw err;
   }
 
+    const [offre] = await db
+      .select({
+        idOffre: offresStage.idOffre,
+        statut: offresStage.statut,
+        dateLimiteCandidature: offresStage.dateLimiteCandidature,
+      })
+      .from(offresStage)
+      .where(eq(offresStage.idOffre, idOffre));
+
+    if (!offre || offre.statut !== "publie") {
+      const err = new Error("Cette offre n'est plus disponible");
+      err.status = 400;
+      throw err;
+    }
+
+        if (offre.dateLimiteCandidature) {
+          if (new Date(offre.dateLimiteCandidature) < new Date()) {
+            const err = new Error(
+              "Cette offre a expiré : les candidatures sont fermées",
+            );
+            err.status = 400;
+            throw err;
+          }
+        }
+
   const [candidature] = await db
     .insert(candidatures)
     .values({
