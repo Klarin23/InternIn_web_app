@@ -1,8 +1,7 @@
 "use client";
-// Composant d'animation générique : fait apparaître son contenu
-// en fondu + légère translation vers le haut, une seule fois, au scroll.
-// Réutilisé sur chaque section de la page pour un effet "vivant" mais sobre.
+
 import { motion } from "framer-motion";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function FadeIn({
   children,
@@ -10,12 +9,15 @@ export default function FadeIn({
   y = 24,
   className = "",
 }) {
+  const { locale } = useTranslation();
+
   return (
     <motion.div
+      key={locale}
       className={className}
-      initial={{ opacity: 0, y }} // état de départ : invisible, légèrement plus bas
-      whileInView={{ opacity: 1, y: 0 }} // état final quand l'élément entre dans l'écran
-      viewport={{ once: true, margin: "-80px" }} // ne joue qu'une fois, un peu avant d'être visible
+      initial={{ opacity: 0, y }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
       transition={{ duration: 0.6, delay, ease: "easeOut" }}
     >
       {children}
