@@ -6,6 +6,7 @@ import { FiMenu, FiX } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import LanguageSwitcher from "./LanguageSwitcher";
+import SiteLogo from "@/components/layout/SiteLogo";
 
 export default function Header() {
   const [menuOuvert, setMenuOuvert] = useState(false);
@@ -22,9 +23,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur">
       <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-6 md:px-10 lg:px-20">
-        <Link href="/" className="text-xl font-extrabold text-foreground">
-          Intern<span className="text-primary">In</span>
-        </Link>
+        <SiteLogo className="h-5.5 w-auto" />
 
         <nav className="hidden items-center gap-8 md:flex">
           {LIENS_NAV.map((lien) => (
@@ -40,10 +39,10 @@ export default function Header() {
 
         <div className="hidden items-center gap-2 md:flex">
           <LanguageSwitcher />
-          <Button variant="ghost" size="sm" asChild>
+          <Button variant="ghost" size="sm" asChild className="rounded-sm">
             <Link href="/connexion">{t("nav.login")}</Link>
           </Button>
-          <Button size="sm" asChild>
+          <Button size="sm" asChild className="h-9 rounded-sm px-4">
             <Link href="/inscription">{t("nav.signup")}</Link>
           </Button>
         </div>
@@ -100,13 +99,17 @@ export default function Header() {
                 variant="ghost"
                 size="sm"
                 asChild
-                className="justify-center"
+                className="h-11 justify-center rounded-sm"
               >
                 <Link href="/connexion" onClick={() => setMenuOuvert(false)}>
                   {t("nav.login")}
                 </Link>
               </Button>
-              <Button size="sm" asChild className="justify-center">
+              <Button
+                size="sm"
+                asChild
+                className="h-11 justify-center rounded-sm"
+              >
                 <Link href="/inscription" onClick={() => setMenuOuvert(false)}>
                   {t("nav.signup")}
                 </Link>

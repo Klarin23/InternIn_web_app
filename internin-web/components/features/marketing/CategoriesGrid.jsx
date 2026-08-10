@@ -82,7 +82,11 @@ export default function CategoriesGrid({
         </Stagger>
 
         <FadeIn className="mt-9 text-center" delay={0.1}>
-          <Button variant="outline" asChild>
+          <Button
+            variant="outline"
+            asChild
+            className="h-12 rounded-sm px-6 text-sm font-medium"
+          >
             <Link href="/offres">{browseAll}</Link>
           </Button>
         </FadeIn>

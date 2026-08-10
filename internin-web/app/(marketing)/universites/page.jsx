@@ -14,12 +14,20 @@ export const metadata = {
 export default function UniversitesPage() {
   return (
     <>
-      <Hero i18nKey="marketing.universities.hero" />
+      <Hero
+        i18nKey="marketing.universities.hero"
+        imageUrl="/images/university-hero.png"
+        imageAlt="Universités partenaires sur InternIn"
+        titleClassName="mt-5 max-w-150 text-3xl font-bold leading-tight text-foreground md:text-4xl"
+      />
       <HowItWorks i18nKey="marketing.universities.howItWorks" />
       <FeaturesGrid i18nKey="marketing.universities.features" />
       <Testimonial i18nKey="marketing.universities.testimonial" />
       <Faq i18nKey="marketing.universities.faq" />
-      <CtaFinal i18nKey="marketing.universities.cta" ctaHref="/inscription/universite" />
+      <CtaFinal
+        i18nKey="marketing.universities.cta"
+        ctaHref="/inscription/universite"
+      />
     </>
   );
 }

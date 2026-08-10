@@ -39,6 +39,7 @@ export default function Hero({
   imageAlt = "Étudiants, entreprises et universités connectés sur InternIn",
   floatCards: floatCardsProp,
   stats: statsProp,
+  titleClassName,
 }) {
   const { t } = useTranslation();
   const i18n = i18nKey ? t(i18nKey) : undefined;
@@ -104,12 +105,16 @@ export default function Hero({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: "easeOut" }}
           >
-            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3.5 py-1.5 text-sm font-semibold text-primary">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            <span className="inline-flex items-center rounded-full border border-[#F7B500]/35 bg-[#ffe796] px-3.5 py-1.5 text-sm font-semibold text-[#ad781b]">
               {eyebrow}
             </span>
 
-            <h1 className="mt-5 max-w-150 text-4xl font-bold leading-tight text-foreground md:text-5xl">
+            <h1
+              className={
+                titleClassName ??
+                "mt-5 max-w-150 text-4xl font-bold leading-tight text-foreground md:text-5xl"
+              }
+            >
               {title}
             </h1>
             {tagline && (
@@ -147,7 +152,10 @@ export default function Hero({
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
               >
-                <Button size="lg" asChild>
+                <Button
+                  asChild
+                  className="h-12 rounded-sm px-5 text-sm font-medium"
+                >
                   <Link href={primaryCta.href}>{primaryCta.label}</Link>
                 </Button>
               </motion.div>
@@ -155,7 +163,10 @@ export default function Hero({
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
               >
-                <Button size="lg" variant="outline" asChild>
+                <Button
+                  asChild
+                  className="h-12 rounded-sm border border-[#E8A800] bg-[#ffcd45] px-5 text-sm font-semibold text-[#63574f] shadow-none hover:bg-[#E8A800] hover:text-[#1C1917]"
+                >
                   <Link href={secondaryCta.href}>{secondaryCta.label}</Link>
                 </Button>
               </motion.div>
@@ -166,7 +177,7 @@ export default function Hero({
             initial={{ opacity: 0, scale: 1.05 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="relative aspect-[4/3] min-h-[320px] w-full overflow-hidden bg-transparent sm:min-h-[320px] md:aspect-auto md:min-h-[420px] lg:min-h-[480px] "
+            className="relative aspect-4/3 min-h-80 w-full overflow-hidden bg-transparent sm:min-h-80 md:aspect-auto md:min-h-105 lg:min-h-120 "
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img

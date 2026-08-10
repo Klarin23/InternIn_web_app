@@ -59,8 +59,7 @@ export default function AudienceCards({ i18nKey = "marketing.audienceCards" }) {
               <p className="mb-6 text-sm text-white/85">{students.desc}</p>
               <Button
                 variant="secondary"
-                size="sm"
-                className="mt-auto self-start"
+                className="mt-auto h-10 self-start rounded-sm border-white/50 bg-transparent px-4 text-sm font-medium text-white hover:bg-white/10 hover:text-white"
                 asChild
               >
                 <Link href="/inscription/stagiaire">{students.cta}</Link>
@@ -72,15 +71,16 @@ export default function AudienceCards({ i18nKey = "marketing.audienceCards" }) {
             <motion.div
               id="entreprises"
               whileHover={{ y: -6 }}
-              className="flex h-full flex-col rounded-md bg-linear-to-br from-[#4B31D6] to-secondary p-8 text-white shadow-sm"
+              className="flex h-full flex-col rounded-md bg-linear-to-br from-[#4338CA] to-[#8068f3] p-8 text-white shadow-sm"
             >
-              <Briefcase className="mb-4 h-8 w-8" />
-              <h5 className="mb-2 text-lg font-semibold">{companies.title}</h5>
-              <p className="mb-6 text-sm text-white/85">{companies.desc}</p>
+              <Briefcase className="mb-4 h-8 w-8 text-white" />
+              <h5 className="mb-2 text-lg font-semibold text-white">
+                {companies.title}
+              </h5>
+              <p className="mb-6 text-sm text-white/90">{companies.desc}</p>
               <Button
                 variant="outline"
-                size="sm"
-                className="mt-auto self-start border-white/50 bg-transparent text-white hover:bg-white/10"
+                className="mt-auto h-10 self-start rounded-sm px-4 text-sm font-medium border-white/50 bg-transparent text-white hover:bg-white/10 hover:text-white"
                 asChild
               >
                 <Link href="/inscription/entreprise">{companies.cta}</Link>
@@ -92,17 +92,18 @@ export default function AudienceCards({ i18nKey = "marketing.audienceCards" }) {
             <motion.div
               id="universites"
               whileHover={{ y: -6 }}
-              className="flex h-full flex-col rounded-md bg-linear-to-br from-foreground to-foreground/80 p-8 text-white shadow-sm"
+              className="flex h-full flex-col rounded-md bg-linear-to-br from-foreground to-foreground/80 p-8 text-white shadow-sm dark:from-yellow-600 dark:to-yellow-500 dark:text-[#fffff]"
             >
-              <Landmark className="mb-4 h-8 w-8" />
-              <h5 className="mb-2 text-lg font-semibold">
+              <Landmark className="mb-4 h-8 w-8 dark:text-[#1C1917]" />
+              <h5 className="mb-2 text-lg font-semibold dark:text-[#1C1917]">
                 {universities.title}
               </h5>
-              <p className="mb-6 text-sm text-white/85">{universities.desc}</p>
+              <p className="mb-6 text-sm text-white/85 dark:text-[#1C1917]/85">
+                {universities.desc}
+              </p>
               <Button
                 variant="outline"
-                size="sm"
-                className="mt-auto self-start border-white/50 bg-transparent text-white hover:bg-white/10"
+                className="mt-auto h-10 self-start rounded-sm border-white/50 bg-transparent px-4 text-sm font-medium text-white hover:bg-white/10 hover:text-white dark:border-[#1C1917]/40 dark:text-[#1C1917] dark:hover:bg-[#1C1917]/10 dark:hover:text-[#1C1917]"
                 asChild
               >
                 <Link href="/inscription/universite">{universities.cta}</Link>

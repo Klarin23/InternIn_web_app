@@ -17,8 +17,9 @@ export default function EtudiantsPage() {
     <>
       <Hero
         i18nKey="marketing.students.hero"
-        imageUrl="/images/student-hero.svg"
+        imageUrl="/images/student-hero.png"
         imageAlt="Étudiant utilisant InternIn pour trouver un stage"
+        tagline= ""
       />
       <HowItWorks i18nKey="marketing.students.howItWorks" />
       <FeaturesGrid i18nKey="marketing.students.features" />

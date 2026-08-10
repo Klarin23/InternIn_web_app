@@ -100,7 +100,7 @@
       "hero": {
         "eyebrow": "Connecter l'Éducation, l'Expérience et les Opportunités",
         "title": "Lancez votre carrière grâce à des stages porteurs de sens.",
-        "tagline": "Apprenez. Évoluez. Obtenez des recommandations.",
+        "tagline": "",
         "description": "InternIn connecte les étudiants, les universités et les entreprises grâce à des programmes de stage structurés conçus pour développer une véritable expérience professionnelle et préparer la prochaine génération de professionnels.",
         "checklist": [
           "Découvrez des opportunités vérifiées, adaptées à vos compétences",
@@ -235,7 +235,7 @@
       "hero": {
         "eyebrow": "Pour les Étudiants",
         "title": "Trouvez le stage qui lance votre carrière.",
-        "tagline": "Apprenez. Évoluez. Réussissez.",
+        "tagline": "",
         "description": "InternIn vous aide à découvrir des opportunités de stage porteuses de sens, à développer des compétences essentielles, et à construire une expérience qui vous démarque.",
         "checklist": [
           "Trouvez des opportunités adaptées à vos compétences et centres d'intérêt",
@@ -723,22 +723,14 @@
       "browseAll": "Parcourir tous les stages",
       "categories": [
         [
-          "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=500&q=80",
+          "/images/developer.png",
           "Génie Logiciel",
           "Développement web & mobile"
         ],
+        ["/images/Marketing.jpg", "Marketing", "Campagnes & réseaux sociaux"],
+        ["/images/finance.jpg", "Finance", "Analyse & reporting"],
         [
-          "https://images.unsplash.com/photo-1553877522-43269d4ea984?auto=format&fit=crop&w=500&q=80",
-          "Marketing",
-          "Campagnes & réseaux sociaux"
-        ],
-        [
-          "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=500&q=80",
-          "Finance",
-          "Analyse & reporting"
-        ],
-        [
-          "https://images.unsplash.com/photo-1587440871875-191322ee64b0?auto=format&fit=crop&w=500&q=80",
+          "/images/UI-UXdesigner.png",
           "UI/UX Design",
           "Interfaces & expérience"
         ]

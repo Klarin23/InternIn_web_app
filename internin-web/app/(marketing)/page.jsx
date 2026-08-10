@@ -10,7 +10,11 @@ import CtaFinal from "@/components/features/marketing/CtaFinal";
 export default function HomePage() {
   return (
     <>
-      <Hero i18nKey="marketing.home.hero" />
+      <Hero
+        i18nKey="marketing.home.hero"
+        tagline=""
+        imageUrl="/images/hero.png"
+      />
       <HowItWorks i18nKey="marketing.home.howItWorks" />
       <FeaturesGrid i18nKey="marketing.home.features" />
       <CategoriesGrid />

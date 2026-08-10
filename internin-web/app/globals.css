@@ -192,6 +192,17 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Pages marketing (accueil, etc.) : boutons / accents teal identiques en clair et sombre */
+/* Marketing : forcer le teal en thème sombre (variables Tailwind v4 incluses) */
+html.dark .marketing-theme {
+  --primary: #14b8a6;
+  --primary-foreground: #ffffff;
+  --ring: #14b8a6;
+  --color-primary: #14b8a6;
+  --color-primary-foreground: #ffffff;
+  --color-ring: #14b8a6;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

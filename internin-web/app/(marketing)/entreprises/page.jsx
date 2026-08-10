@@ -14,12 +14,19 @@ export const metadata = {
 export default function EntreprisesPage() {
   return (
     <>
-      <Hero i18nKey="marketing.companies.hero" />
+      <Hero
+        i18nKey="marketing.companies.hero"
+        imageUrl="/images/company.png"
+        imageAlt="Entreprises partenaires sur InternIn"
+      />
       <HowItWorks i18nKey="marketing.companies.howItWorks" />
       <FeaturesGrid i18nKey="marketing.companies.features" />
       <Testimonial i18nKey="marketing.companies.testimonial" />
       <Faq i18nKey="marketing.companies.faq" />
-      <CtaFinal i18nKey="marketing.companies.cta" ctaHref="/inscription/entreprise" />
+      <CtaFinal
+        i18nKey="marketing.companies.cta"
+        ctaHref="/inscription/entreprise"
+      />
     </>
   );
 }

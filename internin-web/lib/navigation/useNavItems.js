@@ -36,6 +36,13 @@ import {
   useEvaluationsSuperviseur,
 } from "@/lib/queries/useSuperviseur";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { useSyncExternalStore } from "react";
+import { usePathname } from "next/navigation";
+import { useAuthStore } from "@/lib/store/useAuthStore";
+import { useOffres } from "@/lib/queries/useOffres";
+import { useMesCandidatures } from "@/lib/queries/useMesCandidatures";
+import { useMesEntretiens } from "@/lib/queries/useEntretiens";
+import { useMonStage } from "@/lib/queries/useStages";
 
 // Table des libellés de rôle admin. Reste un objet simple (clé métier ->
 // clé de traduction) ; utiliser useRoleAdminLabels() pour obtenir la version
@@ -59,8 +66,87 @@ export function useRoleAdminLabels() {
   );
 }
 
+function subscribeOffresSeen(onChange) {
+  if (typeof window === "undefined") return () => {};
+  const handler = () => onChange();
+  window.addEventListener("internin-offres-seen", handler);
+  window.addEventListener("storage", handler);
+  return () => {
+    window.removeEventListener("internin-offres-seen", handler);
+    window.removeEventListener("storage", handler);
+  };
+}
+
+function getOffresSeenSnapshot(storageKey) {
+  if (typeof window === "undefined" || !storageKey) return null;
+  return localStorage.getItem(storageKey);
+}
+
+/** À appeler quand l'étudiant ouvre la page Offres */
+export function markOffresAsSeen(userId) {
+  if (typeof window === "undefined" || !userId) return;
+  const key = `internin:lastSeenOffres:${userId}`;
+  localStorage.setItem(key, new Date().toISOString());
+  window.dispatchEvent(new Event("internin-offres-seen"));
+}
+
 export function useStagiaireNavItems() {
   const { t } = useTranslation();
+  const pathname = usePathname();
+  const userId = useAuthStore((s) => s.user?.idUtilisateur);
+
+  const { data: offresData } = useOffres({});
+  const { data: candidaturesData } = useMesCandidatures();
+  const { data: entretiensData } = useMesEntretiens();
+  const { data: monStageData } = useMonStage();
+
+  const offres = Array.isArray(offresData)
+    ? offresData
+    : Array.isArray(offresData?.offres)
+      ? offresData.offres
+      : [];
+
+  const candidatures = Array.isArray(candidaturesData)
+    ? candidaturesData
+    : Array.isArray(candidaturesData?.candidatures)
+      ? candidaturesData.candidatures
+      : [];
+
+  const entretiens = Array.isArray(entretiensData)
+    ? entretiensData
+    : Array.isArray(entretiensData?.entretiens)
+      ? entretiensData.entretiens
+      : [];
+
+  // --- Dot "nouvelles offres" (localStorage, par utilisateur) ---
+  const storageKey = userId ? `internin:lastSeenOffres:${userId}` : null;
+
+  const lastSeenOffres = useSyncExternalStore(
+    subscribeOffresSeen,
+    () => getOffresSeenSnapshot(storageKey),
+    () => null, // serveur
+  );
+
+  const hasNouvellesOffres = offres.some((o) => {
+    if (!o.datePublication) return false;
+    // Jamais consulté le menu → signaler s'il existe au moins une offre publiée
+    if (!lastSeenOffres) return true;
+    return new Date(o.datePublication) > new Date(lastSeenOffres);
+  });
+
+  // --- Compteurs ---
+  const nbCandidaturesActives = candidatures.filter(
+    (c) => !["rejetee", "retiree"].includes(c.statut),
+  ).length;
+
+  const nbEntretiens = entretiens.length;
+
+  const monStage =
+    monStageData?.stage || monStageData?.monStage || monStageData || null;
+  const hasStageActif =
+    monStage &&
+    monStage.idStage &&
+    !["termine", "annule", "refuse"].includes(monStage.statut);
 
   return [
     { href: "/tableau-de-bord", label: t("sidebar.dashboard"), icon: FiGrid },
@@ -68,14 +154,28 @@ export function useStagiaireNavItems() {
       href: "/offres",
       label: t("sidebar.internshipOffers"),
       icon: FiBriefcase,
+      // Point clignotant (NavLink gère déjà `dot` + `animate-blink`)
+      dot: hasNouvellesOffres,
+      dotColor: "#14b8a6",
     },
     {
       href: "/candidatures",
       label: t("sidebar.applications"),
       icon: FiFileText,
+      badge: nbCandidaturesActives || undefined,
     },
-    { href: "/entretiens", label: t("sidebar.interviews"), icon: FiCalendar },
-    { href: "/stage", label: t("sidebar.myInternship"), icon: FiBriefcase },
+    {
+      href: "/entretiens",
+      label: t("sidebar.interviews"),
+      icon: FiCalendar,
+      badge: nbEntretiens || undefined,
+    },
+    {
+      href: "/stage",
+      label: t("sidebar.myInternship"),
+      icon: FiBriefcase,
+      badge: hasStageActif ? 1 : undefined,
+    },
     { href: "/certificats", label: t("sidebar.certificates"), icon: FiAward },
     {
       href: "/messages",

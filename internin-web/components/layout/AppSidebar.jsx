@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import Link from "next/link";
@@ -7,6 +8,7 @@ import { FiX, FiSettings, FiLogOut } from "react-icons/fi";
 import { useUiStore } from "@/lib/store/useUiStore";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { useQueryClient } from "@tanstack/react-query";
+
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 function NavLink({
@@ -117,7 +119,11 @@ export default function AppSidebar({
     <>
       <div className="border-b border-sidebar-border px-5 py-5">
         <Link href="/" className="text-lg font-extrabold text-white">
-          Intern<span style={{ color: "var(--sidebar-primary)" }}>In</span>
+          <img
+            src="/images/logo-dark.svg"
+            alt="InternIn"
+            className="h-7 w-auto"
+          />
         </Link>
         <p className="mt-0.5 text-xs text-sidebar-foreground/70">
           {libelleRole}

@@ -39,9 +39,10 @@ const iconMap = {
 };
 
 const colorMap = {
-  teal: "bg-primary/10 text-primary",
-  violet: "bg-secondary/10 text-secondary",
-  gold: "bg-accent/40 text-amber-700",
+  teal: "bg-teal-100 text-teal-600 dark:bg-teal-500/20 dark:text-teal-300",
+  violet:
+    "bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-300",
+  gold: "bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-300",
 };
 
 export default function FeaturesGrid({

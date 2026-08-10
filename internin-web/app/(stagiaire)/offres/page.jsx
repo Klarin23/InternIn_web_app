@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import AppHeader from "@/components/layout/AppHeader";
 import OffreCard from "@/components/features/offres/OffreCard";
@@ -11,6 +11,8 @@ import { useOffres } from "@/lib/queries/useOffres";
 import { useMesCandidatures } from "@/lib/queries/useMesCandidatures";
 import { estNouvelle } from "@/lib/constants/offres";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { useAuthStore } from "@/lib/store/useAuthStore";
+import { markOffresAsSeen } from "@/lib/navigation/useNavItems";
 
 const SEUIL_NOUVEAU_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -22,6 +24,11 @@ export default function OffresPage() {
   const [modeActif, setModeActif] = useState(undefined);
   const [remunerationActive, setRemunerationActive] = useState(undefined);
   const [vue, setVue] = useState("grille");
+  const userId = useAuthStore((s) => s.user?.idUtilisateur);
+
+    useEffect(() => {
+      markOffresAsSeen(userId);
+    }, [userId]);
 
   // Un seul appel, filtré uniquement par le texte recherché : les pastilles/
   // menus de filtres restent stables (calculés sur ce même jeu de données)

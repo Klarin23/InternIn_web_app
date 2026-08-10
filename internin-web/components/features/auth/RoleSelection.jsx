@@ -23,21 +23,21 @@ export default function RoleSelection() {
         <RoleCard
           href="/inscription/stagiaire"
           icon={GraduationCap}
-          iconClass="bg-blue-600 text-white"
+          iconClass="bg-yellow-500 text-white"
           title={t("auth.roleSelection.student.title")}
           description={t("auth.roleSelection.student.desc")}
         />
         <RoleCard
           href="/inscription/entreprise"
           icon={Briefcase}
-          iconClass="bg-violet-600 text-white"
+          iconClass="bg-violet-500 text-white"
           title={t("auth.roleSelection.company.title")}
           description={t("auth.roleSelection.company.desc")}
         />
         <RoleCard
           href="/inscription/universite"
           icon={Landmark}
-          iconClass="bg-emerald-600 text-white"
+          iconClass="bg-teal-500 text-white"
           title={t("auth.roleSelection.university.title")}
           description={t("auth.roleSelection.university.desc")}
         />

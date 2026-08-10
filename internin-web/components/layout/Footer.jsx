@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import {FaInstagram, FaLinkedin, FaTwitter} from "react-icons/fa6"
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import SiteLogo from "@/components/layout/SiteLogo";
 
 export default function Footer() {
   const { t } = useTranslation();
@@ -12,9 +13,7 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-6 md:px-10 lg:px-20">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4">
           <div>
-            <div className="text-xl font-extrabold text-foreground">
-              Intern<span className="text-primary">In</span>
-            </div>
+            <SiteLogo className="h-6 w-auto" href="/" />
             <p className="mt-3 max-w-70 text-sm text-muted-foreground">
               {t("footer.tagline")}
             </p>

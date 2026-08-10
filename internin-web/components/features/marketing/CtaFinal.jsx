@@ -37,7 +37,11 @@ export default function CtaFinal({
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
           >
-            <Button size="lg" variant="secondary" asChild>
+            <Button
+              variant="secondary"
+              asChild
+              className="h-12 rounded-sm border border-white/50 bg-transparent px-8 text-sm font-medium text-white hover:bg-white/10 hover:text-white"
+            >
               <Link href={ctaHref}>{ctaLabel}</Link>
             </Button>
           </motion.div>
