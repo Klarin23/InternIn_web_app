@@ -75,24 +75,30 @@ async function resoudreCompetences(tx, liste = []) {
 // Les liens professionnels (LinkedIn, GitHub, etc.) sont facultatifs
 // et n'influencent PAS le statut actif / inactif.
 function calculerScoreCompletude(profil) {
+  // Doit rester aligné avec internin-web/lib/utils/profilCompletion.js
   const criteres = [
     Boolean(profil.photoProfilUrl),
-    Boolean(profil.titreProfessionnel?.trim()),
-    Boolean(profil.presentation?.trim()),
+    Boolean(
+      typeof profil.titreProfessionnel === "string"
+        ? profil.titreProfessionnel.trim()
+        : profil.titreProfessionnel,
+    ),
+    Boolean(
+      typeof profil.presentation === "string"
+        ? profil.presentation.trim()
+        : profil.presentation,
+    ),
     Array.isArray(profil.formations) && profil.formations.length > 0,
     Array.isArray(profil.competences) && profil.competences.length > 0,
     Boolean(profil.cvUrl),
     Array.isArray(profil.centresInteret) && profil.centresInteret.length > 0,
-    Boolean(
-      (Array.isArray(profil.secteursRecherches) &&
-        profil.secteursRecherches.length > 0) ||
-        (Array.isArray(profil.villesRecherchees) &&
-          profil.villesRecherchees.length > 0),
-    ),
+    (Array.isArray(profil.secteursRecherches) &&
+      profil.secteursRecherches.length > 0) ||
+      (Array.isArray(profil.villesRecherchees) &&
+        profil.villesRecherchees.length > 0),
   ];
 
   const nombreComplets = criteres.filter(Boolean).length;
-
   return Math.round((nombreComplets / criteres.length) * 100);
 }
 
@@ -260,15 +266,14 @@ export async function completeStagiaireOnboarding(idUtilisateur, payload) {
     }
 
     // Recalcul du score et du statut du compte
-    const profilPourCalcul = {
-      ...stagiaire,
-      formations: payload.formations || [],
-      competences: payload.competences || [],
-      centresInteret: payload.centresInteret || [],
-      objectifsDeveloppement: payload.objectifsDeveloppement || [],
-      secteursRecherches: payload.secteursRecherches || [],
-      villesRecherchees: payload.villesRecherchees || [],
-    };
+        const profilPourCalcul = {
+          ...stagiaire,
+          ...payload,
+          formations: payload.formations || [],
+          competences: payload.competences || [],
+          centresInteret: payload.centresInteret || [],
+          joursDisponibles: payload.joursDisponibles || [],
+        };
 
     const { score, statutCompte } = await synchroniserStatutCompteStagiaire(
       tx,
@@ -499,25 +504,26 @@ export async function updateStagiaireProfile(idUtilisateur, payload) {
       .from(stagiaireCentresInteret)
       .where(eq(stagiaireCentresInteret.idStagiaire, idStagiaire));
 
-    const profilPourCalcul = {
-      ...profilFinal,
+        const profilPourCalcul = {
+          ...stagiaireMaj,
+          formations: payload.formations || stagiaireMaj.formations || [],
+          competences: nouvellesCompetences ?? [],
+          centresInteret: nouveauxCentresInteret ?? [],
+          secteursRecherches:
+            payload.secteursRecherches ?? stagiaireMaj.secteursRecherches ?? [],
+          villesRecherchees:
+            payload.villesRecherchees ?? stagiaireMaj.villesRecherchees ?? [],
+          photoProfilUrl: stagiaireMaj.photoProfilUrl,
+          titreProfessionnel: stagiaireMaj.titreProfessionnel,
+          presentation: stagiaireMaj.presentation,
+          cvUrl: stagiaireMaj.cvUrl,
+        };
 
-      formations: formationsFinales,
-
-      competences: competencesFinales,
-
-      centresInteret: centresInteretFinales,
-
-      secteursRecherches: profilFinal.secteursRecherches || [],
-
-      villesRecherchees: profilFinal.villesRecherchees || [],
-    };
-
-    const { score, statutCompte } = await synchroniserStatutCompteStagiaire(
-      tx,
-      idUtilisateur,
-      profilPourCalcul,
-    );
+        const { score, statutCompte } = await synchroniserStatutCompteStagiaire(
+          tx,
+          idUtilisateur,
+          profilPourCalcul,
+        );
 
     return {
       ...profilFinal,

@@ -6,7 +6,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-const TOTAL_STEPS = 11;
+const TOTAL_STEPS = 4;
 
 export const useOnboardingStore = create(
   persist(

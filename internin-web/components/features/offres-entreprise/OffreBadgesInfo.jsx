@@ -29,11 +29,11 @@ function calculerBadges(offre, seuilPopulaire) {
     });
   }
 
-  if (offre.datePublication) {
-    const joursDepuisPublication = Math.floor(
-      (new Date() - new Date(offre.datePublication)) / 86400000,
+  if (offre.dateCreation) {
+    const joursDepuisCreation = Math.floor(
+      (new Date() - new Date(offre.dateCreation)) / 86400000,
     );
-    if (joursDepuisPublication <= 3) {
+    if (joursDepuisCreation <= 2) {
       badges.push({
         key: "nouvelle",
         emoji: "⭐",

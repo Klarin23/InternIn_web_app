@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import AppSidebar from "@/components/layout/AppSidebar";
@@ -14,33 +14,52 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 export default function StagiaireLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
-
-  const { user, token } = useAuthStore();
-  const navItems = useStagiaireNavItems();
   const { t } = useTranslation();
+  const navItems = useStagiaireNavItems();
+
+  const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+
+  // Attendre la rehydration localStorage (internin-auth) avant de juger la session
+  // Hydratation Zustand sans setState dans un useEffect (compatible React 19)
+  const hydrated = useSyncExternalStore(
+    (onStoreChange) => {
+      const unsub = useAuthStore.persist.onFinishHydration(onStoreChange);
+      return unsub;
+    },
+    () => useAuthStore.persist.hasHydrated(),
+    () => false,
+  );
 
   useEffect(() => {
+    if (!hydrated) return;
+
     if (!token || !user) {
       router.replace("/connexion");
       return;
     }
-
     if (user.typeUtilisateur !== "stagiaire") {
       router.replace("/connexion");
     }
-  }, [user, token, router]);
+  }, [hydrated, user, token, router]);
+
+  if (!hydrated) {
+    return null; // ou un petit loader
+  }
 
   if (!user || user.typeUtilisateur !== "stagiaire") {
     return null;
   }
 
-  const isInactive = user.statutCompte === "inactif";
+  const isInactive = user.statutCompte !== "actif";
 
   const canAccessWhileInactive =
     pathname === "/profil" ||
     pathname.startsWith("/profil/") ||
     pathname === "/parametres" ||
-    pathname.startsWith("/parametres/");
+    pathname.startsWith("/parametres/") ||
+    pathname === "/activation" ||
+    pathname.startsWith("/activation/");
 
   const displayedChildren =
     isInactive && !canAccessWhileInactive ? <InactiveAccountGate /> : children;
@@ -58,7 +77,6 @@ export default function StagiaireLayout({ children }) {
         }
         roleLabel={t("roles.internSpace")}
       />
-
       <PullToRefresh className="h-screen flex-1 overflow-y-auto">
         {displayedChildren}
       </PullToRefresh>

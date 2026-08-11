@@ -159,7 +159,7 @@ export default function InactiveAccountGate() {
               </Link>
 
               <Link
-                href="/onboarding/1"
+                href="/activation"
                 className="group inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
               >
                 {t("account.inactive.activateButton")}

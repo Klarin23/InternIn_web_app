@@ -16,6 +16,7 @@ import { loginSchema } from "@/lib/schemas/auth.schema";
 import { loginRequest } from "@/lib/api/auth";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { getPostLoginPath } from "@/lib/auth/getPostLoginPath";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -41,18 +42,8 @@ export default function LoginForm() {
         const { user, token } = await loginRequest(data);
         setSession(user, token);
 
-        // E-mail non vérifié → page de vérification (obligatoire)
-        if (!user.emailVerifie) {
-          router.push("/verification-email");
-          return;
-        }
-
-        // Le compte reste "inactif" tant que l'onboarding n'est pas terminé
-        if (user.statutCompte === "inactif") {
-          router.push("/onboarding/1");
-        } else {
-          router.push("/tableau-de-bord");
-        }
+        const path = await getPostLoginPath(user, token);
+        router.push(path);
       } catch (err) {
         setServerError(err.message);
       }

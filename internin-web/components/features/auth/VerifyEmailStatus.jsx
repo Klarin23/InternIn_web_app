@@ -132,41 +132,34 @@ export default function VerifyEmailStatus() {
   /**
    * Vérification réussie.
    */
-  if (status === "success") {
-    // Après vérification : onboarding si compte encore inactif, sinon tableau de bord
-    const nextHref =
-      user?.statutCompte === "inactif"
-        ? "/onboarding/1"
-        : user
-          ? "/tableau-de-bord"
-          : "/connexion";
+    if (status === "success") {
+      // Jamais /onboarding/1 ici : le login / tableau de bord gèrent la suite
+      // (gate compte incomplet + /activation si profil déjà créé)
+      const nextHref = user ? "/tableau-de-bord" : "/connexion";
+      const nextLabel = user
+        ? "Accéder à mon espace"
+        : t("auth.verifyEmail.login");
 
-    const nextLabel =
-      user?.statutCompte === "inactif"
-        ? "Continuer l'inscription"
-        : user
-          ? "Accéder à mon espace"
-          : t("auth.verifyEmail.login");
-    return (
-      <div className="text-center">
-        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-green-500/10 text-green-600 dark:text-green-500">
-          <CheckCircle2 className="h-7 w-7" />
+      return (
+        <div className="text-center">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-green-500/10 text-green-600 dark:text-green-500">
+            <CheckCircle2 className="h-7 w-7" />
+          </div>
+
+          <h1 className="mb-2 text-2xl font-bold text-foreground">
+            {t("auth.verifyEmail.successTitle")}
+          </h1>
+
+          <p className="mb-7 text-sm text-muted-foreground">
+            {t("auth.verifyEmail.successDesc")}
+          </p>
+
+          <Button asChild className="h-12 w-full rounded-sm">
+            <Link href={nextHref}>{nextLabel}</Link>
+          </Button>
         </div>
-
-        <h1 className="mb-2 text-2xl font-bold text-foreground">
-          {t("auth.verifyEmail.successTitle")}
-        </h1>
-
-        <p className="mb-7 text-sm text-muted-foreground">
-          {t("auth.verifyEmail.successDesc")}
-        </p>
-
-        <Button asChild className="h-12 w-full rounded-sm">
-          <Link href="/connexion">{t("auth.verifyEmail.login")}</Link>
-        </Button>
-      </div>
-    );
-  }
+      );
+    }
 
   /**
    * Erreur de vérification.

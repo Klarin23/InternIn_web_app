@@ -64,7 +64,7 @@ export default function Step4Cv() {
       file.name === data.cvNomFichier &&
       !(file instanceof File)
     ) {
-      router.push("/onboarding/5");
+      router.push("/onboarding/4");
       return;
     }
 
@@ -73,7 +73,7 @@ export default function Step4Cv() {
     try {
       const { url } = await uploadDocumentRequest(file, "cv", token);
       saveStepData({ cvUrl: url, cvNomFichier: file.name });
-      router.push("/onboarding/5");
+      router.push("/onboarding/4");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -163,7 +163,7 @@ export default function Step4Cv() {
           type="button"
           variant="outline"
           className="h-12 rounded-sm"
-          onClick={() => router.push("/onboarding/3")}
+          onClick={() => router.push("/onboarding/2")}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>

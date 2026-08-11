@@ -4,6 +4,10 @@ import { db } from "../../db/index.js";
 import { hashPassword } from "../../utils/password.js";
 import { signToken } from "../../utils/jwt.js";
 import {
+  CLES_PERMISSIONS,
+  PERMISSIONS_PAR_DEFAUT_ROLE,
+} from "./equipe.constants.js";
+import {
   entreprises,
   contactsEntreprise,
   utilisateurs,
@@ -376,6 +380,52 @@ export async function updateMembre(idUtilisateurEntreprise, idMembre, payload) {
     );
     err.status = 403;
     throw err;
+  }
+
+  // Un membre ne doit jamais pouvoir modifier ses propres permissions —
+  // même s'il possède "equipe.gerer", sinon il peut s'auto-attribuer
+  // n'importe quelle permission (escalade de privilèges).
+  if (membre.idUtilisateur === idUtilisateurEntreprise) {
+    const err = new Error(
+      "Vous ne pouvez pas modifier vos propres permissions.",
+    );
+    err.status = 403;
+    throw err;
+  }
+
+  // Si le demandeur n'est pas le propriétaire de l'entreprise (donc un
+  // membre avec la permission "equipe.gerer"), il ne peut accorder que des
+  // permissions qu'il possède lui-même — impossible de distribuer plus de
+  // pouvoir qu'on n'en a.
+  if (payload.permissionsPersonnalisees) {
+    const demandeurEstProprietaire =
+      admin.idUtilisateur === idUtilisateurEntreprise &&
+      admin.estAdminPrincipal;
+
+    if (!demandeurEstProprietaire) {
+      const [demandeur] = await db
+        .select()
+        .from(membresEquipe)
+        .where(eq(membresEquipe.idUtilisateur, idUtilisateurEntreprise));
+
+      const permissionsDemandeur = demandeur?.estAdminPrincipal
+        ? CLES_PERMISSIONS
+        : (demandeur?.permissionsPersonnalisees ??
+          PERMISSIONS_PAR_DEFAUT_ROLE[demandeur?.roleEquipe] ??
+          []);
+
+      const permissionNonAutorisee = payload.permissionsPersonnalisees.find(
+        (cle) => !permissionsDemandeur.includes(cle),
+      );
+
+      if (permissionNonAutorisee) {
+        const err = new Error(
+          `Vous ne pouvez pas accorder la permission "${permissionNonAutorisee}" car vous ne la possédez pas vous-même.`,
+        );
+        err.status = 403;
+        throw err;
+      }
+    }
   }
 
   const [miseAJour] = await db

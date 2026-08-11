@@ -21,6 +21,7 @@ import { useStagiaireProfile } from "@/lib/queries/useStagiaireProfile";
 import { useMesCandidatures } from "@/lib/queries/useMesCandidatures";
 import { useMesEntretiens } from "@/lib/queries/useEntretiens";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { calculerCompletionProfil } from "@/lib/utils/profilCompletion";
 
 const STATUTS_ENTRETIEN_A_VENIR = [
   "planifie",
@@ -81,7 +82,7 @@ export default function StagiaireDashboardContent() {
               prenom={profile.prenom}
               nomEtablissement={derniereFormation?.nomUniversite}
               niveau={formaterNiveau(derniereFormation)}
-              score={profile.scoreCompletudeProfil ?? 0}
+              score={calculerCompletionProfil(profile).pourcentage}
               photoProfilUrl={profile.photoProfilUrl}
               emailVerifie={profile.emailVerifie}
             />

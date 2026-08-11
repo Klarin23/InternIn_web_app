@@ -60,8 +60,8 @@ export default function CategoriesGrid({
         </FadeIn>
 
         <Stagger className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {categories.map(([img, title, subtitle]) => (
-            <StaggerItem key={title}>
+          {categories.map(([img, title, subtitle], index) => (
+            <StaggerItem key={index}>
               <div className="group relative h-57.5 overflow-hidden rounded-md shadow-sm">
                 <motion.img
                   src={img}

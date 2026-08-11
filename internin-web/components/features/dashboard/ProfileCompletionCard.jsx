@@ -9,10 +9,11 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { GraduationCap, FileCheck2, FileX2, ArrowRight } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { calculerCompletionProfil } from "@/lib/utils/profilCompletion";
 
 export default function ProfileCompletionCard({ profile, derniereFormation }) {
   const { t } = useTranslation();
-  const score = profile?.scoreCompletudeProfil ?? 0;
+    const score = calculerCompletionProfil(profile).pourcentage;
   const initiale = (profile?.prenom?.charAt(0) || "?").toUpperCase();
   const competences = profile?.competences || [];
   const competencesAffichees = competences.slice(0, 4);
@@ -32,6 +33,7 @@ export default function ProfileCompletionCard({ profile, derniereFormation }) {
     >
       <div className="flex items-center gap-3.5">
         {profile?.photoProfilUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={profile.photoProfilUrl}
             alt={profile.prenom}

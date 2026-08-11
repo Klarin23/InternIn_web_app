@@ -7,7 +7,7 @@ import { useParams } from "next/navigation";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import OnboardingStepper from "./OnboardingStepper";
 
-const TOTAL_STEPS_BY_ROLE = { stagiaire: 11, entreprise: 5, universite: 4 };
+const TOTAL_STEPS_BY_ROLE = { stagiaire: 4, entreprise: 5, universite: 4 };
 
 export default function OnboardingStepperWrapper() {
   const params = useParams();

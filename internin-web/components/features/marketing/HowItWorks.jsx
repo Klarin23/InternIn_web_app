@@ -60,7 +60,7 @@ export default function HowItWorks({
         >
           <div className="absolute top-5.5 left-0 right-0 hidden h-0.5 bg-border lg:block" />
           {steps.map(([title, desc], index) => (
-            <StaggerItem key={title} className="relative pr-4">
+            <StaggerItem key={index} className="relative pr-4">
               <div className="relative z-10 mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-primary font-bold text-white ring-8 ring-background">
                 {index + 1}
               </div>

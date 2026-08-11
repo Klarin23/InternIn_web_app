@@ -98,14 +98,14 @@ export default function Hero({
     ];
   return (
     <>
-      <section className="relative overflow-hidden pt-16 pb-14">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-14 px-6 md:px-10 lg:grid-cols-2 lg:px-20">
+      <section className="relative overflow-x-clip pt-16 pb-14">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-6 md:px-10 lg:grid-cols-2 lg:gap-12 lg:px-20">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: "easeOut" }}
           >
-            <span className="inline-flex items-center rounded-full border border-[#F7B500]/35 bg-[#ffe796] px-3.5 py-1.5 text-sm font-semibold text-[#ad781b]">
+            <span className="inline-flex items-center rounded-full border border-[#F7B500]/35 bg-[#fdfdfd] px-3.5 py-1.5 text-sm font-semibold text-[#faa20b]">
               {eyebrow}
             </span>
 
@@ -132,9 +132,9 @@ export default function Hero({
               animate="visible"
               variants={{ visible: { transition: { staggerChildren: 0.12 } } }}
             >
-              {checklist.map((text) => (
+              {checklist.map((text, index) => (
                 <motion.div
-                  key={text}
+                  key={index}
                   variants={{
                     hidden: { opacity: 0, y: 16 },
                     visible: { opacity: 1, y: 0 },
@@ -165,7 +165,7 @@ export default function Hero({
               >
                 <Button
                   asChild
-                  className="h-12 rounded-sm border border-[#E8A800] bg-[#ffcd45] px-5 text-sm font-semibold text-[#63574f] shadow-none hover:bg-[#E8A800] hover:text-[#1C1917]"
+                  className="h-12 rounded-sm border border-[#E8A800] bg-[#fac73a] px-5 text-sm font-semibold text-[#ffffff] shadow-none hover:bg-[#E8A800] hover:text-[#f8f8f8]"
                 >
                   <Link href={secondaryCta.href}>{secondaryCta.label}</Link>
                 </Button>
@@ -174,16 +174,17 @@ export default function Hero({
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, scale: 1.05 }}
+            initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="relative aspect-4/3 min-h-80 w-full overflow-hidden bg-transparent sm:min-h-80 md:aspect-auto md:min-h-105 lg:min-h-120 "
+            className="relative w-full min-w-0"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imageUrl}
               alt={imageAlt}
-              className="absolute inset-0 h-full w-full object-contain object-center p-3 sm:p-4 md:p-5"
+              className="mx-auto block h-auto w-full max-w-full object-contain object-center"
+              style={{ maxHeight: "min(560px, 70vh)" }}
             />
 
             {floatCards[0] && (
@@ -191,7 +192,7 @@ export default function Hero({
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.5 }}
-                className="absolute left-6 top-6 flex max-w-62.5 items-center gap-3 rounded-md bg-card p-4 shadow-md"
+                className="absolute left-2 top-4 z-10 flex max-w-62.5 items-center gap-3 rounded-md bg-card p-4 shadow-md sm:left-4 sm:top-6"
               >
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-primary/10 text-primary">
                   {(() => {
@@ -215,7 +216,7 @@ export default function Hero({
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.7 }}
-                className="absolute bottom-7 right-6 flex max-w-62.5 items-center gap-3 rounded-md bg-card p-4 shadow-md"
+                className="absolute bottom-4 right-2 z-10 flex max-w-62.5 items-center gap-3 rounded-md bg-card p-4 shadow-md sm:bottom-6 sm:right-4"
               >
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-accent/40 text-amber-700">
                   {(() => {
@@ -246,9 +247,9 @@ export default function Hero({
           variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
         >
           <div className="mx-auto grid max-w-7xl grid-cols-2 gap-4 px-6 md:px-10 lg:grid-cols-4 lg:px-20">
-            {stats.map(([num, label]) => (
+            {stats.map(([num, label], index) => (
               <motion.div
-                key={label}
+                key={index}
                 variants={{
                   hidden: { opacity: 0, y: 16 },
                   visible: { opacity: 1, y: 0 },

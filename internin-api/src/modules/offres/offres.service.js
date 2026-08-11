@@ -2,7 +2,6 @@
 // et offres fermées/archivées ne sont jamais visibles aux stagiaires.
 // Filtres optionnels : recherche texte (titre), mode de travail.
 
-
 import { db } from "../../db/index.js";
 import { sql, eq, and, or, ilike } from "drizzle-orm";
 import { offresStage, entreprises, candidatures } from "../../db/schema.js";
@@ -128,6 +127,7 @@ export async function listOffresByEntreprise(idUtilisateurEntreprise) {
       dureeStage: offresStage.dureeStage,
       dateLimiteCandidature: offresStage.dateLimiteCandidature,
       datePublication: offresStage.datePublication,
+      dateCreation: offresStage.dateCreation,
       ville: entreprises.ville,
       logoUrl: entreprises.logoUrl,
       nombreCandidatures: sql`count(${candidatures.idCandidature})`.mapWith(
@@ -169,6 +169,7 @@ export async function listOffresByEntreprise(idUtilisateurEntreprise) {
       offresStage.dureeStage,
       offresStage.dateLimiteCandidature,
       offresStage.datePublication,
+      offresStage.dateCreation,
       entreprises.ville,
       entreprises.logoUrl,
     );
@@ -224,14 +225,20 @@ export async function createOffre(idUtilisateurEntreprise, payload) {
 // Récupère une offre pour son propriétaire, sans restriction de statut
 // (contrairement à getOffreById qui n'expose que les offres publiées).
 export async function getOffreForEntreprise(idUtilisateurEntreprise, idOffre) {
-  const [entreprise] = await db.select().from(entreprises).where(eq(entreprises.idUtilisateur, idUtilisateurEntreprise));
+  const [entreprise] = await db
+    .select()
+    .from(entreprises)
+    .where(eq(entreprises.idUtilisateur, idUtilisateurEntreprise));
   if (!entreprise) {
     const err = new Error("Profil entreprise introuvable");
     err.status = 404;
     throw err;
   }
 
-  const [offre] = await db.select().from(offresStage).where(eq(offresStage.idOffre, idOffre));
+  const [offre] = await db
+    .select()
+    .from(offresStage)
+    .where(eq(offresStage.idOffre, idOffre));
   if (!offre || offre.idEntreprise !== entreprise.idEntreprise) {
     const err = new Error("Offre introuvable");
     err.status = 404;
@@ -242,28 +249,34 @@ export async function getOffreForEntreprise(idUtilisateurEntreprise, idOffre) {
 }
 
 export async function updateOffre(idUtilisateurEntreprise, idOffre, payload) {
-  const offreExistante = await getOffreForEntreprise(idUtilisateurEntreprise, idOffre);
-  const [entreprise] = await db.select().from(entreprises).where(eq(entreprises.idUtilisateur, idUtilisateurEntreprise));
+  const offreExistante = await getOffreForEntreprise(
+    idUtilisateurEntreprise,
+    idOffre,
+  );
+  const [entreprise] = await db
+    .select()
+    .from(entreprises)
+    .where(eq(entreprises.idUtilisateur, idUtilisateurEntreprise));
 
   // Même règle qu'à la création : impossible de publier sans être vérifié
-    if (entreprise.statutVerification !== "verifiee") {
-      const err = new Error(
-        "Votre entreprise doit être vérifiée par l'administration avant de modifier des offres de stage.",
-      );
-      err.status = 403;
-      throw err;
-    }
+  if (entreprise.statutVerification !== "verifiee") {
+    const err = new Error(
+      "Votre entreprise doit être vérifiée par l'administration avant de modifier des offres de stage.",
+    );
+    err.status = 403;
+    throw err;
+  }
 
- const updateValues = { ...payload };
- if (updateValues.montantRemuneration === "") {
-   updateValues.montantRemuneration = null;
- }
- if (updateValues.dateLimiteCandidature === "") {
-   updateValues.dateLimiteCandidature = null;
- }
- if (payload.statut === "publie" && offreExistante.statut !== "publie") {
-   updateValues.datePublication = new Date();
- }
+  const updateValues = { ...payload };
+  if (updateValues.montantRemuneration === "") {
+    updateValues.montantRemuneration = null;
+  }
+  if (updateValues.dateLimiteCandidature === "") {
+    updateValues.dateLimiteCandidature = null;
+  }
+  if (payload.statut === "publie" && offreExistante.statut !== "publie") {
+    updateValues.datePublication = new Date();
+  }
 
   const [offre] = await db
     .update(offresStage)
@@ -285,7 +298,9 @@ export async function deleteOffre(idUtilisateurEntreprise, idOffre) {
     .where(eq(candidatures.idOffre, idOffre));
 
   if (count > 0) {
-    const err = new Error("Impossible de supprimer une offre ayant déjà reçu des candidatures.");
+    const err = new Error(
+      "Impossible de supprimer une offre ayant déjà reçu des candidatures.",
+    );
     err.status = 409;
     throw err;
   }
@@ -298,15 +313,22 @@ export async function deleteOffre(idUtilisateurEntreprise, idOffre) {
 // poste similaire sans tout ressaisir. Ne copie ni les candidatures ni les
 // dates de publication (la copie démarre "propre").
 export async function dupliquerOffre(idUtilisateurEntreprise, idOffre) {
-  const offreExistante = await getOffreForEntreprise(idUtilisateurEntreprise, idOffre);
+  const offreExistante = await getOffreForEntreprise(
+    idUtilisateurEntreprise,
+    idOffre,
+  );
+  const [entreprise] = await db
+    .select()
+    .from(entreprises)
+    .where(eq(entreprises.idUtilisateur, idUtilisateurEntreprise));
 
-    if (entreprise.statutVerification !== "verifiee") {
-      const err = new Error(
-        "Votre entreprise doit être vérifiée par l'administration avant de modifier des offres de stage.",
-      );
-      err.status = 403;
-      throw err;
-    }
+  if (entreprise.statutVerification !== "verifiee") {
+    const err = new Error(
+      "Votre entreprise doit être vérifiée par l'administration avant de modifier des offres de stage.",
+    );
+    err.status = 403;
+    throw err;
+  }
 
   const [copie] = await db
     .insert(offresStage)

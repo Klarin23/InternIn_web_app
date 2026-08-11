@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import AppSidebar from "@/components/layout/AppSidebar";
 import PullToRefresh from "@/components/layout/PullToRefresh";
@@ -16,17 +16,30 @@ export default function EntrepriseLayout({ children }) {
   const { data: profile } = useEntrepriseProfile();
   const { t } = useTranslation();
 
-    useEffect(() => {
-      if (!token || !user) {
-        router.replace("/connexion");
-      } else if (user.typeUtilisateur !== "entreprise") {
-        router.replace("/connexion");
-      } else if (!user.emailVerifie) {
-        router.replace("/verification-email");
-      } else if (user.statutCompte === "inactif") {
-        router.replace("/onboarding/1");
-      }
-    }, [user, token, router]);
+  const hydrated = useSyncExternalStore(
+    (onStoreChange) => {
+      const unsub = useAuthStore.persist.onFinishHydration(onStoreChange);
+      return unsub;
+    },
+    () => useAuthStore.persist.hasHydrated(),
+    () => false,
+  );
+
+  useEffect(() => {
+    if (!hydrated) return;
+
+    if (!token || !user) {
+      router.replace("/connexion");
+    } else if (user.typeUtilisateur !== "entreprise") {
+      router.replace("/connexion");
+    } else if (!user.emailVerifie) {
+      router.replace("/verification-email");
+    } else if (user.statutCompte === "inactif") {
+      router.replace("/onboarding/1");
+    }
+  }, [hydrated, user, token, router]);
+
+  if (!hydrated) return null;
 
   if (!user || user.typeUtilisateur !== "entreprise") return null;
 

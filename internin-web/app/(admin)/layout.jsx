@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import AppSidebar from "@/components/layout/AppSidebar";
 import PullToRefresh from "@/components/layout/PullToRefresh";
@@ -20,11 +20,24 @@ export default function AdminLayout({ children }) {
   const { t } = useTranslation();
   const roleAdminLabels = useRoleAdminLabels();
 
+  const hydrated = useSyncExternalStore(
+    (onStoreChange) => {
+      const unsub = useAuthStore.persist.onFinishHydration(onStoreChange);
+      return unsub;
+    },
+    () => useAuthStore.persist.hasHydrated(),
+    () => false,
+  );
+
   useEffect(() => {
+    if (!hydrated) return;
+
     if (!token || !user || user.typeUtilisateur !== "administrateur") {
       router.replace("/connexion");
     }
-  }, [user, token, router]);
+  }, [hydrated, user, token, router]);
+
+  if (!hydrated) return null;
 
   if (!user || user.typeUtilisateur !== "administrateur") return null;
 

@@ -14,27 +14,18 @@ const formationSchema = z.object({
 });
 
 export const completeOnboardingSchema = z.object({
-  // Étape 1
   prenom: z.string().min(1),
   nom: z.string().min(1),
   telephone: z.string().min(6),
   pays: z.string().min(1),
   ville: z.string().min(1),
   dateNaissance: z.string().optional(),
-  // Étape 2
-  statutAcademique: z.enum(["etudiant", "jeune_diplome"]),
+  statutAcademique: z.enum(["etudiant", "jeune_diplome"]).default("etudiant"),
   idUniversite: z.string().optional(),
-  // Étape 3
+
   formations: z.array(formationSchema).min(1),
-  // Étape 4
   cvUrl: z.string().min(1, "Le CV est requis"),
-  // Étape 5
-  linkedinUrl: z.string().optional(),
-  githubUrl: z.string().optional(),
-  behanceUrl: z.string().optional(),
-  portfolioUrl: z.string().optional(),
-  siteWebUrl: z.string().optional(),
-  // Étape 6 — liste vide autorisée (aucune compétence)
+
   competences: z
     .array(
       z.object({
@@ -48,18 +39,21 @@ export const completeOnboardingSchema = z.object({
       }),
     )
     .default([]),
-  // Étape 7
-  centresInteret: z.array(z.string()).min(1),
-  // Étape 8
-  objectifsDeveloppement: z.array(z.string()).min(1),
-  // Étape 9
+  centresInteret: z.array(z.string()).default([]),
+  objectifsDeveloppement: z.array(z.string()).default([]),
+
   joursDisponibles: z.array(z.string()).min(1),
   heureDebutDisponible: z.string().min(1),
   heureFinDisponible: z.string().min(1),
-  // Étape 10
   dureeStageSouhaitee: z.enum(["1_mois", "2_mois", "3_mois"]),
   heuresHebdoSouhaitees: z.number().min(15).max(40),
   dateDebutSouhaitee: z.string().min(1),
+
+  linkedinUrl: z.string().optional(),
+  githubUrl: z.string().optional(),
+  behanceUrl: z.string().optional(),
+  portfolioUrl: z.string().optional(),
+  siteWebUrl: z.string().optional(),
 });
 
 // Schéma de mise à jour du profil depuis la page "Mon profil" — tous les

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import AppSidebar from "@/components/layout/AppSidebar";
 import PullToRefresh from "@/components/layout/PullToRefresh";
@@ -16,11 +16,24 @@ export default function UniversiteLayout({ children }) {
   const { data: profile } = useUniversiteProfile();
   const { t } = useTranslation();
 
+  const hydrated = useSyncExternalStore(
+    (onStoreChange) => {
+      const unsub = useAuthStore.persist.onFinishHydration(onStoreChange);
+      return unsub;
+    },
+    () => useAuthStore.persist.hasHydrated(),
+    () => false,
+  );
+
   useEffect(() => {
+    if (!hydrated) return;
+
     if (!token || !user || user.typeUtilisateur !== "universite") {
       router.replace("/connexion");
     }
-  }, [user, token, router]);
+  }, [hydrated, user, token, router]);
+
+  if (!hydrated) return null;
 
   if (!user || user.typeUtilisateur !== "universite") return null;
 

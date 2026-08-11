@@ -110,10 +110,10 @@ export default function FeaturesGrid({
         </FadeIn>
 
         <Stagger className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {features.map(({ icon, title, desc, color }) => {
+          {features.map(({ icon, title, desc, color }, index) => {
             const Icon = iconMap[icon];
             return (
-              <StaggerItem key={title}>
+              <StaggerItem key={index}>
                 <motion.div
                   whileHover={{
                     y: -6,

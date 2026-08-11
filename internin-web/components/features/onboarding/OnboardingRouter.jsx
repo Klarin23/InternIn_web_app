@@ -13,6 +13,7 @@ import Step1InfosPersonnelles from "./steps/Step1InfosPersonnelles";
 import Step2StatutAcademique from "./steps/Step2StatutAcademique";
 import Step3Formation from "./steps/Step3Formation";
 import Step4Cv from "./steps/Step4Cv";
+import Step4FinalSubmit from "./steps/Step4FinalSubmit";
 import Step5Liens from "./steps/Step5Liens";
 import Step6Competences from "./steps/Step6Competences";
 import Step7CentresInteret from "./steps/Step7CentresInteret";
@@ -37,16 +38,9 @@ import UniversiteStep4Recapitulatif from "./steps/universite/UniversiteStep4Reca
 const STEPS_BY_ROLE = {
   stagiaire: {
     1: Step1InfosPersonnelles,
-    2: Step2StatutAcademique,
-    3: Step3Formation,
-    4: Step4Cv,
-    5: Step5Liens,
-    6: Step6Competences,
-    7: Step7CentresInteret,
-    8: Step8Objectifs,
-    9: Step9Disponibilites,
-    10: Step10Preferences,
-    11: Step11Recapitulatif,
+    2: Step3Formation,
+    3: Step4Cv,
+    4: Step4FinalSubmit, // nouveau fichier (voir étape E)
   },
   entreprise: {
     1: EntrepriseStep1Infos,

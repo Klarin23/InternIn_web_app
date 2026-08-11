@@ -42,8 +42,8 @@ export default function Faq({
           </h2>
         </FadeIn>
         <FadeIn delay={0.1}>
-          {questions.map(([q, a]) => (
-            <FaqItem key={q} question={q} answer={a} />
+          {questions.map(([q, a], index) => (
+            <FaqItem key={index} question={q} answer={a} />
           ))}
         </FadeIn>
       </div>

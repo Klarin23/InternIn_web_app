@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { googleAuthRequest } from "@/lib/api/auth";
 import { useAuthStore } from "@/lib/store/useAuthStore";
+import { getPostLoginPath } from "@/lib/auth/getPostLoginPath";
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
@@ -92,15 +93,8 @@ export default function GoogleButton({ role, onError }) {
 
             setSession(user, token);
 
-            if (!user.emailVerifie) {
-              router.push("/verification-email");
-              return;
-            }
-            if (user.statutCompte === "inactif") {
-              router.push("/onboarding/1");
-              return;
-            }
-            router.push("/tableau-de-bord");
+            const path = await getPostLoginPath(user, token);
+            router.push(path);
           } catch (err) {
             if (err.code === "GOOGLE_ACCOUNT_NOT_FOUND" || err.status === 404) {
               onError?.(

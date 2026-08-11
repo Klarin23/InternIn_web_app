@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import AppSidebar from "@/components/layout/AppSidebar";
 import PullToRefresh from "@/components/layout/PullToRefresh";
@@ -16,13 +16,26 @@ export default function SuperviseurLayout({ children }) {
   const { data: profil } = useMonProfilEquipe();
   const { t } = useTranslation();
 
+  const hydrated = useSyncExternalStore(
+    (onStoreChange) => {
+      const unsub = useAuthStore.persist.onFinishHydration(onStoreChange);
+      return unsub;
+    },
+    () => useAuthStore.persist.hasHydrated(),
+    () => false,
+  );
+
   useEffect(() => {
+    if (!hydrated) return;
+
     if (!token || !user) {
       router.replace("/connexion");
     } else if (user.typeUtilisateur !== "membre_entreprise") {
       router.replace("/connexion");
     }
-  }, [user, token, router]);
+  }, [hydrated, user, token, router]);
+
+  if (!hydrated) return null;
 
   if (!user || user.typeUtilisateur !== "membre_entreprise") return null;
 

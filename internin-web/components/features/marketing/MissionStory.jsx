@@ -39,8 +39,8 @@ export default function MissionStory({
           y={0}
           className="grid grid-cols-2 gap-4 rounded-md bg-secondary/10 p-8"
         >
-          {tiles.map(([num, label]) => (
-            <div key={label} className="rounded-md bg-card p-5 shadow-sm">
+          {tiles.map(([num, label], index) => (
+            <div key={index} className="rounded-md bg-card p-5 shadow-sm">
               <div className="text-2xl font-extrabold text-secondary">
                 {num}
               </div>
@@ -60,7 +60,7 @@ export default function MissionStory({
           <div className="space-y-4 text-muted-foreground">
             {paragraphs.map((paragraph, index) => (
               <p
-                key={paragraph}
+                key={index}
                 className={
                   index === paragraphs.length - 1
                     ? "font-semibold text-foreground"

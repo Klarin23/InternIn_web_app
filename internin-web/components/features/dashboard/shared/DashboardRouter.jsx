@@ -53,7 +53,7 @@ export default function DashboardRouter() {
       <div className="flex h-screen overflow-hidden bg-muted/30">
         <AppSidebar
           items={
-            user.statutCompte === "inactif"
+            user.statutCompte !== "actif"
               ? stagiaireNavItems.filter(
                   (item) =>
                     item.href === "/tableau-de-bord" || item.href === "/profil",
@@ -64,7 +64,7 @@ export default function DashboardRouter() {
         />
 
         <PullToRefresh className="h-screen flex-1 overflow-y-auto">
-          {user.statutCompte === "inactif" ? (
+          {user.statutCompte !== "actif" ? (
             <InactiveAccountGate />
           ) : (
             <StagiaireDashboardContent />
