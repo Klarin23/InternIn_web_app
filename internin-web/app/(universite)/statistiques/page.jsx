@@ -57,6 +57,7 @@ export default function StatistiquesPage() {
       <AppHeader
         title="Statistiques"
         subtitle="Vue détaillée de l'activité de stages"
+        refreshKeys={["universiteStats"]}
       />
 
       <div className="space-y-6 px-6 py-6">

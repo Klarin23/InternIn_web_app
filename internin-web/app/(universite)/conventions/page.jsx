@@ -198,6 +198,7 @@ export default function ConventionsPage() {
         subtitle="Suivi des conventions de stage"
         searchValue={recherche}
         onSearchChange={setRecherche}
+        refreshKeys={["conventionsUniversite"]}
       />
 
       <div className="space-y-6 px-6 py-6">

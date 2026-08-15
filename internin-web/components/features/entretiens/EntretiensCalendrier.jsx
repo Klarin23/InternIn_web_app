@@ -20,7 +20,7 @@ const JOURS_SEMAINE_KEYS = [
   "sunday",
 ];
 
-export default function EntretiensCalendrier({ entretiens, maintenant }) {
+export default function EntretiensCalendrier({ entretiens, maintenant, CardComponent }) {
   const { locale, t } = useTranslation();
   const [offsetMois, setOffsetMois] = useState(0);
   const [jourSelectionne, setJourSelectionne] = useState(null);
@@ -164,13 +164,17 @@ export default function EntretiensCalendrier({ entretiens, maintenant }) {
             transition={{ duration: 0.25, ease: "easeOut" }}
             className="mt-4 space-y-3 overflow-hidden border-t border-border pt-4"
           >
-            {entretiensDuJour.map((e, i) => (
-              <EntretienCardStagiaire
-                key={e.idEntretien}
-                entretien={e}
-                index={i}
-              />
-            ))}
+            {entretiensDuJour.map((e, i) => {
+              const Card = CardComponent || EntretienCardStagiaire;
+              return (
+                <Card
+                  key={e.idEntretien}
+                  entretien={e}
+                  index={i}
+                  maintenant={maintenant}
+                />
+              );
+            })}
           </motion.div>
         )}
       </AnimatePresence>

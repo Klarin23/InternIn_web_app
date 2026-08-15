@@ -148,6 +148,7 @@ export default function PartenariatsUniversitesPage() {
       <AppHeader
         title="Partenariats universités"
         subtitle="Invitations reçues et universités partenaires"
+        refreshKeys={["entreprises-decouvrir", "invitations-envoyees", "invitations-recues", "universites-partenaires"]}
       />
 
       <div className="space-y-6 px-6 py-6">

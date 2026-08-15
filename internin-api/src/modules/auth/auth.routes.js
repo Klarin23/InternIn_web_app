@@ -82,7 +82,7 @@ router.post(
 router.get("/me", requireAuth, me);
 
 router.post("/refresh", refreshLimiter, refreshController);
-router.post("/logout", requireAuth, logoutController);
+router.post("/logout", logoutController);
 router.post("/google", authLimiter, validate(googleAuthSchema), googleAuth);
 
 export default router;

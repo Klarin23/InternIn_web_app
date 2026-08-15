@@ -182,6 +182,7 @@ export default function EntreprisesUniversitePage() {
         onSearchChange={
           ongletActif === "partenaires" ? setRecherche : undefined
         }
+        refreshKeys={["entreprisesUniversite"]}
       />
 
       <div className="space-y-6 px-6 py-6">

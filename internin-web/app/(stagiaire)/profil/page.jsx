@@ -18,7 +18,10 @@ export default function ProfilPage() {
 
   return (
     <>
-      <AppHeader title="Mon profil" />
+      <AppHeader
+        title="Mon profil"
+        subtitle="Complétez votre profil pour être remarqué des recruteurs"
+      />
       <div className="space-y-6 px-4 py-6 sm:px-6">
         {isLoading && <ProfilSkeleton />}
 

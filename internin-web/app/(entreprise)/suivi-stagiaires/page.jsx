@@ -42,7 +42,11 @@ export default function SuiviStagiairesPage() {
 
   return (
     <>
-      <AppHeader breadcrumb={[{ label: "Suivi des stagiaires" }]} />
+      <AppHeader
+        breadcrumb={[{ label: "Suivi des stagiaires" }]}
+        subtitle="Progression et évaluations de vos stagiaires accueillis"
+        refreshKeys={["mesStages"]}
+      />
       <div className="px-6 py-6">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>

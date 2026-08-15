@@ -37,7 +37,10 @@ export default function ProfilEntreprisePage() {
     // de transformation (translations, scale...) pour les personnes qui
     // l'ont activé, sans avoir à dupliquer la logique dans chaque composant.
     <MotionConfig reducedMotion="user">
-      <AppHeader title="Mon profil" />
+      <AppHeader
+        title="Mon profil"
+        subtitle="Informations publiques de votre entreprise"
+      />
       <div className="px-6 py-6">
         {isLoading && <EntrepriseProfilSkeleton />}
 

@@ -30,6 +30,93 @@ import { sendInvitationEmail } from "../../utils/email.js";
 // Helpers internes
 // -----------------------------------------------------------------------
 
+// -----------------------------------------------------------------------
+// Contrôle d'escalade de privilèges
+// Un membre avec "equipe.gerer" ne peut jamais attribuer un rôle ou des
+// permissions effectives qu'il ne possède pas lui-même. Le propriétaire
+// (compte entreprise) et l'administrateur principal gardent l'autorité
+// complète. Les permissions envoyées par le frontend ne sont jamais
+// considérées comme source de vérité pour le demandeur.
+// -----------------------------------------------------------------------
+
+function permissionsEffectivesMembre(membre) {
+  if (!membre) return [];
+  if (membre.estAdminPrincipal) return [...CLES_PERMISSIONS];
+  return (
+    membre.permissionsPersonnalisees ??
+    PERMISSIONS_PAR_DEFAUT_ROLE[membre.roleEquipe] ??
+    []
+  );
+}
+
+/** Permissions effectives qu'un rôle (+ permissions perso optionnelles) conférerait. */
+function permissionsCibles({ roleEquipe, permissionsPersonnalisees }) {
+  if (roleEquipe === "administrateur_principal") {
+    return [...CLES_PERMISSIONS];
+  }
+  if (permissionsPersonnalisees != null) {
+    return permissionsPersonnalisees;
+  }
+  return PERMISSIONS_PAR_DEFAUT_ROLE[roleEquipe] ?? [];
+}
+
+/**
+ * Refuse si le demandeur n'est pas propriétaire/admin principal et tente
+ * d'accorder au moins une permission qu'il ne possède pas.
+ */
+async function assertPasDEscalade(idUtilisateurDemandeur, cible) {
+  // Propriétaire de l'entreprise (compte type entreprise) : autorité complète
+  const [entreprise] = await db
+    .select({ idEntreprise: entreprises.idEntreprise })
+    .from(entreprises)
+    .where(eq(entreprises.idUtilisateur, idUtilisateurDemandeur));
+  if (entreprise) return;
+
+  const [demandeur] = await db
+    .select()
+    .from(membresEquipe)
+    .where(
+      and(
+        eq(membresEquipe.idUtilisateur, idUtilisateurDemandeur),
+        eq(membresEquipe.statutMembre, "actif"),
+      ),
+    );
+
+  if (!demandeur) {
+    const err = new Error("Accès refusé");
+    err.status = 403;
+    throw err;
+  }
+
+  if (demandeur.estAdminPrincipal) return;
+
+  const permissionsDemandeur = permissionsEffectivesMembre(demandeur);
+  const permissionsCible = permissionsCibles(cible);
+
+  const nonAutorisee = permissionsCible.find(
+    (cle) => !permissionsDemandeur.includes(cle),
+  );
+
+  if (nonAutorisee) {
+    const err = new Error(
+      `Vous ne pouvez pas attribuer la permission "${nonAutorisee}" car vous ne la possédez pas vous-même.`,
+    );
+    err.status = 403;
+    throw err;
+  }
+
+  // Interdire d'attribuer le rôle administrateur_principal si le demandeur ne l'est pas
+  if (cible.roleEquipe === "administrateur_principal") {
+    const err = new Error(
+      "Vous ne pouvez pas attribuer le rôle d'administrateur principal.",
+    );
+    err.status = 403;
+    throw err;
+  }
+}
+
+
+
 // Résout l'entreprise à partir de l'utilisateur connecté — accepte à la
 // fois le compte propriétaire (typeUtilisateur="entreprise") ET un membre
 // d'équipe actif invité (typeUtilisateur="membre_entreprise"). Le contrôle
@@ -203,13 +290,27 @@ export async function inviterMembre(idUtilisateurEntreprise, payload) {
     idUtilisateurEntreprise,
   );
 
+  // Normalisation email (trim + lowercase) avant toute comparaison / stockage
+  const emailNormalise = String(payload.email || "").trim().toLowerCase();
+  if (!emailNormalise) {
+    const err = new Error("Adresse e-mail invalide.");
+    err.status = 400;
+    throw err;
+  }
+
+  // Empêche d'attribuer un rôle / des permissions supérieurs à ceux du demandeur
+  await assertPasDEscalade(idUtilisateurEntreprise, {
+    roleEquipe: payload.roleEquipe,
+    permissionsPersonnalisees: payload.permissionsPersonnalisees ?? null,
+  });
+
   const [existant] = await db
     .select()
     .from(membresEquipe)
     .where(
       and(
         eq(membresEquipe.idEntreprise, entreprise.idEntreprise),
-        eq(membresEquipe.email, payload.email),
+        eq(membresEquipe.email, emailNormalise),
         ne(membresEquipe.statutMembre, "desactive"),
       ),
     );
@@ -227,20 +328,33 @@ export async function inviterMembre(idUtilisateurEntreprise, payload) {
     dateExpiration.getDate() + parametres.expirationInvitationJours,
   );
 
-  const [membre] = await db
-    .insert(membresEquipe)
-    .values({
-      idEntreprise: entreprise.idEntreprise,
-      nom: payload.nom,
-      email: payload.email,
-      roleEquipe: payload.roleEquipe,
-      permissionsPersonnalisees: payload.permissionsPersonnalisees || null,
-      statutMembre: "invite",
-      tokenInvitation: randomBytes(32).toString("hex"),
-      dateEnvoiInvitation: new Date(),
-      dateExpirationInvitation: dateExpiration,
-    })
-    .returning();
+  let membre;
+  try {
+    [membre] = await db
+      .insert(membresEquipe)
+      .values({
+        idEntreprise: entreprise.idEntreprise,
+        nom: payload.nom,
+        email: emailNormalise,
+        roleEquipe: payload.roleEquipe,
+        permissionsPersonnalisees: payload.permissionsPersonnalisees || null,
+        statutMembre: "invite",
+        tokenInvitation: randomBytes(32).toString("hex"),
+        dateEnvoiInvitation: new Date(),
+        dateExpirationInvitation: dateExpiration,
+      })
+      .returning();
+  } catch (dbErr) {
+    // Contrainte unique PostgreSQL (course concurrente)
+    if (dbErr?.code === "23505") {
+      const err = new Error(
+        "Cette personne fait déjà partie de l'équipe ou a déjà été invitée.",
+      );
+      err.status = 409;
+      throw err;
+    }
+    throw dbErr;
+  }
 
   // Envoi de l'e-mail d'invitation
   try {
@@ -393,40 +507,18 @@ export async function updateMembre(idUtilisateurEntreprise, idMembre, payload) {
     throw err;
   }
 
-  // Si le demandeur n'est pas le propriétaire de l'entreprise (donc un
-  // membre avec la permission "equipe.gerer"), il ne peut accorder que des
-  // permissions qu'il possède lui-même — impossible de distribuer plus de
-  // pouvoir qu'on n'en a.
-  if (payload.permissionsPersonnalisees) {
-    const demandeurEstProprietaire =
-      admin.idUtilisateur === idUtilisateurEntreprise &&
-      admin.estAdminPrincipal;
+  // Contrôle d'escalade : rôle ET permissions effectives (y compris héritage
+  // des permissions par défaut du rôle si permissionsPersonnalisees est null).
+  const roleCible = payload.roleEquipe ?? membre.roleEquipe;
+  const permissionsCiblePayload =
+    payload.permissionsPersonnalisees !== undefined
+      ? payload.permissionsPersonnalisees
+      : membre.permissionsPersonnalisees;
 
-    if (!demandeurEstProprietaire) {
-      const [demandeur] = await db
-        .select()
-        .from(membresEquipe)
-        .where(eq(membresEquipe.idUtilisateur, idUtilisateurEntreprise));
-
-      const permissionsDemandeur = demandeur?.estAdminPrincipal
-        ? CLES_PERMISSIONS
-        : (demandeur?.permissionsPersonnalisees ??
-          PERMISSIONS_PAR_DEFAUT_ROLE[demandeur?.roleEquipe] ??
-          []);
-
-      const permissionNonAutorisee = payload.permissionsPersonnalisees.find(
-        (cle) => !permissionsDemandeur.includes(cle),
-      );
-
-      if (permissionNonAutorisee) {
-        const err = new Error(
-          `Vous ne pouvez pas accorder la permission "${permissionNonAutorisee}" car vous ne la possédez pas vous-même.`,
-        );
-        err.status = 403;
-        throw err;
-      }
-    }
-  }
+  await assertPasDEscalade(idUtilisateurEntreprise, {
+    roleEquipe: roleCible,
+    permissionsPersonnalisees: permissionsCiblePayload,
+  });
 
   const [miseAJour] = await db
     .update(membresEquipe)

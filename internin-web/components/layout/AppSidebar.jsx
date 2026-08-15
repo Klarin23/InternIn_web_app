@@ -160,17 +160,56 @@ export default function AppSidebar({
 
       {/* Zone de navigation : seule cette partie défile si la liste de liens dépasse */}
       <nav className="flex-1 space-y-1 overflow-y-auto p-4">
-        <p className="mb-2 px-3.5 text-[11px] font-bold uppercase tracking-wider text-sidebar-foreground/50">
-          {t("sidebar.mainMenu")}
-        </p>
-        {items.map((item) => (
-          <NavLink
-            key={item.href}
-            {...item}
-            isActive={pathname === item.href}
-            onClick={onLinkClick}
-          />
-        ))}
+        {(() => {
+          const hasSections = items.some((i) => i.section);
+          if (!hasSections) {
+            return (
+              <>
+                <p className="mb-2 px-3.5 text-[11px] font-bold uppercase tracking-wider text-sidebar-foreground/50">
+                  {t("sidebar.mainMenu")}
+                </p>
+                {items.map((item) => (
+                  <NavLink
+                    key={item.href}
+                    {...item}
+                    isActive={pathname === item.href || (item.href !== "/tableau-de-bord" && pathname?.startsWith(item.href))}
+                    onClick={onLinkClick}
+                  />
+                ))}
+              </>
+            );
+          }
+          const SECTION_LABELS = {
+            gestion: "Gestion",
+            supervision: "Supervision",
+            entreprise: "Entreprise",
+          };
+          const order = [];
+          const groups = {};
+          for (const item of items) {
+            const key = item.section || "_main";
+            if (!groups[key]) {
+              groups[key] = [];
+              order.push(key);
+            }
+            groups[key].push(item);
+          }
+          return order.map((key) => (
+            <div key={key} className="mb-3">
+              <p className="mb-1.5 px-3.5 text-[11px] font-bold uppercase tracking-wider text-sidebar-foreground/50">
+                {key === "_main" ? t("sidebar.mainMenu") : (SECTION_LABELS[key] || key)}
+              </p>
+              {groups[key].map((item) => (
+                <NavLink
+                  key={item.href}
+                  {...item}
+                  isActive={pathname === item.href || (item.href !== "/tableau-de-bord" && pathname?.startsWith(item.href))}
+                  onClick={onLinkClick}
+                />
+              ))}
+            </div>
+          ));
+        })()}
       </nav>
 
       {/* Bloc bas fixe : soit la carte profil compacte (rôle Admin), soit les

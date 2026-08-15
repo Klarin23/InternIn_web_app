@@ -138,6 +138,8 @@ export default function OffresEntreprisePage() {
           { label: profile?.nomEntreprise || "Entreprise" },
           { label: "Offres de stage" },
         ]}
+        subtitle="Publiez et gérez vos offres de stage"
+        refreshKeys={["mesOffres", "entretiensEntreprise", "candidaturesEntreprise"]}
       />
       <div className="px-6 py-6">
         <div className="mb-6">

@@ -9,7 +9,9 @@ import {
 import {
   getSuperviseurOrThrow,
   getAffectationOrThrow,
-  baseQueryStagesSuperviseur,
+  resolveSupervisionAccess,
+  assertStageAccess,
+  listStagesForAccess,
 } from "./superviseur.service.js";
 import { genererAnalyseCoachIA } from "../evaluations/coachIA.js";
 import { creerNotification } from "../notifications/notifications.service.js";
@@ -23,8 +25,8 @@ const JOURS_RETARD_EVALUATION = 7;
 // exactement le même calcul que le tableau de bord, pour rester cohérent.
 // -----------------------------------------------------------------------
 export async function listEvaluationsSuperviseur(idUtilisateur) {
-  const membre = await getSuperviseurOrThrow(idUtilisateur);
-  const mesStages = await baseQueryStagesSuperviseur(membre.idMembre);
+  const access = await resolveSupervisionAccess(idUtilisateur);
+  const mesStages = await listStagesForAccess(access);
 
   if (mesStages.length === 0) return [];
 
@@ -113,8 +115,8 @@ export async function getEvaluationDetail(
   idStage,
   idEvaluation,
 ) {
-  const membre = await getSuperviseurOrThrow(idUtilisateur);
-  await getAffectationOrThrow(membre.idMembre, idStage);
+  const access = await resolveSupervisionAccess(idUtilisateur);
+  await assertStageAccess(access, idStage);
 
   const [evaluation] = await db
     .select()
@@ -144,8 +146,8 @@ export async function getEvaluationDetail(
 // Création d'une nouvelle évaluation (brouillon ou soumission directe)
 // -----------------------------------------------------------------------
 export async function creerEvaluation(idUtilisateur, idStage, payload) {
-  const membre = await getSuperviseurOrThrow(idUtilisateur);
-  await getAffectationOrThrow(membre.idMembre, idStage);
+  const access = await resolveSupervisionAccess(idUtilisateur);
+  await assertStageAccess(access, idStage);
 
   const [{ count }] = await db
     .select({ count: sql`count(*)`.mapWith(Number) })
@@ -190,8 +192,8 @@ export async function modifierEvaluation(
   idEvaluation,
   payload,
 ) {
-  const membre = await getSuperviseurOrThrow(idUtilisateur);
-  await getAffectationOrThrow(membre.idMembre, idStage);
+  const access = await resolveSupervisionAccess(idUtilisateur);
+  await assertStageAccess(access, idStage);
 
   const [existante] = await db
     .select()

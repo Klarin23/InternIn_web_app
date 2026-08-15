@@ -67,17 +67,16 @@ export function resetPasswordRequest({ token, password }) {
   });
 }
 
-export function refreshTokenRequest(refreshToken) {
-  return apiFetch("/auth/refresh", {
-    method: "POST",
-    body: { refreshToken },
-  });
+export async function refreshTokenRequest() {
+  // Le refresh token est transmis uniquement via le cookie HttpOnly (credentials: include)
+  return apiFetch("/auth/refresh", { method: "POST", body: {} });
 }
 
-export function logoutRequest(refreshToken, token) {
+export function logoutRequest(_refreshTokenIgnored, token) {
+  // Le refresh token est lu côté serveur depuis le cookie HttpOnly
   return apiFetch("/auth/logout", {
     method: "POST",
-    body: { refreshToken },
+    body: {},
     token,
   });
 }

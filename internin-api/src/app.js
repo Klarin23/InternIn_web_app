@@ -25,6 +25,7 @@ import partenariatsRoutes from "./modules/partenariats/partenariats.routes.js";
 import notificationsRoutes from "./modules/notifications/notifications.routes.js";
 import equipeRoutes from "./modules/equipe/equipe.routes.js";
 import superviseurRoutes from "./modules/superviseur/superviseur.routes.js";
+import messagesRoutes from "./modules/messages/messages.routes.js";
 import path from "node:path";
 import { globalLimiter } from "./middlewares/rateLimit.middleware.js";
 import cookieParser from "cookie-parser";
@@ -129,6 +130,7 @@ app.use("/partenariats", partenariatsRoutes);
 
 app.use("/equipe", equipeRoutes);
 app.use("/superviseur", superviseurRoutes);
+app.use("/messages", messagesRoutes);
 
 app.use("/uploads/logo", express.static(path.resolve("uploads", "logo")));
 app.use(

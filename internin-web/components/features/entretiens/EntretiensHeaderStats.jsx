@@ -42,8 +42,8 @@ function StatCard({ index, icon: Icon, value, label, iconBg }) {
       variants={cardVariants}
       initial="hidden"
       animate="visible"
-      whileHover={{ y: -3 }}
-      className="rounded-md border border-border bg-card p-4 text-center shadow-sm transition-shadow hover:shadow-md"
+      whileHover={{ y: -2 }}
+      className="rounded-2xl border border-border/70 bg-card p-4 text-center shadow-sm transition-shadow hover:shadow-md"
     >
       <div
         className={`mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full ${iconBg}`}

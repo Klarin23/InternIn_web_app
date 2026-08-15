@@ -10,17 +10,29 @@ import {
   loginWithGoogle,
 } from "./auth.service.js";
 
+/**
+ * Options du cookie refresh token.
+ * sameSite: "lax" (et non "strict") est obligatoire pour que le cookie
+ * soit renvoyé lors des appels cross-origin frontend → API
+ * (ex: localhost:3000 → localhost:4000) au rechargement de page.
+ * "strict" empêchait le navigateur d'envoyer le cookie au refresh,
+ * d'où la déconnexion automatique.
+ */
+function refreshCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
+    path: "/",
+  };
+}
+
 export async function register(req, res, next) {
   try {
     const result = await registerUser(req.body, req);
 
-    res.cookie("internin_refresh", result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: "/",
-    });
+    res.cookie("internin_refresh", result.refreshToken, refreshCookieOptions());
 
     const { refreshToken, ...safeResult } = result;
     res.status(201).json(safeResult);
@@ -33,16 +45,8 @@ export async function login(req, res, next) {
   try {
     const result = await loginUser(req.body, req);
 
-    // Refresh token en cookie HttpOnly
-    res.cookie("internin_refresh", result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
-      path: "/",
-    });
+    res.cookie("internin_refresh", result.refreshToken, refreshCookieOptions());
 
-    // On ne renvoie plus le refreshToken dans le body (optionnel mais plus sûr)
     const { refreshToken, ...safeResult } = result;
     res.status(200).json(safeResult);
   } catch (err) {
@@ -52,38 +56,43 @@ export async function login(req, res, next) {
 
 export async function refreshController(req, res, next) {
   try {
-    // Priorité au body, fallback cookie HttpOnly
-    const refreshToken = req.body.refreshToken || req.cookies?.internin_refresh;
+    const refreshToken = req.cookies?.internin_refresh;
+    if (!refreshToken) {
+      return res
+        .status(401)
+        .json({ error: "Session expirée. Veuillez vous reconnecter." });
+    }
 
     const result = await refreshAccessToken(refreshToken, req);
 
     // Rotation : poser le NOUVEAU refresh token en cookie
-    res.cookie("internin_refresh", result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: "/",
-    });
+    res.cookie("internin_refresh", result.refreshToken, refreshCookieOptions());
 
     const { refreshToken: _, ...safeResult } = result;
     res.status(200).json(safeResult);
   } catch (err) {
+    // En cas d'échec (token déjà rotaté / expiré), on nettoie le cookie
+    // pour éviter des boucles de refresh invalides.
+    res.clearCookie("internin_refresh", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+    });
     next(err);
   }
 }
 
 export async function logoutController(req, res, next) {
   try {
-    // On peut lire le cookie si le body n'a pas le token
-    const refreshToken = req.body.refreshToken || req.cookies?.internin_refresh;
+    const refreshToken = req.cookies?.internin_refresh;
 
     await logoutUser(refreshToken);
 
     res.clearCookie("internin_refresh", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       path: "/",
     });
 
@@ -165,13 +174,7 @@ export async function googleAuth(req, res, next) {
   try {
     const result = await loginWithGoogle(req.body, req);
 
-    res.cookie("internin_refresh", result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: "/",
-    });
+    res.cookie("internin_refresh", result.refreshToken, refreshCookieOptions());
 
     const { refreshToken, ...safeResult } = result;
     res.status(result.isNewUser ? 201 : 200).json(safeResult);

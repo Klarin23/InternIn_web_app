@@ -2,6 +2,7 @@ import { Poppins, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "@/lib/providers/QueryProvider";
 import Toaster from "@/components/motion/Toaster";
+import ConnectionStatus from "@/components/ui/ConnectionStatus";
 
 const poppins = Poppins({
   variable: "--font-sans",
@@ -73,7 +74,9 @@ export default function RootLayout({ children }) {
       </head>
       <body className="min-h-full flex flex-col font-sans">
         <QueryProvider>
-          {children} <Toaster />{" "}
+          {children}
+          <Toaster />
+          <ConnectionStatus />
         </QueryProvider>
       </body>
     </html>

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AppSidebar from "@/components/layout/AppSidebar";
 import PullToRefresh from "@/components/layout/PullToRefresh";
 import { useAuthStore } from "@/lib/store/useAuthStore";
+import { useAuthReady } from "@/lib/auth/useAuthReady";
 import {
   useAdminNavItems,
   useRoleAdminLabels,
@@ -20,14 +21,7 @@ export default function AdminLayout({ children }) {
   const { t } = useTranslation();
   const roleAdminLabels = useRoleAdminLabels();
 
-  const hydrated = useSyncExternalStore(
-    (onStoreChange) => {
-      const unsub = useAuthStore.persist.onFinishHydration(onStoreChange);
-      return unsub;
-    },
-    () => useAuthStore.persist.hasHydrated(),
-    () => false,
-  );
+  const hydrated = useAuthReady();
 
   useEffect(() => {
     if (!hydrated) return;

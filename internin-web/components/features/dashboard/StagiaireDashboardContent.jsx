@@ -63,7 +63,11 @@ export default function StagiaireDashboardContent() {
 
   return (
     <>
-      <AppHeader title={t("pages.dashboard")} />
+      <AppHeader
+        title={t("pages.dashboard")}
+        subtitle="Votre espace personnel"
+        refreshKeys={["mesCandidatures", "mesEntretiens", "offres", "notifications"]}
+      />
       <div className="space-y-8 px-6 py-6">
         {isLoading && (
           <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">

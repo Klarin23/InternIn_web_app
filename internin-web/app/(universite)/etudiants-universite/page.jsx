@@ -138,6 +138,7 @@ export default function EtudiantsUniversitePage() {
         subtitle={
           stats ? `${stats.totalInscrits} étudiant(s) inscrit(s)` : undefined
         }
+        refreshKeys={["etudiantsUniversite"]}
       />
 
       <div className="space-y-6 px-6 py-6">

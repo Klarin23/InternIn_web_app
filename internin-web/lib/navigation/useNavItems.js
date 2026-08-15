@@ -193,16 +193,27 @@ export function useEntrepriseNavItems() {
   const { data: entretiens } = useEntretiensEntreprise();
   const { data: enAttente } = useEntretiensEnAttente();
   const { data: invitationsPartenariat } = useInvitationsRecues();
+  // Données de supervision (mêmes hooks — l\'API accepte désormais le compte entreprise).
+  const { data: stagiairesSupervision } = useMesStagiaires();
+  const { data: evaluationsSupervision } = useEvaluationsSuperviseur();
 
   const nbReprogrammation = enAttente?.reprogrammation ?? 0;
+  const nbStagiaires = stagiairesSupervision?.length ?? 0;
+  const nbEvalATraiter =
+    evaluationsSupervision?.filter(
+      (e) =>
+        e.statutAffichage === "a_effectuer" || e.statutAffichage === "en_retard",
+    ).length ?? 0;
 
   return [
     { href: "/tableau-de-bord", label: t("sidebar.dashboard"), icon: FiGrid },
+    // —— Gestion ——
     {
       href: "/offres-entreprise",
       label: t("sidebar.internshipOffers"),
       icon: FiBriefcase,
       badge: offres?.filter((o) => o.statut === "publie").length,
+      section: "gestion",
     },
     {
       href: "/candidats",
@@ -210,31 +221,68 @@ export function useEntrepriseNavItems() {
       icon: FiUsers,
       badge: candidatures?.length,
       badgePulseColor: nbReprogrammation > 0 ? "#F97316" : null,
+      section: "gestion",
     },
     {
       href: "/entretiens-entreprise",
       label: t("sidebar.interviews"),
       icon: FiCalendar,
       badge: entretiens?.filter((e) => e.statut === "confirme").length,
+      section: "gestion",
     },
     {
       href: "/partenariats-universites",
       label: t("sidebar.universityPartnerships"),
       icon: FiUserCheck,
       badge: invitationsPartenariat?.length,
+      section: "gestion",
+    },
+    // —— Supervision (réutilise les fonctionnalités Superviseur) ——
+    {
+      href: "/supervision/mes-stagiaires",
+      label: t("sidebar.myInterns") || "Mes stagiaires",
+      icon: FiUsers,
+      badge: nbStagiaires || undefined,
+      section: "supervision",
+    },
+    {
+      href: "/supervision/evaluations",
+      label: t("sidebar.evaluations") || "Évaluations",
+      icon: FiClipboard,
+      badge: nbEvalATraiter || undefined,
+      section: "supervision",
+    },
+    {
+      href: "/supervision/calendrier",
+      label: "Calendrier",
+      icon: FiCalendar,
+      section: "supervision",
     },
     {
       href: "/suivi-stagiaires",
       label: t("sidebar.internTracking"),
-      icon: FiUsers,
+      icon: FiBarChart2,
+      section: "supervision",
     },
+    // —— Entreprise ——
     {
       href: "/messages-entreprise",
       label: t("sidebar.messages"),
       icon: FiMessageSquare,
+      section: "entreprise",
     },
-    { href: "/equipe", label: t("sidebar.team"), icon: FiUserPlus },
-    { href: "/profil-entreprise", label: "Mon profil", icon: Building2 },
+    {
+      href: "/equipe",
+      label: t("sidebar.team"),
+      icon: FiUserPlus,
+      section: "entreprise",
+    },
+    {
+      href: "/profil-entreprise",
+      label: "Mon profil",
+      icon: Building2,
+      section: "entreprise",
+    },
   ];
 }
 
@@ -307,6 +355,11 @@ export function useSuperviseurNavItems() {
       label: t("sidebar.evaluations"),
       icon: FiClipboard,
       badge: aTraiter,
+    },
+    {
+      href: "/calendrier-supervision",
+      label: "Calendrier",
+      icon: FiCalendar,
     },
   ];
 }

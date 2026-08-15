@@ -76,7 +76,11 @@ export default function CandidaturesPage() {
 
   return (
     <>
-      <AppHeader title={t("candidatures.pageTitle")} />
+      <AppHeader
+        title={t("candidatures.pageTitle")}
+        subtitle={t("candidatures.pageSubtitle")}
+        refreshKeys={["mesCandidatures", "mesEntretiens", "mesOffresFinales"]}
+      />
       <div className="space-y-6 px-6 py-6">
         <OffresFinalesRecues />
 

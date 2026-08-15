@@ -71,7 +71,10 @@ export default function EntretiensAgenda({
                         {e.titreOffre}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {e.nomEntreprise}
+                        {e.prenom && e.nom
+                          ? `${e.prenom} ${e.nom}`
+                          : e.nomEntreprise}
+                        &#125;
                       </p>
                     </div>
                   </motion.button>

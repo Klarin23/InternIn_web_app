@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getTableauDeBordSuperviseurRequest,
+  getCalendrierSupervisionRequest,
   listMesStagiairesRequest,
   getDetailStagiaireRequest,
   getProgressionRequest,
@@ -32,6 +33,16 @@ export function useTableauDeBordSuperviseur() {
     enabled: !!token,
   });
 }
+
+export function useCalendrierSupervision({ annee, mois } = {}) {
+  const token = useAuthStore((state) => state.token);
+  return useQuery({
+    queryKey: ["calendrierSupervision", annee, mois],
+    queryFn: () => getCalendrierSupervisionRequest(token, { annee, mois }),
+    enabled: !!token,
+  });
+}
+
 
 export function useMesStagiaires() {
   const token = useAuthStore((state) => state.token);

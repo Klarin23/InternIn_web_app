@@ -39,8 +39,8 @@ export default function LoginForm() {
     const onSubmit = async (data) => {
       setServerError(null);
       try {
-        const { user, token } = await loginRequest(data);
-        setSession(user, token);
+        const { user, token, refreshToken } = await loginRequest(data);
+        setSession(user, token, refreshToken ?? null);
 
         const path = await getPostLoginPath(user, token);
         router.push(path);

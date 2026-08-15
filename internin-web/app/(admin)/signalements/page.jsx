@@ -164,6 +164,7 @@ export default function SignalementsAdminPage() {
         subtitle="Rapports et contenus signalés par la communauté"
         searchValue={recherche}
         onSearchChange={setRecherche}
+        refreshKeys={["litigesAdmin", "adminStats"]}
       />
 
       <div className="px-6 py-6">

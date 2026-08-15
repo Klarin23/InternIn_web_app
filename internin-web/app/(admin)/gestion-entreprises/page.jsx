@@ -199,6 +199,7 @@ export default function EntreprisesAdminPage() {
         subtitle="Vérification et gestion des entreprises partenaires"
         searchValue={recherche}
         onSearchChange={setRecherche}
+        refreshKeys={["toutesEntreprises", "adminStats"]}
       />
 
       <div className="px-6 py-6">

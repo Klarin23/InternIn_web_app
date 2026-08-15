@@ -24,6 +24,7 @@ export default function AdminDashboardContent() {
       <AppHeader
         breadcrumb={[{ label: "Tableau de bord" }]}
         avatarLabel={profile?.nom?.slice(0, 2).toUpperCase()}
+        refreshKeys={["adminStats", "notifications"]}
       />
       <div className="space-y-6 px-6 py-6">
         <div>

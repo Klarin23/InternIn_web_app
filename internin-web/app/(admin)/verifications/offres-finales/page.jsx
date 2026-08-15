@@ -67,7 +67,11 @@ export default function VerificationsOffresFinalesPage() {
 
   return (
     <>
-      <AppHeader title="Offres de stage" />
+      <AppHeader
+        title="Offres de stage"
+        subtitle="Validation des offres finales avant signature"
+        refreshKeys={["offresFinalesAdmin", "adminStats"]}
+      />
       <div className="px-6 py-6">
         <p className="-mt-4 mb-6 text-sm text-muted-foreground">
           Modération et validation des offres

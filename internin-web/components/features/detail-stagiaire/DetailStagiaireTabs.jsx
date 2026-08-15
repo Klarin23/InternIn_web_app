@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSupervisionContext } from "@/lib/supervision/SupervisionContext";
 
 export default function DetailStagiaireTabs({ idStage }) {
   const pathname = usePathname();
-  const base = `/mes-stagiaires/${idStage}`;
+  const { basePath } = useSupervisionContext();
+  const base = `${basePath}/${idStage}`;
 
   const onglets = [
     { href: base, label: "Détails" },

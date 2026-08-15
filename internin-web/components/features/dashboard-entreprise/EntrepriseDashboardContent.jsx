@@ -26,6 +26,12 @@ import CalendrierWidget from "./CalendrierWidget";
 import ProgressionRecrutementsWidget from "./ProgressionRecrutementsWidget";
 import CandidatsRecommandesWidget from "./CandidatsRecommandesWidget";
 import TimelineWidget from "./TimelineWidget";
+import Link from "next/link";
+import { FiAlertTriangle, FiArrowRight } from "react-icons/fi";
+import {
+  useMesStagiaires,
+  useEvaluationsSuperviseur,
+} from "@/lib/queries/useSuperviseur";
 
 export default function EntrepriseDashboardContent() {
   const { data: profile, isLoading: profileLoading } = useEntrepriseProfile();
@@ -34,6 +40,8 @@ export default function EntrepriseDashboardContent() {
     useCandidaturesEntreprise();
   const { data: entretiens, isLoading: entretiensLoading } =
     useEntretiensEntreprise();
+  const { data: stagiairesSupervision } = useMesStagiaires();
+  const { data: evaluationsSupervision } = useEvaluationsSuperviseur();
 
   const isLoading =
     profileLoading || offresLoading || candidaturesLoading || entretiensLoading;
@@ -56,6 +64,7 @@ export default function EntrepriseDashboardContent() {
           { label: "Tableau de bord" },
         ]}
         avatarLabel={profile?.nomEntreprise?.slice(0, 2).toUpperCase()}
+        refreshKeys={["mesOffres", "candidaturesEntreprise", "entretiensEntreprise", "notifications"]}
       />
       <div className="space-y-6 px-6 py-6">
         {isLoading && <DashboardSkeleton />}
@@ -65,6 +74,42 @@ export default function EntrepriseDashboardContent() {
             <VerificationBanner statut={profile.statutVerification} />
 
             <WelcomeBanner nomEntreprise={profile.nomEntreprise} />
+
+            {/* Bloc Supervision — intégration des outils d'encadrement */}
+            <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-bold text-foreground">Supervision</h2>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Encadrement de vos stagiaires accueillis
+                  </p>
+                </div>
+                <Link
+                  href="/supervision"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                >
+                  Voir la supervision <FiArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="rounded-xl bg-muted/50 px-3 py-2.5">
+                  <p className="text-[10px] font-medium uppercase text-muted-foreground">Stagiaires</p>
+                  <p className="text-lg font-bold tabular-nums">{stagiairesSupervision?.length ?? 0}</p>
+                </div>
+                <div className="rounded-xl bg-muted/50 px-3 py-2.5">
+                  <p className="text-[10px] font-medium uppercase text-muted-foreground">Éval. à traiter</p>
+                  <p className="text-lg font-bold tabular-nums text-amber-600">
+                    {evaluationsSupervision?.filter((e) => e.statutAffichage === "a_effectuer" || e.statutAffichage === "en_retard").length ?? 0}
+                  </p>
+                </div>
+                <Link
+                  href="/supervision/mes-stagiaires"
+                  className="col-span-2 flex items-center justify-center gap-2 rounded-xl border border-dashed border-border px-3 py-2.5 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-primary sm:col-span-1"
+                >
+                  Mes stagiaires <FiArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            </div>
 
             <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StaggerItem className="h-full">

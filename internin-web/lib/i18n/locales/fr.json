@@ -73,7 +73,10 @@
     "justNow": "à l'instant",
     "minutesAgo": "il y a {n} min",
     "hoursAgo": "il y a {n} h",
-    "daysAgo": "il y a {n} j"
+    "daysAgo": "il y a {n} j",
+    "searchNavigation": "Menu",
+    "noSearchResults": "Aucun résultat",
+    "clearSearch": "Effacer la recherche"
   },
   "footer": {
     "tagline": "Plateforme de stages et d'employabilité connectant étudiants, entreprises et universités à travers l'Afrique.",
@@ -128,10 +131,22 @@
           }
         ],
         "stats": [
-          ["120+", "Entreprises vérifiées"],
-          ["340+", "Stages actifs"],
-          ["18", "Universités partenaires"],
-          ["560+", "Étudiants placés"]
+          [
+            "120+",
+            "Entreprises vérifiées"
+          ],
+          [
+            "340+",
+            "Stages actifs"
+          ],
+          [
+            "18",
+            "Universités partenaires"
+          ],
+          [
+            "560+",
+            "Étudiants placés"
+          ]
         ]
       },
       "howItWorks": {
@@ -246,7 +261,10 @@
           "label": "Créer un compte étudiant",
           "href": "/inscription/stagiaire"
         },
-        "secondaryCta": { "label": "Explorer les stages", "href": "/offres" },
+        "secondaryCta": {
+          "label": "Explorer les stages",
+          "href": "/offres"
+        },
         "floatCards": [
           {
             "icon": "users",
@@ -385,9 +403,18 @@
           }
         ],
         "stats": [
-          ["120+", "Entreprises partenaires"],
-          ["340+", "Stagiaires actifs"],
-          ["95%", "Taux de satisfaction"]
+          [
+            "120+",
+            "Entreprises partenaires"
+          ],
+          [
+            "340+",
+            "Stagiaires actifs"
+          ],
+          [
+            "95%",
+            "Taux de satisfaction"
+          ]
         ]
       },
       "howItWorks": {
@@ -510,7 +537,10 @@
           "label": "Devenir partenaire d'InternIn",
           "href": "/inscription/universite"
         },
-        "secondaryCta": { "label": "Demander une démo", "href": "#" },
+        "secondaryCta": {
+          "label": "Demander une démo",
+          "href": "#"
+        },
         "floatCards": [
           {
             "icon": "users",
@@ -524,9 +554,18 @@
           }
         ],
         "stats": [
-          ["18", "Universités partenaires"],
-          ["560+", "Étudiants placés"],
-          ["340+", "Stages actifs"]
+          [
+            "18",
+            "Universités partenaires"
+          ],
+          [
+            "560+",
+            "Étudiants placés"
+          ],
+          [
+            "340+",
+            "Stages actifs"
+          ]
         ]
       },
       "howItWorks": {
@@ -649,7 +688,10 @@
           "label": "Créer un compte gratuitement",
           "href": "/inscription"
         },
-        "secondaryCta": { "label": "Nous contacter", "href": "#" },
+        "secondaryCta": {
+          "label": "Nous contacter",
+          "href": "#"
+        },
         "floatCards": [],
         "stats": []
       },
@@ -657,10 +699,22 @@
         "eyebrow": "À propos d'InternIn",
         "title": "Former les professionnels prêts pour l'avenir à travers l'Afrique",
         "tiles": [
-          ["12", "Étapes du cycle de stage"],
-          ["4", "Communautés connectées"],
-          ["100%", "Gratuit pour les stagiaires"],
-          ["IA", "Coaching personnalisé"]
+          [
+            "12",
+            "Étapes du cycle de stage"
+          ],
+          [
+            "4",
+            "Communautés connectées"
+          ],
+          [
+            "100%",
+            "Gratuit pour les stagiaires"
+          ],
+          [
+            "IA",
+            "Coaching personnalisé"
+          ]
         ],
         "paragraphs": [
           "InternIn a été créé pour réduire le fossé entre l'éducation et l'emploi. Trop d'étudiants obtiennent leur diplôme sans expérience pratique, tandis que les entreprises rencontrent des difficultés pour identifier et développer les talents émergents.",
@@ -727,8 +781,16 @@
           "Génie Logiciel",
           "Développement web & mobile"
         ],
-        ["/images/Marketing.jpg", "Marketing", "Campagnes & réseaux sociaux"],
-        ["/images/finance.jpg", "Finance", "Analyse & reporting"],
+        [
+          "/images/Marketing.jpg",
+          "Marketing",
+          "Campagnes & réseaux sociaux"
+        ],
+        [
+          "/images/finance.jpg",
+          "Finance",
+          "Analyse & reporting"
+        ],
         [
           "/images/UI-UXdesigner.png",
           "UI/UX Design",
@@ -761,9 +823,18 @@
       "title": "Lancez votre carrière grâce à des stages porteurs de sens.",
       "description": "Rejoignez une communauté d'étudiants, d'entreprises et d'universités qui construisent l'employabilité de demain.",
       "stats": [
-        ["120+", "Entreprises vérifiées"],
-        ["340+", "Stages actifs"],
-        ["560+", "Étudiants placés"]
+        [
+          "120+",
+          "Entreprises vérifiées"
+        ],
+        [
+          "340+",
+          "Stages actifs"
+        ],
+        [
+          "560+",
+          "Étudiants placés"
+        ]
       ],
       "quote": "Grâce au suivi hebdomadaire et au Coach IA, j'ai terminé mon stage avec un certificat et une recommandation qui ont fait la différence sur mon CV.",
       "quoteName": "Amara K.",
@@ -965,7 +1036,15 @@
       "yearLabel": "{n}e année"
     },
     "calendar": {
-      "weekDays": ["L", "M", "M", "J", "V", "S", "D"],
+      "weekDays": [
+        "L",
+        "M",
+        "M",
+        "J",
+        "V",
+        "S",
+        "D"
+      ],
       "interview": "Entretien"
     },
     "loading": "Chargement de votre profil...",
@@ -1242,9 +1321,16 @@
       "searchPlaceholder": "Rechercher une entreprise ou une offre..."
     },
     "status": {
-      "rejected": { "label": "Refusé" },
-      "accepted": { "label": "Accepté", "detail": "Démarrage le {date}" },
-      "withdrawn": { "label": "Retirée" },
+      "rejected": {
+        "label": "Refusé"
+      },
+      "accepted": {
+        "label": "Accepté",
+        "detail": "Démarrage le {date}"
+      },
+      "withdrawn": {
+        "label": "Retirée"
+      },
       "interview": {
         "label": "Entretien",
         "planifie": "Entretien proposé — {date}, à confirmer",
@@ -1311,15 +1397,12 @@
   "interviews": {
     "pageTitle": "Mes entretiens",
     "pageSubtitle": "Gérez et suivez vos prochains rendez-vous de stage",
-
     "error": "Impossible de charger vos entretiens.",
-
     "stats": {
       "upcoming": "À venir",
       "today": "Aujourd'hui",
       "completed": "Terminés"
     },
-
     "filters": {
       "searchPlaceholder": "Rechercher une entreprise ou une offre...",
       "upcoming": "À venir",
@@ -1330,14 +1413,12 @@
       "noResult": "Aucun entretien pour ce filtre.",
       "showAll": "Afficher tous les entretiens"
     },
-
     "views": {
       "all": "Tous mes entretiens",
       "cards": "Cartes",
       "agenda": "Agenda",
       "calendar": "Calendrier"
     },
-
     "empty": {
       "title": "Aucun entretien prévu",
       "withApplications": "Vous avez des candidatures en cours, mais aucun entretien n'est encore programmé.",
@@ -1345,18 +1426,15 @@
       "viewApplications": "Voir mes candidatures",
       "exploreApplications": "Explorer mes candidatures"
     },
-
     "next": {
       "title": "Prochain entretien",
       "details": "Voir les détails",
       "join": "Rejoindre"
     },
-
     "history": {
       "title": "Entretiens précédents",
       "viewAll": "Voir tout l'historique ({n})"
     },
-
     "status": {
       "pendingResponse": "En attente de votre réponse",
       "pending": "En attente",
@@ -1370,24 +1448,20 @@
       "absenceNoted": "Absence constatée",
       "absence": "Absence"
     },
-
     "modes": {
       "video": "Visioconférence",
       "phone": "Téléphone",
       "phoneCall": "Appel téléphonique",
       "onsite": "Présentiel"
     },
-
     "relative": {
       "today": "Aujourd'hui",
       "tomorrow": "Demain"
     },
-
     "countdown": {
       "minutes": "Commence dans {n} min",
       "hoursMinutes": "Commence dans {hours}h {minutes}min"
     },
-
     "card": {
       "interviewer": "Interviewer",
       "preparationNotes": "Notes de préparation",
@@ -1409,7 +1483,6 @@
       "sendProposal": "Envoyer la proposition",
       "cancelledReason": "Entretien annulé"
     },
-
     "drawer": {
       "title": "Détails de l'entretien",
       "close": "Fermer",
@@ -1428,7 +1501,6 @@
       "join": "Rejoindre l'entretien",
       "cancelled": "Entretien annulé"
     },
-
     "calendar": {
       "previousMonth": "Mois précédent",
       "nextMonth": "Mois suivant",

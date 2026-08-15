@@ -1,7 +1,6 @@
 // Chemin : internin-web/middleware.js
 
 import { NextResponse } from "next/server";
-import { jwtVerify } from "jose";
 
 // `role` accepte soit une chaîne, soit un tableau de rôles autorisés — utile
 // pour les routes partagées entre plusieurs espaces (ex: /parametres).
@@ -50,36 +49,25 @@ function matchesPrefix(pathname, prefix) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
-const encodedSecret = new TextEncoder().encode(process.env.JWT_SECRET);
-
-// Vérifie réellement la signature du token (pas un simple décodage base64) :
-// un token modifié/forgé ne passera plus cette étape, même si son payload
-// contient un typeUtilisateur valide.
-async function verifyJwt(token) {
-  try {
-    const { payload } = await jwtVerify(token, encodedSecret);
-    return payload;
-  } catch {
-    return null;
-  }
-}
-
+/**
+ * La protection réelle des ressources est assurée par l'API (Bearer JWT +
+ * contrôles métier). Le middleware Next.js ne doit pas dépendre d'un cookie
+ * JavaScript contenant l'access token : ce dernier est désormais conservé
+ * uniquement en mémoire.
+ *
+ * Ici on utilise uniquement la présence du refresh cookie HttpOnly comme
+ * garde-fou UX pour éviter d'afficher des pages privées aux utilisateurs
+ * complètement déconnectés. Un utilisateur connecté mais sans permission
+ * atteindra ensuite l'API, qui renverra 403/401 selon le cas.
+ */
 export async function proxy(request) {
   const { pathname } = request.nextUrl;
 
   const rule = ROLE_ROUTES.find((r) => matchesPrefix(pathname, r.prefix));
   if (!rule) return NextResponse.next();
 
-  const token = request.cookies.get("internin_token")?.value;
-  if (!token) {
-    const url = new URL("/connexion", request.url);
-    return NextResponse.redirect(url);
-  }
-
-  const payload = await verifyJwt(token);
-  const rolesAutorises = Array.isArray(rule.role) ? rule.role : [rule.role];
-
-  if (!payload || !rolesAutorises.includes(payload.typeUtilisateur)) {
+  const refreshToken = request.cookies.get("internin_refresh")?.value;
+  if (!refreshToken) {
     const url = new URL("/connexion", request.url);
     return NextResponse.redirect(url);
   }

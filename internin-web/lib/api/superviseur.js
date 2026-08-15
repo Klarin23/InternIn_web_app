@@ -4,6 +4,17 @@ export function getTableauDeBordSuperviseurRequest(token) {
   return apiFetch("/superviseur/tableau-de-bord", { token });
 }
 
+export function getCalendrierSupervisionRequest(token, { annee, mois } = {}) {
+  const params = new URLSearchParams();
+  if (annee != null) params.set("annee", String(annee));
+  if (mois != null) params.set("mois", String(mois));
+  const qs = params.toString();
+  return apiFetch(
+    `/superviseur/calendrier${qs ? `?${qs}` : ""}`,
+    { token },
+  );
+}
+
 export function listMesStagiairesRequest(token) {
   return apiFetch("/superviseur/stagiaires", { token });
 }

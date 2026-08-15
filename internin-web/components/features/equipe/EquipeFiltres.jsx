@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import {
   Select,
   SelectContent,
@@ -23,10 +24,15 @@ export default function EquipeFiltres({
   onStatutChange,
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: 0.1 }}
+      className="flex flex-wrap gap-2"
+    >
       <Select value={role} onValueChange={onRoleChange}>
-        <SelectTrigger className="h-10 w-[190px] rounded-sm">
-          <SelectValue />
+        <SelectTrigger className="h-10 w-full min-w-[160px] rounded-md sm:w-[190px]">
+          <SelectValue placeholder="Tous les rôles" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="tous">Tous les rôles</SelectItem>
@@ -42,8 +48,8 @@ export default function EquipeFiltres({
       </Select>
 
       <Select value={statut} onValueChange={onStatutChange}>
-        <SelectTrigger className="h-10 w-[190px] rounded-sm">
-          <SelectValue />
+        <SelectTrigger className="h-10 w-full min-w-[160px] rounded-md sm:w-[190px]">
+          <SelectValue placeholder="Tous les statuts" />
         </SelectTrigger>
         <SelectContent>
           {STATUTS.map((s) => (
@@ -53,6 +59,6 @@ export default function EquipeFiltres({
           ))}
         </SelectContent>
       </Select>
-    </div>
+    </motion.div>
   );
 }

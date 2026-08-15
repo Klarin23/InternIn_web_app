@@ -5,6 +5,7 @@ import {
   getDashboard,
   getStagiaires,
   getStagiaireDetail,
+  getCalendrier,
 } from "./superviseur.controller.js";
 import {
   getProgressionHandler,
@@ -47,6 +48,7 @@ const router = Router();
 // et pour toutes les routes /stagiaires/:idStage/..., que ce stage lui soit
 // bien affecté (cf. getAffectationOrThrow).
 router.get("/tableau-de-bord", requireAuth, getDashboard);
+router.get("/calendrier", requireAuth, getCalendrier);
 router.get("/stagiaires", requireAuth, getStagiaires);
 router.get("/stagiaires/:idStage", requireAuth, getStagiaireDetail);
 

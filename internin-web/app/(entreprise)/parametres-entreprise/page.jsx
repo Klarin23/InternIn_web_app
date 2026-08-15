@@ -4,7 +4,10 @@ import AppHeader from "@/components/layout/AppHeader";
 export default function ParametresEntreprisePage() {
   return (
     <>
-      <AppHeader title="Paramètres" />
+      <AppHeader
+        title="Paramètres"
+        subtitle="Configuration du compte entreprise"
+      />
       <div className="flex flex-col items-center justify-center gap-2 px-6 py-24 text-center">
         <FiSettings className="h-8 w-8 text-muted-foreground" />
         <p className="text-sm font-medium text-foreground">

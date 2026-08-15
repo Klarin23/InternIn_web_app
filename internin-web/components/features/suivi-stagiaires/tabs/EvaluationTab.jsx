@@ -4,6 +4,10 @@ import { useEvaluations } from "@/lib/queries/useEvaluations";
 
 export default function EvaluationTab({ stage }) {
   const { data: evaluations } = useEvaluations(stage.idStage);
+  const prochaineSemaine =
+    evaluations && evaluations.length > 0
+      ? Math.max(...evaluations.map((e) => e.numeroSemaine || 0)) + 1
+      : 1;
 
   return (
     <div className="space-y-4">
@@ -12,6 +16,8 @@ export default function EvaluationTab({ stage }) {
           <SoumettreEvaluationDialog
             idStage={stage.idStage}
             stagiaireNom={`${stage.prenom} ${stage.nom}`}
+            stagiairePoste={stage.titrePoste}
+            numeroSemaine={prochaineSemaine}
           />
         </div>
       )}

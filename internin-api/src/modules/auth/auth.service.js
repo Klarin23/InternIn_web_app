@@ -83,7 +83,14 @@ async function createEmailVerification(idUtilisateur, email) {
 /**
  * Inscription d'un nouvel utilisateur.
  */
+
+/** Normalise une adresse e-mail avant comparaison / stockage. */
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
 export async function registerUser({ email, password, typeUtilisateur }, req) {
+  email = normalizeEmail(email);
   const existing = await db
     .select()
     .from(utilisateurs)
@@ -283,6 +290,7 @@ export async function resendEmailVerification(idUtilisateur) {
  * on renvoie toujours le même message, que l'utilisateur soit trouvé ou non.
  */
 export async function requestPasswordReset(email) {
+  email = normalizeEmail(email);
   const [utilisateur] = await db
     .select()
     .from(utilisateurs)
@@ -457,6 +465,7 @@ async function createSession(idUtilisateur, req) {
  * Login / Register : renvoie accessToken + refreshToken
  */
 export async function loginUser({ email, password }, req) {
+  email = normalizeEmail(email);
   const [utilisateur] = await db
     .select()
     .from(utilisateurs)

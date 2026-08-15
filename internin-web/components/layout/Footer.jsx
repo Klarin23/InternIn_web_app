@@ -20,7 +20,9 @@ export default function Footer() {
             {/* Réseaux sociaux */}
             <div className="mt-4 flex gap-2.5">
               <a
-                href="#"
+                href="https://www.linkedin.com/company/intern-in/"
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label="LinkedIn"
                 className="flex h-9 w-9 items-center justify-center rounded-sm border border-border bg-card text-muted-foreground hover:border-primary hover:text-primary"
               >

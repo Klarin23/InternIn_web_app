@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AppSidebar from "@/components/layout/AppSidebar";
 import PullToRefresh from "@/components/layout/PullToRefresh";
 import { useAuthStore } from "@/lib/store/useAuthStore";
+import { useAuthReady } from "@/lib/auth/useAuthReady";
 import { useUniversiteNavItems } from "@/lib/navigation/useNavItems";
 import { useUniversiteProfile } from "@/lib/queries/useUniversiteProfile";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -16,14 +17,7 @@ export default function UniversiteLayout({ children }) {
   const { data: profile } = useUniversiteProfile();
   const { t } = useTranslation();
 
-  const hydrated = useSyncExternalStore(
-    (onStoreChange) => {
-      const unsub = useAuthStore.persist.onFinishHydration(onStoreChange);
-      return unsub;
-    },
-    () => useAuthStore.persist.hasHydrated(),
-    () => false,
-  );
+  const hydrated = useAuthReady();
 
   useEffect(() => {
     if (!hydrated) return;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FiLoader, FiAlertCircle } from "react-icons/fi";
+import { FiLoader, FiAlertCircle, FiUser } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,8 +17,16 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
-import { ROLES_INVITABLES, STATUT_MEMBRE_LABELS } from "./equipeConstants";
+import {
+  ROLES_INVITABLES,
+  ROLE_LABELS,
+  STATUT_MEMBRE_LABELS,
+  STATUT_MEMBRE_COLORS,
+  STATUT_DOT_COLORS,
+  AVATAR_COLORS,
+} from "./equipeConstants";
 import { useCatalogueEquipe, useUpdateMembre } from "@/lib/queries/useEquipe";
 
 // Formulaire isolé, remonté (via key={membre.idMembre} dans le parent) à
@@ -64,7 +72,7 @@ function MembreDetailForm({ membre, catalogue, onClose }) {
       <div className="space-y-1.5">
         <Label>Rôle</Label>
         <Select value={roleEquipe} onValueChange={handleRoleChange}>
-          <SelectTrigger className="h-11 w-full rounded-sm">
+          <SelectTrigger className="h-11 w-full rounded-md">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -80,11 +88,11 @@ function MembreDetailForm({ membre, catalogue, onClose }) {
       {catalogue && (
         <div className="space-y-2">
           <Label>Fonctionnalités accessibles</Label>
-          <div className="space-y-2 rounded-sm border border-border p-3">
+          <div className="space-y-2 rounded-md border border-border p-3">
             {catalogue.permissions.map((p) => (
               <label
                 key={p.cle}
-                className="flex items-center gap-2.5 text-sm text-foreground"
+                className="flex cursor-pointer items-center gap-2.5 text-sm text-foreground"
               >
                 <Checkbox
                   checked={permissionsEffectives.includes(p.cle)}
@@ -98,7 +106,7 @@ function MembreDetailForm({ membre, catalogue, onClose }) {
       )}
 
       {mutation.isError && (
-        <div className="flex items-center gap-2 rounded-sm border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           <FiAlertCircle className="h-4 w-4 shrink-0" />
           {mutation.error.message}
         </div>
@@ -108,7 +116,7 @@ function MembreDetailForm({ membre, catalogue, onClose }) {
         type="button"
         onClick={handleSubmit}
         disabled={mutation.isPending}
-        className="h-11 w-full rounded-sm"
+        className="h-11 w-full rounded-md"
       >
         {mutation.isPending ? (
           <FiLoader className="h-4 w-4 animate-spin" />
@@ -123,24 +131,57 @@ function MembreDetailForm({ membre, catalogue, onClose }) {
 export default function MembreDetailDialog({ membre, onClose }) {
   const { data: catalogue } = useCatalogueEquipe();
 
+  const initiales = membre
+    ? (membre.nom || "?")
+        .split(" ")
+        .map((mot) => mot.charAt(0))
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "";
+
   return (
     <Dialog open={!!membre} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto rounded-md sm:max-w-[480px]">
+      <DialogContent className="max-h-[85vh] overflow-y-auto rounded-xl sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>{membre?.nom}</DialogTitle>
+          {membre && (
+            <div className="flex items-center gap-3">
+              <span
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+                style={{ backgroundColor: AVATAR_COLORS[0] }}
+              >
+                {initiales}
+              </span>
+              <div className="min-w-0">
+                <DialogTitle className="truncate text-base font-semibold">
+                  {membre.nom}
+                </DialogTitle>
+                <DialogDescription className="truncate text-sm">
+                  {membre.email}
+                </DialogDescription>
+              </div>
+            </div>
+          )}
         </DialogHeader>
 
         {membre && (
           <div className="space-y-4 py-2">
-            <div className="space-y-1 text-sm">
-              <p className="text-muted-foreground">{membre.email}</p>
-              <p className="text-muted-foreground">
-                Statut : {STATUT_MEMBRE_LABELS[membre.statutMembre]}
-              </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+                {ROLE_LABELS[membre.roleEquipe] || membre.roleEquipe}
+              </span>
+              <span
+                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${STATUT_MEMBRE_COLORS[membre.statutMembre]}`}
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${STATUT_DOT_COLORS[membre.statutMembre]}`}
+                />
+                {STATUT_MEMBRE_LABELS[membre.statutMembre]}
+              </span>
             </div>
 
             {membre.estAdminPrincipal ? (
-              <p className="rounded-sm border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+              <p className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
                 L&apos;administrateur principal dispose d&apos;un accès complet
                 et non modifiable à toutes les fonctionnalités.
               </p>

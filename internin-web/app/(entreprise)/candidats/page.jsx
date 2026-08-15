@@ -64,7 +64,11 @@ export default function CandidatsPage() {
 
   return (
     <>
-      <AppHeader breadcrumb={[{ label: "Candidatures" }]} />
+      <AppHeader
+        breadcrumb={[{ label: "Candidatures" }]}
+        subtitle="Gérez les candidatures reçues sur vos offres"
+        refreshKeys={["candidaturesEntreprise", "entretiensEntreprise"]}
+      />
       <div className="px-6 py-6">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-foreground">Candidatures</h1>

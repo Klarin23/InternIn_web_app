@@ -1,5 +1,7 @@
 "use client";
 
+import { useSupervisionContext } from "@/lib/supervision/SupervisionContext";
+
 import { use } from "react";
 import { FiLoader, FiFileText, FiEye, FiDownload } from "react-icons/fi";
 import AppHeader from "@/components/layout/AppHeader";
@@ -40,6 +42,7 @@ function ConventionStatutLigne({ label, valide }) {
 }
 
 export default function DetailStagiairePage({ params }) {
+  const { basePath, evaluationsPath } = useSupervisionContext();
   const { idStage } = use(params);
   const { data, isLoading, error } = useDetailStagiaire(idStage);
 
@@ -64,7 +67,7 @@ export default function DetailStagiairePage({ params }) {
 
   return (
     <>
-      <AppHeader breadcrumb={[{ label: "Mes stagiaires", href: "/mes-stagiaires" }, { label: `${stagiaire.prenom} ${stagiaire.nom}` }]} />
+      <AppHeader breadcrumb={[{ label: "Mes stagiaires", href: basePath }, { label: `${stagiaire.prenom} ${stagiaire.nom}` }]} />
       <div className="px-6 py-6">
         <DetailStagiaireHeader stagiaire={stagiaire} stage={stage} />
         <div className="mt-6">

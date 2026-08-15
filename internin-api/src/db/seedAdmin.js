@@ -3,9 +3,10 @@
 // sont une équipe interne. statutCompte = "actif" dès la création
 // (pas d'onboarding).
 //
-// Variables d'environnement (prioritaires si définies) :
+// Variables d'environnement OBLIGATOIRES :
 //   ADMIN_EMAIL
 //   ADMIN_PASSWORD
+// Optionnel :
 //   ADMIN_FORCE_PASSWORD_RESET  ("true" pour forcer un nouveau MDP
 //                                si le compte existe déjà)
 //
@@ -18,32 +19,40 @@ import { db } from "./index.js";
 import { utilisateurs, administrateurs } from "./schema.js";
 import { hashPassword } from "../utils/password.js";
 
-// ——— Identifiants par défaut ———
-const DEFAULT_ADMIN_EMAIL = "admin@internin.co";
-const DEFAULT_ADMIN_PASSWORD = "super_Admin_internin_2026";
-
-const ADMIN_EMAIL =
-  (process.env.ADMIN_EMAIL && process.env.ADMIN_EMAIL.trim()) ||
-  DEFAULT_ADMIN_EMAIL;
-
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD;
-
-const FORCE_RESET =
-  process.env.ADMIN_FORCE_PASSWORD_RESET === "true" ||
-  process.env.ADMIN_FORCE_PASSWORD_RESET === "1";
-
 function fail(message) {
   console.error(`❌ ${message}`);
   process.exit(1);
 }
 
+const rawEmail = process.env.ADMIN_EMAIL;
+const rawPassword = process.env.ADMIN_PASSWORD;
+
+if (!rawEmail || !String(rawEmail).trim()) {
+  fail(
+    "ADMIN_EMAIL est obligatoire. Définissez-le dans l'environnement avant de lancer le seed admin.",
+  );
+}
+
+if (!rawPassword) {
+  fail(
+    "ADMIN_PASSWORD est obligatoire. Aucun mot de passe par défaut n'est autorisé.",
+  );
+}
+
+const ADMIN_EMAIL = String(rawEmail).trim().toLowerCase();
+const ADMIN_PASSWORD = rawPassword;
+
+const FORCE_RESET =
+  process.env.ADMIN_FORCE_PASSWORD_RESET === "true" ||
+  process.env.ADMIN_FORCE_PASSWORD_RESET === "1";
+
 async function seedAdmin() {
-  if (!ADMIN_EMAIL || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ADMIN_EMAIL)) {
-    fail(`ADMIN_EMAIL invalide : ${ADMIN_EMAIL}`);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ADMIN_EMAIL)) {
+    fail(`ADMIN_EMAIL invalide.`);
   }
 
-  if (!ADMIN_PASSWORD || ADMIN_PASSWORD.length < 8) {
-    fail("ADMIN_PASSWORD trop court (minimum 8 caractères).");
+  if (ADMIN_PASSWORD.length < 12) {
+    fail("ADMIN_PASSWORD trop court (minimum 12 caractères).");
   }
 
   const existing = await db
@@ -56,7 +65,7 @@ async function seedAdmin() {
 
     if (user.typeUtilisateur !== "administrateur") {
       fail(
-        `L'e-mail ${ADMIN_EMAIL} existe déjà mais n'est pas un compte administrateur (type: ${user.typeUtilisateur}).`,
+        `L'e-mail fourni existe déjà mais n'est pas un compte administrateur (type: ${user.typeUtilisateur}).`,
       );
     }
 
@@ -72,9 +81,7 @@ async function seedAdmin() {
         })
         .where(eq(utilisateurs.idUtilisateur, user.idUtilisateur));
 
-      console.log(
-        `✓ Mot de passe administrateur mis à jour pour ${ADMIN_EMAIL}`,
-      );
+      console.log(`✓ Mot de passe administrateur mis à jour pour ${ADMIN_EMAIL}`);
       process.exit(0);
     }
 
@@ -107,6 +114,7 @@ async function seedAdmin() {
     roleAdmin: "super_admin",
   });
 
+  // Ne jamais logger le mot de passe
   console.log(`✓ Compte administrateur créé`);
   console.log(`  Email    : ${ADMIN_EMAIL}`);
   console.log(`  Rôle     : super_admin`);

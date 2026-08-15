@@ -187,6 +187,7 @@ export default function UniversitesAdminPage() {
         subtitle="Vérification et gestion des universités partenaires"
         searchValue={recherche}
         onSearchChange={setRecherche}
+        refreshKeys={["toutesUniversites", "adminStats"]}
       />
 
       <div className="px-6 py-6">

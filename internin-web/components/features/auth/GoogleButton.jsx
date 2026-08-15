@@ -86,12 +86,12 @@ export default function GoogleButton({ role, onError }) {
 
           setLoading(true);
           try {
-            const { user, token } = await googleAuthRequest({
+            const { user, token, refreshToken } = await googleAuthRequest({
               accessToken: tokenResponse.access_token,
               typeUtilisateur: role || undefined,
             });
 
-            setSession(user, token);
+            setSession(user, token, refreshToken ?? null);
 
             const path = await getPostLoginPath(user, token);
             router.push(path);

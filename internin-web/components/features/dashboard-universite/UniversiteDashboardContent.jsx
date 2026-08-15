@@ -24,6 +24,7 @@ export default function UniversiteDashboardContent() {
       <AppHeader
         breadcrumb={[{ label: "Tableau de bord" }]}
         avatarLabel={profile?.nomCoordinateurStage?.slice(0, 2).toUpperCase()}
+        refreshKeys={["universiteStats", "notifications"]}
       />
       <div className="space-y-6 px-6 py-6">
         <div>

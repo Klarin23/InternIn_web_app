@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AppSidebar from "@/components/layout/AppSidebar";
 import PullToRefresh from "@/components/layout/PullToRefresh";
 import { useAuthStore } from "@/lib/store/useAuthStore";
+import { useAuthReady } from "@/lib/auth/useAuthReady";
 import { useEntrepriseProfile } from "@/lib/queries/useEntrepriseProfile";
 import { useEntrepriseNavItems } from "@/lib/navigation/useNavItems";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -16,14 +17,7 @@ export default function EntrepriseLayout({ children }) {
   const { data: profile } = useEntrepriseProfile();
   const { t } = useTranslation();
 
-  const hydrated = useSyncExternalStore(
-    (onStoreChange) => {
-      const unsub = useAuthStore.persist.onFinishHydration(onStoreChange);
-      return unsub;
-    },
-    () => useAuthStore.persist.hasHydrated(),
-    () => false,
-  );
+  const hydrated = useAuthReady();
 
   useEffect(() => {
     if (!hydrated) return;

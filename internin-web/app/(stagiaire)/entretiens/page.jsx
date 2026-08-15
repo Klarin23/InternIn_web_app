@@ -60,7 +60,11 @@ export default function EntretiensPage() {
 
   return (
     <>
-      <AppHeader title={t("interviews.pageTitle")} />
+      <AppHeader
+        title={t("interviews.pageTitle")}
+        subtitle={t("interviews.pageSubtitle")}
+        refreshKeys={["mesEntretiens", "mesCandidatures"]}
+      />
       <div className="space-y-6 px-6 py-6">
         {isLoading && <EntretiensSkeleton />}
 

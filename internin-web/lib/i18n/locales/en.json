@@ -73,7 +73,10 @@
     "justNow": "just now",
     "minutesAgo": "{n} min ago",
     "hoursAgo": "{n} h ago",
-    "daysAgo": "{n} d ago"
+    "daysAgo": "{n} d ago",
+    "searchNavigation": "Menu",
+    "noSearchResults": "No results",
+    "clearSearch": "Clear search"
   },
   "footer": {
     "tagline": "Internship and employability platform connecting students, companies, and universities across Africa.",
@@ -128,10 +131,22 @@
           }
         ],
         "stats": [
-          ["120+", "Verified companies"],
-          ["340+", "Active internships"],
-          ["18", "Partner universities"],
-          ["560+", "Students placed"]
+          [
+            "120+",
+            "Verified companies"
+          ],
+          [
+            "340+",
+            "Active internships"
+          ],
+          [
+            "18",
+            "Partner universities"
+          ],
+          [
+            "560+",
+            "Students placed"
+          ]
         ]
       },
       "howItWorks": {
@@ -219,7 +234,10 @@
             "Can companies see my contact details?",
             "No. Your direct contact details are only visible to the company once your internship is activated, after the agreement is accepted."
           ],
-          ["Is InternIn free?", "Yes, InternIn is entirely free for interns."]
+          [
+            "Is InternIn free?",
+            "Yes, InternIn is entirely free for interns."
+          ]
         ]
       },
       "cta": {
@@ -243,7 +261,10 @@
           "label": "Create a student account",
           "href": "/inscription/stagiaire"
         },
-        "secondaryCta": { "label": "Explore internships", "href": "/offres" },
+        "secondaryCta": {
+          "label": "Explore internships",
+          "href": "/offres"
+        },
         "floatCards": [
           {
             "icon": "users",
@@ -382,9 +403,18 @@
           }
         ],
         "stats": [
-          ["120+", "Partner companies"],
-          ["340+", "Active interns"],
-          ["95%", "Satisfaction rate"]
+          [
+            "120+",
+            "Partner companies"
+          ],
+          [
+            "340+",
+            "Active interns"
+          ],
+          [
+            "95%",
+            "Satisfaction rate"
+          ]
         ]
       },
       "howItWorks": {
@@ -507,7 +537,10 @@
           "label": "Become an InternIn partner",
           "href": "/inscription/universite"
         },
-        "secondaryCta": { "label": "Request a demo", "href": "#" },
+        "secondaryCta": {
+          "label": "Request a demo",
+          "href": "#"
+        },
         "floatCards": [
           {
             "icon": "users",
@@ -521,9 +554,18 @@
           }
         ],
         "stats": [
-          ["18", "Partner universities"],
-          ["560+", "Students placed"],
-          ["340+", "Active internships"]
+          [
+            "18",
+            "Partner universities"
+          ],
+          [
+            "560+",
+            "Students placed"
+          ],
+          [
+            "340+",
+            "Active internships"
+          ]
         ]
       },
       "howItWorks": {
@@ -646,7 +688,10 @@
           "label": "Create a free account",
           "href": "/inscription"
         },
-        "secondaryCta": { "label": "Contact us", "href": "#" },
+        "secondaryCta": {
+          "label": "Contact us",
+          "href": "#"
+        },
         "floatCards": [],
         "stats": []
       },
@@ -654,10 +699,22 @@
         "eyebrow": "About InternIn",
         "title": "Training future-ready professionals across Africa",
         "tiles": [
-          ["12", "Internship cycle stages"],
-          ["4", "Connected communities"],
-          ["100%", "Free for interns"],
-          ["AI", "Personalized coaching"]
+          [
+            "12",
+            "Internship cycle stages"
+          ],
+          [
+            "4",
+            "Connected communities"
+          ],
+          [
+            "100%",
+            "Free for interns"
+          ],
+          [
+            "AI",
+            "Personalized coaching"
+          ]
         ],
         "paragraphs": [
           "InternIn was created to close the gap between education and employment. Too many students graduate without hands-on experience, while companies struggle to identify and develop emerging talent.",
@@ -724,8 +781,16 @@
           "Software Engineering",
           "Web & mobile development"
         ],
-        ["/images/Marketing.jpg", "Marketing", "Campaigns & social media"],
-        ["/images/finance.jpg", "Finance", "Analysis & reporting"],
+        [
+          "/images/Marketing.jpg",
+          "Marketing",
+          "Campaigns & social media"
+        ],
+        [
+          "/images/finance.jpg",
+          "Finance",
+          "Analysis & reporting"
+        ],
         [
           "/images/UI-UXdesigner.png",
           "UI/UX Design",
@@ -758,9 +823,18 @@
       "title": "Launch your career through internships that matter.",
       "description": "Join a community of students, companies, and universities building tomorrow's employability.",
       "stats": [
-        ["120+", "Verified companies"],
-        ["340+", "Active internships"],
-        ["560+", "Students placed"]
+        [
+          "120+",
+          "Verified companies"
+        ],
+        [
+          "340+",
+          "Active internships"
+        ],
+        [
+          "560+",
+          "Students placed"
+        ]
       ],
       "quote": "Thanks to the weekly follow-ups and the AI Coach, I finished my internship with a certificate and a recommendation that made a real difference on my resume.",
       "quoteName": "Amara K.",
@@ -962,7 +1036,15 @@
       "yearLabel": "Year {n}"
     },
     "calendar": {
-      "weekDays": ["M", "T", "W", "T", "F", "S", "S"],
+      "weekDays": [
+        "M",
+        "T",
+        "W",
+        "T",
+        "F",
+        "S",
+        "S"
+      ],
       "interview": "Interview"
     },
     "loading": "Loading your profile...",
@@ -1315,15 +1397,12 @@
   "interviews": {
     "pageTitle": "My interviews",
     "pageSubtitle": "Manage and track your upcoming internship appointments",
-
     "error": "Unable to load your interviews.",
-
     "stats": {
       "upcoming": "Upcoming",
       "today": "Today",
       "completed": "Completed"
     },
-
     "filters": {
       "searchPlaceholder": "Search for a company or offer...",
       "upcoming": "Upcoming",
@@ -1334,14 +1413,12 @@
       "noResult": "No interviews match this filter.",
       "showAll": "Show all interviews"
     },
-
     "views": {
       "all": "All my interviews",
       "cards": "Cards",
       "agenda": "Agenda",
       "calendar": "Calendar"
     },
-
     "empty": {
       "title": "No interviews scheduled",
       "withApplications": "You have ongoing applications, but no interview has been scheduled yet.",
@@ -1349,18 +1426,15 @@
       "viewApplications": "View my applications",
       "exploreApplications": "Explore my applications"
     },
-
     "next": {
       "title": "Next interview",
       "details": "View details",
       "join": "Join"
     },
-
     "history": {
       "title": "Previous interviews",
       "viewAll": "View full history ({n})"
     },
-
     "status": {
       "pendingResponse": "Waiting for your response",
       "pending": "Pending",
@@ -1374,24 +1448,20 @@
       "absenceNoted": "Absence noted",
       "absence": "Absent"
     },
-
     "modes": {
       "video": "Video conference",
       "phone": "Phone",
       "phoneCall": "Phone call",
       "onsite": "On-site"
     },
-
     "relative": {
       "today": "Today",
       "tomorrow": "Tomorrow"
     },
-
     "countdown": {
       "minutes": "Starts in {n} min",
       "hoursMinutes": "Starts in {hours}h {minutes}min"
     },
-
     "card": {
       "interviewer": "Interviewer",
       "preparationNotes": "Preparation notes",
@@ -1413,7 +1483,6 @@
       "sendProposal": "Send proposal",
       "cancelledReason": "Interview cancelled"
     },
-
     "drawer": {
       "title": "Interview details",
       "close": "Close",
@@ -1432,7 +1501,6 @@
       "join": "Join interview",
       "cancelled": "Interview cancelled"
     },
-
     "calendar": {
       "previousMonth": "Previous month",
       "nextMonth": "Next month",

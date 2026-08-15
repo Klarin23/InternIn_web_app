@@ -112,6 +112,7 @@ export default function OffresPage() {
       <AppHeader
         title={t("offersPage.header.title")}
         subtitle={t("offersPage.header.subtitle")}
+        refreshKeys={["offres", "mesCandidatures"]}
       />
       <div className="px-6 py-6">
         <OffresFiltres

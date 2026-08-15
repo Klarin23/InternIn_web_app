@@ -4,7 +4,10 @@ import AppHeader from "@/components/layout/AppHeader";
 export default function RapportsPage() {
   return (
     <>
-      <AppHeader title="Rapports" />
+      <AppHeader
+        title="Rapports"
+        subtitle="Générez et exportez vos rapports de stages"
+      />
       <div className="flex flex-col items-center justify-center gap-2 px-6 py-24 text-center">
         <FiClipboard className="h-8 w-8 text-muted-foreground" />
         <p className="text-sm font-medium text-foreground">Rapports à venir</p>

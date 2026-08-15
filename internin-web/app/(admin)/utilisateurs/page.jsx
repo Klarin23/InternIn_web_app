@@ -191,6 +191,7 @@ export default function UtilisateursPage() {
         subtitle="Comptes étudiants, entreprises et coordinateurs"
         searchValue={recherche}
         onSearchChange={setRecherche}
+        refreshKeys={["tousUtilisateurs", "adminStats"]}
       />
 
       <div className="px-6 py-6">

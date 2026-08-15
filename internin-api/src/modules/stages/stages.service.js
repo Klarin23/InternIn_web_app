@@ -15,6 +15,10 @@ import {
   candidatures,
   offresStage,
   journalStage,
+  objectifsStage,
+  tachesStage,
+  competencesAcquisesStage,
+  competences,
 } from "../../db/schema.js";
 import { genererCertificatPdf } from "../../utils/certificatPdf.js";
 import { randomBytes } from "node:crypto";
@@ -27,21 +31,154 @@ export async function getMonStage(idUtilisateurStagiaire) {
     .where(eq(stagiaires.idUtilisateur, idUtilisateurStagiaire));
   if (!stagiaire) return null;
 
-  const [stage] = await db
+  const [stageRow] = await db
     .select({
       idStage: stages.idStage,
+      idEntreprise: stages.idEntreprise,
+      idContactSuperviseur: stages.idContactSuperviseur,
+      idConvention: stages.idConvention,
       objectifsApprentissage: stages.objectifsApprentissage,
       dateDebut: stages.dateDebut,
       dateFinPrevue: stages.dateFinPrevue,
       dateFinReelle: stages.dateFinReelle,
       statut: stages.statut,
+      progressionPourcentage: stages.progressionPourcentage,
       nomEntreprise: entreprises.nomEntreprise,
+      logoUrl: entreprises.logoUrl,
+      secteurActivite: entreprises.secteurActivite,
+      ville: entreprises.ville,
+      pays: entreprises.pays,
+      adresse: entreprises.adresse,
     })
     .from(stages)
     .innerJoin(entreprises, eq(stages.idEntreprise, entreprises.idEntreprise))
     .where(eq(stages.idStagiaire, stagiaire.idStagiaire));
 
-  return stage || null;
+  if (!stageRow) return null;
+
+  let superviseur = null;
+  if (stageRow.idContactSuperviseur) {
+    const [contact] = await db
+      .select({
+        nom: contactsEntreprise.nom,
+        fonction: contactsEntreprise.fonction,
+        email: contactsEntreprise.email,
+      })
+      .from(contactsEntreprise)
+      .where(eq(contactsEntreprise.idContact, stageRow.idContactSuperviseur));
+    superviseur = contact || null;
+  }
+
+  let titrePoste = null;
+  let modeTravail = null;
+  if (stageRow.idConvention) {
+    const [offreInfo] = await db
+      .select({
+        intitulePoste: offresFinales.intitulePoste,
+        modeTravail: offresFinales.modeTravail,
+      })
+      .from(conventionsStage)
+      .innerJoin(
+        offresFinales,
+        eq(conventionsStage.idOffreFinale, offresFinales.idOffreFinale),
+      )
+      .where(eq(conventionsStage.idConvention, stageRow.idConvention));
+    if (offreInfo) {
+      titrePoste = offreInfo.intitulePoste;
+      modeTravail = offreInfo.modeTravail;
+    }
+  }
+
+  const [objectifs, taches, competencesAcquises] = await Promise.all([
+    db
+      .select()
+      .from(objectifsStage)
+      .where(eq(objectifsStage.idStage, stageRow.idStage))
+      .orderBy(desc(objectifsStage.dateCreation)),
+    db
+      .select()
+      .from(tachesStage)
+      .where(eq(tachesStage.idStage, stageRow.idStage))
+      .orderBy(desc(tachesStage.dateCreation)),
+    db
+      .select({
+        idAcquisition: competencesAcquisesStage.idAcquisition,
+        idCompetence: competencesAcquisesStage.idCompetence,
+        dateAcquisition: competencesAcquisesStage.dateAcquisition,
+        nomCompetence: competences.nom,
+        typeCompetence: competences.typeCompetence,
+      })
+      .from(competencesAcquisesStage)
+      .innerJoin(
+        competences,
+        eq(competences.idCompetence, competencesAcquisesStage.idCompetence),
+      )
+      .where(eq(competencesAcquisesStage.idStage, stageRow.idStage))
+      .orderBy(desc(competencesAcquisesStage.dateAcquisition)),
+  ]);
+
+  const debut = new Date(stageRow.dateDebut);
+  const fin = new Date(stageRow.dateFinPrevue);
+  const now = new Date();
+  let progressionCalculee = 0;
+  if (stageRow.statut === "termine") {
+    progressionCalculee = 100;
+  } else if (now < debut) {
+    progressionCalculee = 0;
+  } else {
+    const dureeMs = fin - debut;
+    if (dureeMs > 0) {
+      progressionCalculee = Math.min(
+        100,
+        Math.max(0, Math.round(((now - debut) / dureeMs) * 100)),
+      );
+    }
+  }
+
+  const joursEcoules =
+    now < debut
+      ? 0
+      : Math.max(
+          0,
+          Math.floor((Math.min(now, fin) - debut) / (1000 * 60 * 60 * 24)),
+        );
+  const joursRestants =
+    now > fin || stageRow.statut === "termine"
+      ? 0
+      : Math.max(0, Math.ceil((fin - now) / (1000 * 60 * 60 * 24)));
+  const dureeTotaleJours = Math.max(
+    1,
+    Math.ceil((fin - debut) / (1000 * 60 * 60 * 24)),
+  );
+
+  return {
+    idStage: stageRow.idStage,
+    objectifsApprentissage: stageRow.objectifsApprentissage,
+    dateDebut: stageRow.dateDebut,
+    dateFinPrevue: stageRow.dateFinPrevue,
+    dateFinReelle: stageRow.dateFinReelle,
+    statut: stageRow.statut,
+    progressionPourcentage: stageRow.progressionPourcentage,
+    progressionCalculee,
+    joursEcoules,
+    joursRestants,
+    dureeTotaleJours,
+    titrePoste: titrePoste || "Stage",
+    modeTravail: modeTravail || null,
+    entreprise: {
+      nomEntreprise: stageRow.nomEntreprise,
+      logoUrl: stageRow.logoUrl,
+      secteurActivite: stageRow.secteurActivite,
+      ville: stageRow.ville,
+      pays: stageRow.pays,
+      adresse: stageRow.adresse,
+    },
+    nomEntreprise: stageRow.nomEntreprise,
+    superviseur,
+    objectifs,
+    taches,
+    competencesAcquises,
+  };
 }
 
 export async function listMesStages(idUtilisateurEntreprise) {

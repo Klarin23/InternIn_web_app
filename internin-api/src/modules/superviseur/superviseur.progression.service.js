@@ -10,17 +10,16 @@ import {
   journalStage,
 } from "../../db/schema.js";
 import {
-  getSuperviseurOrThrow,
-  getAffectationOrThrow,
+  resolveSupervisionAccess,
+  assertStageAccess,
 } from "./superviseur.service.js";
 
-// Vérifie l'accès (rôle + affectation) et renvoie le membre — appelé au
-// début de chaque fonction de ce fichier pour garder la même garantie de
-// sécurité que le reste du module superviseur.
+// Vérifie l'accès (superviseur affecté OU entreprise propriétaire du stage)
+// et renvoie le contexte — même garantie de sécurité pour les deux rôles.
 async function verifierAcces(idUtilisateur, idStage) {
-  const membre = await getSuperviseurOrThrow(idUtilisateur);
-  await getAffectationOrThrow(membre.idMembre, idStage);
-  return membre;
+  const access = await resolveSupervisionAccess(idUtilisateur);
+  await assertStageAccess(access, idStage);
+  return access;
 }
 
 // -----------------------------------------------------------------------

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSupervisionContext } from "@/lib/supervision/SupervisionContext";
 import { FiArrowLeft, FiMail, FiPhone } from "react-icons/fi";
 
 const STATUT_LABELS = {
@@ -16,13 +17,14 @@ const STATUT_COLORS = {
 };
 
 export default function DetailStagiaireHeader({ stagiaire, stage }) {
+  const { basePath } = useSupervisionContext();
   const initiales =
     `${stagiaire.prenom?.charAt(0) || ""}${stagiaire.nom?.charAt(0) || ""}`.toUpperCase();
 
   return (
     <div>
       <Link
-        href="/mes-stagiaires"
+        href={basePath}
         className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
       >
         <FiArrowLeft className="h-4 w-4" />

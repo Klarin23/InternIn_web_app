@@ -1,5 +1,7 @@
 "use client";
 
+import { useSupervisionContext } from "@/lib/supervision/SupervisionContext";
+
 import { use } from "react";
 import { FiLoader } from "react-icons/fi";
 import AppHeader from "@/components/layout/AppHeader";
@@ -11,6 +13,7 @@ import {
 } from "@/lib/queries/useSuperviseur";
 
 export default function JournalStagiairePage({ params }) {
+  const { basePath } = useSupervisionContext();
   const { idStage } = use(params);
   const { data: detail } = useDetailStagiaire(idStage);
   const { data: entrees, isLoading, error } = useJournalSuperviseur(idStage);
@@ -36,7 +39,7 @@ export default function JournalStagiairePage({ params }) {
     <>
       <AppHeader
         breadcrumb={[
-          { label: "Mes stagiaires", href: "/mes-stagiaires" },
+          { label: "Mes stagiaires", href: basePath },
           {
             label: detail
               ? `${detail.stagiaire.prenom} ${detail.stagiaire.nom}`

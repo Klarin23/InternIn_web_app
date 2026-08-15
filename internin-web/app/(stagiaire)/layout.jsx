@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import AppSidebar from "@/components/layout/AppSidebar";
@@ -8,6 +8,7 @@ import PullToRefresh from "@/components/layout/PullToRefresh";
 import InactiveAccountGate from "@/components/features/account/InactiveAccountGate";
 
 import { useAuthStore } from "@/lib/store/useAuthStore";
+import { useAuthReady } from "@/lib/auth/useAuthReady";
 import { useStagiaireNavItems } from "@/lib/navigation/useNavItems";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
@@ -22,14 +23,7 @@ export default function StagiaireLayout({ children }) {
 
   // Attendre la rehydration localStorage (internin-auth) avant de juger la session
   // Hydratation Zustand sans setState dans un useEffect (compatible React 19)
-  const hydrated = useSyncExternalStore(
-    (onStoreChange) => {
-      const unsub = useAuthStore.persist.onFinishHydration(onStoreChange);
-      return unsub;
-    },
-    () => useAuthStore.persist.hasHydrated(),
-    () => false,
-  );
+  const hydrated = useAuthReady();
 
   useEffect(() => {
     if (!hydrated) return;
