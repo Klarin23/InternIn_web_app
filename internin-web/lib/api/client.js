@@ -18,12 +18,15 @@ async function tryRefreshAccessToken() {
       const { refreshTokenRequest } = await import("@/lib/api/auth");
 
       // Le refresh token est lu côté serveur depuis le cookie HttpOnly.
-      // On n'envoie plus le token dans le body.
       const data = await refreshTokenRequest();
       const newToken = data.token || data.accessToken;
       if (!newToken) return null;
 
-      useAuthStore.getState().setAccessToken(newToken);
+      if (data.user) {
+        useAuthStore.getState().setSession(data.user, newToken);
+      } else {
+        useAuthStore.getState().setAccessToken(newToken);
+      }
       return newToken;
     } catch {
       return null;
@@ -49,12 +52,14 @@ export async function apiFetch(
     credentials: "include", // indispensable pour envoyer le cookie refresh HttpOnly
   });
 
-  // Token expiré → tenter un refresh une seule fois (sauf sur la route refresh elle-même)
+  // 401 → tenter un refresh une seule fois (même sans token en mémoire :
+  // le cookie HttpOnly peut encore être valide après un reload)
   if (
     response.status === 401 &&
-    token &&
     !_retried &&
-    !path.includes("/auth/refresh")
+    !path.includes("/auth/refresh") &&
+    !path.includes("/auth/login") &&
+    !path.includes("/auth/register")
   ) {
     const newToken = await tryRefreshAccessToken();
     if (newToken) {

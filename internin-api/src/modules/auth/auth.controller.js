@@ -12,20 +12,37 @@ import {
 
 /**
  * Options du cookie refresh token.
- * sameSite: "lax" (et non "strict") est obligatoire pour que le cookie
- * soit renvoyé lors des appels cross-origin frontend → API
- * (ex: localhost:3000 → localhost:4000) au rechargement de page.
- * "strict" empêchait le navigateur d'envoyer le cookie au refresh,
- * d'où la déconnexion automatique.
+ *
+ * PRODUCTION (frontend et API souvent sur des domaines différents) :
+ *   sameSite: "none" + secure: true  → le navigateur envoie le cookie
+ *   lors des requêtes cross-site (indispensable pour /auth/refresh).
+ *
+ * DÉVELOPPEMENT (localhost) :
+ *   sameSite: "lax" + secure: false → fonctionne en HTTP local.
+ *
+ * Avec sameSite: "lax" ou "strict" en prod cross-domaine, le cookie
+ * n'est JAMAIS envoyé → chaque clic qui déclenche une API 401
+ * provoque une déconnexion.
  */
 function refreshCookieOptions() {
+  const isProd = process.env.NODE_ENV === "production";
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: isProd, // obligatoire si sameSite=none
+    sameSite: isProd ? "none" : "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
     path: "/",
   };
+}
+
+function clearRefreshCookie(res) {
+  const isProd = process.env.NODE_ENV === "production";
+  res.clearCookie("internin_refresh", {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+    path: "/",
+  });
 }
 
 export async function register(req, res, next) {
@@ -65,20 +82,12 @@ export async function refreshController(req, res, next) {
 
     const result = await refreshAccessToken(refreshToken, req);
 
-    // Rotation : poser le NOUVEAU refresh token en cookie
     res.cookie("internin_refresh", result.refreshToken, refreshCookieOptions());
 
     const { refreshToken: _, ...safeResult } = result;
     res.status(200).json(safeResult);
   } catch (err) {
-    // En cas d'échec (token déjà rotaté / expiré), on nettoie le cookie
-    // pour éviter des boucles de refresh invalides.
-    res.clearCookie("internin_refresh", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-    });
+    clearRefreshCookie(res);
     next(err);
   }
 }
@@ -89,12 +98,7 @@ export async function logoutController(req, res, next) {
 
     await logoutUser(refreshToken);
 
-    res.clearCookie("internin_refresh", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-    });
+    clearRefreshCookie(res);
 
     res.status(200).json({ message: "Déconnecté avec succès" });
   } catch (err) {
@@ -108,9 +112,6 @@ export async function me(req, res) {
   });
 }
 
-/**
- * GET /auth/verifier-email?token=...
- */
 export async function verifyEmailController(req, res, next) {
   try {
     const result = await verifyEmail(req.query.token);
@@ -124,11 +125,6 @@ export async function verifyEmailController(req, res, next) {
   }
 }
 
-/**
- * POST /auth/renvoyer-verification
- *
- * Cette route nécessite une session.
- */
 export async function resendEmailVerificationController(req, res, next) {
   try {
     const result = await resendEmailVerification(req.user.idUtilisateur);
@@ -139,11 +135,6 @@ export async function resendEmailVerificationController(req, res, next) {
   }
 }
 
-/**
- * POST /auth/mot-de-passe-oublie
- *
- * Route publique : envoie un lien de réinitialisation si l'adresse existe.
- */
 export async function forgotPasswordController(req, res, next) {
   try {
     const result = await requestPasswordReset(req.body.email);
@@ -154,12 +145,6 @@ export async function forgotPasswordController(req, res, next) {
   }
 }
 
-/**
- * POST /auth/reinitialiser-mot-de-passe
- *
- * Route publique : consomme le token reçu par e-mail
- * et enregistre le nouveau mot de passe.
- */
 export async function resetPasswordController(req, res, next) {
   try {
     const result = await resetPassword(req.body.token, req.body.password);
