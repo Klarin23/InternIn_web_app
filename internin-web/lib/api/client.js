@@ -1,22 +1,8 @@
-// Client HTTP unique pour toute l'application. Centralise :
-// - l'URL de base de l'API
-// - l'ajout automatique du token JWT (depuis le store si non fourni)
-// - le refresh automatique du token en cas de 401 (via cookie HttpOnly)
-// - la gestion d'erreurs uniforme
-//
-// IMPORTANT : ne JAMAIS appeler clearSession sur un 403 (compte inactif,
-// rôle insuffisant, entreprise non vérifiée, etc.). Uniquement après
-// échec réel du refresh d'authentification.
-
-// En production, on passe par le proxy Next.js (/api/* → rewrite vers
-// Railway, voir next.config.mjs) pour que le cookie internin_refresh soit
-// vu comme first-party par le navigateur. En dev local, on peut continuer
-// à appeler l'API directement si NEXT_PUBLIC_API_URL est défini.
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
+// Client HTTP unique pour toute l'application.
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 let refreshPromise = null;
 
-/** Récupère le token en mémoire (Zustand), sans le persister. */
 async function getStoreToken() {
   try {
     const { useAuthStore } = await import("@/lib/store/useAuthStore");
@@ -44,7 +30,17 @@ async function tryRefreshAccessToken() {
         useAuthStore.getState().setAccessToken(newToken);
       }
       return newToken;
-    } catch {
+    } catch (err) {
+      // Uniquement si le serveur dit "session morte" (401/403 sur /refresh)
+      // on déconnecte. Une erreur réseau ne doit PAS vider la session.
+      if (err?.status === 401 || err?.status === 403) {
+        try {
+          const { useAuthStore } = await import("@/lib/store/useAuthStore");
+          useAuthStore.getState().clearSession();
+        } catch {
+          /* ignore */
+        }
+      }
       return null;
     } finally {
       refreshPromise = null;
@@ -58,8 +54,6 @@ export async function apiFetch(
   path,
   { method = "GET", body, token, _retried = false } = {},
 ) {
-  // Si l'appelant n'a pas passé le token, on le prend dans le store.
-  // Évite les déconnexions quand un bouton oublie de transmettre `token`.
   const resolvedToken = token || (await getStoreToken());
 
   const headers = { "Content-Type": "application/json" };
@@ -74,7 +68,6 @@ export async function apiFetch(
     credentials: "include",
   });
 
-  // 401 → tenter un refresh une seule fois (cookie HttpOnly)
   const isAuthRoute =
     path.includes("/auth/refresh") ||
     path.includes("/auth/login") ||
@@ -91,14 +84,9 @@ export async function apiFetch(
         _retried: true,
       });
     }
-
-    // Refresh impossible → vraie fin de session
-    try {
-      const { useAuthStore } = await import("@/lib/store/useAuthStore");
-      useAuthStore.getState().clearSession();
-    } catch {
-      // ignore
-    }
+    // Ne PAS clearSession ici : déjà géré dans tryRefreshAccessToken
+    // si le refresh a vraiment répondu 401. Évite de déconnecter sur
+    // un simple endpoint métier qui renvoie 401 à tort.
   }
 
   const data = await response.json().catch(() => ({}));
