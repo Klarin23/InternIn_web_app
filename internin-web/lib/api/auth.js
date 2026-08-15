@@ -86,7 +86,7 @@ export async function googleAuthRequest({
   accessToken,
   typeUtilisateur,
 }) {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
   const response = await fetch(`${API_URL}/auth/google`, {
     method: "POST",

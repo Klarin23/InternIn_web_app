@@ -31,22 +31,14 @@ export default function DashboardRouter() {
   const { t } = useTranslation();
   const stagiaireNavItems = useStagiaireNavItems();
   const entrepriseNavItems = useEntrepriseNavItems();
-  const { data: entrepriseProfile } = useEntrepriseProfile(
-    user?.typeUtilisateur === "entreprise",
-  );
+  const { data: entrepriseProfile } = useEntrepriseProfile();
   const adminNavItems = useAdminNavItems();
-  const { data: adminProfile } = useAdminProfile(
-    user?.typeUtilisateur === "administrateur",
-  );
+  const { data: adminProfile } = useAdminProfile();
   const roleAdminLabels = useRoleAdminLabels();
   const universiteNavItems = useUniversiteNavItems();
-  const { data: universiteProfile } = useUniversiteProfile(
-    user?.typeUtilisateur === "universite",
-  );
+  const { data: universiteProfile } = useUniversiteProfile();
   const superviseurNavItems = useSuperviseurNavItems();
-  const { data: membreProfile } = useMonProfilEquipe(
-    user?.typeUtilisateur === "membre_entreprise",
-  );
+  const { data: membreProfile } = useMonProfilEquipe();
 
   useEffect(() => {
     if (!token || !user) {

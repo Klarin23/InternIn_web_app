@@ -12,7 +12,7 @@ export function getEntrepriseProfileRequest(token) {
   return apiFetch("/entreprises/me", { token });
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 export function updateEntrepriseProfileRequest(payload, token) {
   return apiFetch("/entreprises/me", {

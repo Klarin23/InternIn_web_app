@@ -41,10 +41,8 @@ export default function RoleAppShell({ children }) {
   const { data: membreProfile } = useMonProfilEquipe();
 
   useEffect(() => {
-    // Ne déconnecter que s'il n'y a plus d'utilisateur (session morte).
-    // L'absence temporaire de token access ne doit pas forcer la reconnexion.
-    if (!user) router.replace("/connexion");
-  }, [user, router]);
+    if (!token || !user) router.replace("/connexion");
+  }, [token, user, router]);
 
   if (!user) {
     return (

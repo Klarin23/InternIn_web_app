@@ -63,31 +63,22 @@ app.use(
 );
 app.use(globalLimiter);
 // CORS strict : uniquement le frontend autorisé
-// Origines frontend autorisées (séparées par des virgules si plusieurs)
-// Ex: FRONTEND_URL=https://www.internin.com
-//     FRONTEND_URLS=https://www.internin.com,https://internin.com,https://internin.vercel.app
-const allowedOrigins = [
-  process.env.FRONTEND_URL || "http://localhost:3000",
-  ...(process.env.FRONTEND_URLS || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean),
-].filter(Boolean);
+const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:3000";
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Requêtes sans Origin (Postman, health checks serveur) : OK en dev
+      // Autoriser les requêtes sans origin (Postman, scripts serveur…) en dev uniquement
       if (!origin && process.env.NODE_ENV !== "production") {
         return callback(null, true);
       }
-      if (origin && allowedOrigins.includes(origin)) {
+      if (origin === allowedOrigin) {
         return callback(null, true);
       }
-      // Refus propre (pas d'Error → évite une 500 qui casse le preflight)
+      // Refus propre (pas d'Error → évite une 500)
       return callback(null, false);
     },
-    credentials: true, // indispensable pour les cookies cross-origin
+    credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),

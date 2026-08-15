@@ -5,12 +5,12 @@ import {
 } from "@/lib/api/universites";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 
-export function useUniversiteProfile(enabled = true) {
+export function useUniversiteProfile() {
   const token = useAuthStore((state) => state.token);
   return useQuery({
     queryKey: ["universiteProfile"],
     queryFn: () => getUniversiteProfileRequest(token),
-    enabled: !!token && enabled,
+    enabled: !!token,
   });
 }
 

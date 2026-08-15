@@ -36,7 +36,7 @@ const MIME_VERS_EXTENSIONS = {
   "image/png": [".png"],
   "image/jpeg": [".jpeg", ".jpg"],
   "image/webp": [".webp"],
-};
+}
 
 // Crée le dossier de destination s'il n'existe pas encore
 function ensureDir(dir) {
@@ -80,7 +80,7 @@ function fileFilter(req, file, cb) {
   const extensionsAttendues = MIME_VERS_EXTENSIONS[file.mimetype];
   if (!extensionsAttendues) {
     const err = new Error(
-      "Format de fichier non autorisé (PDF, PNG, JPEG ou WEBP uniquement)",
+      "Format de fichier non autorisé (PDF, PNG ou JPEG uniquement",
     );
     err.status = 400;
     return cb(err);

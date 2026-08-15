@@ -1,19 +1,19 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { setCookie, deleteCookie } from "@/lib/utils/cookies";
 
 /**
  * Store d'authentification.
  *
- * Access token  → mémoire JavaScript uniquement (JAMAIS localStorage/cookie JS).
- * Refresh token → cookie HttpOnly géré exclusivement par l'API.
+ * Access token  → mémoire JS (+ cookie non-HttpOnly legacy pour SSR/navigation)
+ * Refresh token → cookie HttpOnly uniquement (géré par le backend)
  *
- * Le store persiste uniquement les informations non secrètes de l'utilisateur.
- * Après un rechargement, useAuthReady() récupère un nouvel access token via
- * /auth/refresh en utilisant le cookie HttpOnly.
+ * Le refresh token n'est JAMAIS stocké dans localStorage / sessionStorage /
+ * Zustand persisté.
  */
 export const useAuthStore = create(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       token: null,
       _hasHydrated: false,
@@ -21,7 +21,11 @@ export const useAuthStore = create(
       setHasHydrated: (value) => set({ _hasHydrated: !!value }),
 
       setSession: (user, token) => {
-        set({ user, token: token || null });
+        if (token) setCookie("internin_token", token);
+        set({
+          user,
+          token,
+        });
       },
 
       updateUser: (partial) => {
@@ -31,11 +35,13 @@ export const useAuthStore = create(
       },
 
       clearSession: () => {
+        deleteCookie("internin_token");
         set({ user: null, token: null });
       },
 
       setAccessToken: (token) => {
-        set({ token: token || null });
+        if (token) setCookie("internin_token", token);
+        set({ token });
       },
     }),
     {
@@ -50,9 +56,10 @@ export const useAuthStore = create(
         }
         return localStorage;
       }),
-      // IMPORTANT : aucun secret ne doit être persisté.
+      // Ne jamais persister le refresh token
       partialize: (state) => ({
         user: state.user,
+        token: state.token,
       }),
       onRehydrateStorage: () => (_state, error) => {
         if (error) {
