@@ -2,6 +2,26 @@
 const nextConfig = {
   reactCompiler: true,
 
+  // Proxy toutes les requêtes /api/* vers l'API Railway.
+  // Le navigateur ne voit alors qu'une seule origine (celle du frontend),
+  // donc le cookie internin_refresh devient un cookie DE PREMIÈRE PARTIE
+  // (first-party) au lieu d'un cookie tiers (third-party) — ce qui évite
+  // les blocages de Safari ITP / Firefox ETP / profils Chrome restrictifs,
+  // même si le cookie a déjà été configuré correctement en
+  // SameSite=None; Secure côté API.
+  //
+  // BACKEND_URL est une variable serveur (PAS NEXT_PUBLIC_*) : elle n'est
+  // jamais exposée au navigateur, la résolution se fait côté serveur Vercel.
+  async rewrites() {
+    const backendUrl = process.env.BACKEND_URL || "http://localhost:4000";
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${backendUrl}/:path*`,
+      },
+    ];
+  },
+
   async headers() {
     return [
       {

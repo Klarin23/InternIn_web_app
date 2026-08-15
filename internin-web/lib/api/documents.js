@@ -1,7 +1,7 @@
 // Upload de fichiers : cas particulier du client API, car il envoie du
 // FormData (pas du JSON) — on ne réutilise donc pas apiFetch ici.
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 async function resolveToken(token) {
   if (token) return token;

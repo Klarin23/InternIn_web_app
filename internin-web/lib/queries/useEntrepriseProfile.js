@@ -6,12 +6,12 @@ import {
 } from "@/lib/api/entreprises";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 
-export function useEntrepriseProfile() {
+export function useEntrepriseProfile(enabled = true) {
   const token = useAuthStore((state) => state.token);
   return useQuery({
     queryKey: ["entrepriseProfile"],
     queryFn: () => getEntrepriseProfileRequest(token),
-    enabled: !!token,
+    enabled: !!token && enabled,
   });
 }
 

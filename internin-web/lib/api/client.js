@@ -8,7 +8,11 @@
 // rôle insuffisant, entreprise non vérifiée, etc.). Uniquement après
 // échec réel du refresh d'authentification.
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+// En production, on passe par le proxy Next.js (/api/* → rewrite vers
+// Railway, voir next.config.mjs) pour que le cookie internin_refresh soit
+// vu comme first-party par le navigateur. En dev local, on peut continuer
+// à appeler l'API directement si NEXT_PUBLIC_API_URL est défini.
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 let refreshPromise = null;
 

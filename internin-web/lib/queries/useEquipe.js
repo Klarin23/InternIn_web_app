@@ -172,11 +172,11 @@ export function useAccepterInvitation(token) {
 
 // Profil du membre d'équipe actuellement connecté (nom, rôle, entreprise) —
 // utilisé par la barre latérale de l'espace superviseur.
-export function useMonProfilEquipe() {
+export function useMonProfilEquipe(enabled = true) {
   const token = useAuthStore((state) => state.token);
   return useQuery({
     queryKey: ["monProfilEquipe"],
     queryFn: () => getMonProfilRequest(token),
-    enabled: !!token,
+    enabled: !!token && enabled,
   });
 }
