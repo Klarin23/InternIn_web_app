@@ -1,6 +1,9 @@
 import "dotenv/config";
 import app from "./app.js";
-import { startRealtimeListener, stopRealtimeListener } from "./utils/realtime.js";
+import {
+  startRealtimeListener,
+  stopRealtimeListener,
+} from "./utils/realtime.js";
 import { syncStagesStatuts } from "../script/sync-stages-statuts.js";
 
 // ============================================================
@@ -38,9 +41,7 @@ if (missing.length > 0) {
 // ============================================================
 
 if (process.env.JWT_SECRET.length < 32) {
-  console.error(
-    " JWT_SECRET trop court. Minimum recommandé : 32 caractères.",
-  );
+  console.error(" JWT_SECRET trop court. Minimum recommandé : 32 caractères.");
   process.exit(1);
 }
 
@@ -107,14 +108,21 @@ const server = app.listen(PORT, "0.0.0.0", async () => {
   try {
     await startRealtimeListener();
   } catch {
-    console.error("[realtime] démarrage sans listener distribué ; reconnexion automatique activée.");
+    console.error(
+      "[realtime] démarrage sans listener distribué ; reconnexion automatique activée.",
+    );
   }
 
   if (nodeEnv === "development") {
     // Première synchronisation immédiate, puis toutes les heures.
     void runDevStageSync();
-    devStageSyncTimer = setInterval(runDevStageSync, DEV_STAGE_SYNC_INTERVAL_MS);
-    console.log("[sync-stages:dev] scheduler local activé (toutes les heures).");
+    devStageSyncTimer = setInterval(
+      runDevStageSync,
+      DEV_STAGE_SYNC_INTERVAL_MS,
+    );
+    console.log(
+      "[sync-stages:dev] scheduler local activé (toutes les heures).",
+    );
   }
 });
 
