@@ -25,7 +25,10 @@ try {
 const expectedDatabaseByEnv = {
   test: "internin_test",
   development: "internin_dev",
-  production: "internin",
+  // En production, Neon peut utiliser "neondb" ou un autre nom.
+  // On garde "internin" comme valeur par défaut et permet une configuration
+  // explicite via EXPECTED_DATABASE_NAME.
+  production: process.env.EXPECTED_DATABASE_NAME?.trim() || "internin",
 };
 
 const expectedDatabase = expectedDatabaseByEnv[nodeEnv];

@@ -57,10 +57,13 @@ try {
   process.exit(1);
 }
 
+// Le nom de la base de production peut être configuré (ex. Neon utilise
+// souvent "neondb" par défaut). Les environnements development/test restent
+// strictement liés à leurs bases dédiées.
 const expectedDatabase = {
   development: "internin_dev",
   test: "internin_test",
-  production: "internin",
+  production: process.env.EXPECTED_DATABASE_NAME?.trim() || "internin",
 }[nodeEnv];
 
 if (databaseName !== expectedDatabase) {
