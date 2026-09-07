@@ -545,7 +545,7 @@ function NotificationsSection() {
 }
 
 function ApparenceSection() {
-  const { t } = ueTranslation();
+  const { t } = useTranslation();
   const theme = useThemeStore((s) => s.theme);
   const setTheme = useThemeStore((s) => s.setTheme);
 
