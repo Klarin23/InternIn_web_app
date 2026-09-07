@@ -30,12 +30,14 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ROLES_INVITABLES, ROLE_LABELS } from "./equipeConstants";
+import { ROLES_INVITABLES, roleLabel, permissionLabel } from "./equipeConstants";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useCatalogueEquipe, useInviterMembre } from "@/lib/queries/useEquipe";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function InviterMembreDialog() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
@@ -55,7 +57,7 @@ export default function InviterMembreDialog() {
   const emailValide = EMAIL_REGEX.test(email.trim());
   const emailErreur =
     emailTouched && email.trim() && !emailValide
-      ? "Veuillez saisir une adresse e-mail valide."
+      ? t("equipe.invite.emailInvalid")
       : null;
   const emailOk = emailTouched && emailValide;
 
@@ -127,7 +129,7 @@ export default function InviterMembreDialog() {
           className="h-10 gap-2 rounded-md transition hover:scale-[1.02] active:scale-[0.98]"
         >
           <FiUserPlus className="h-4 w-4" />
-          Inviter un membre
+          {t("equipe.invite.title")}
         </Button>
       </DialogTrigger>
 
@@ -151,10 +153,10 @@ export default function InviterMembreDialog() {
                 <FiCheck className="h-8 w-8 text-emerald-600" />
               </motion.div>
               <h3 className="text-lg font-bold text-foreground">
-                Invitation envoyée !
+                {t("equipe.invite.successTitle")}
               </h3>
               <p className="max-w-xs text-sm text-muted-foreground">
-                L&apos;invitation a été envoyée avec succès.
+                {t("equipe.invite.successHint")}
               </p>
             </motion.div>
           ) : (
@@ -172,10 +174,10 @@ export default function InviterMembreDialog() {
                   </div>
                   <div>
                     <DialogTitle className="text-base font-semibold">
-                      Inviter un membre
+                      {t("equipe.invite.title")}
                     </DialogTitle>
                     <DialogDescription className="mt-0.5 text-sm text-muted-foreground">
-                      Ajoutez un collaborateur à votre équipe InternIn.
+                      {t("equipe.invite.subtitle")}
                     </DialogDescription>
                   </div>
                 </div>
@@ -185,12 +187,12 @@ export default function InviterMembreDialog() {
                 {/* Formulaire */}
                 <div className="space-y-4 px-6 py-5">
                   <div className="space-y-1.5">
-                    <Label htmlFor="invite-nom">Nom complet</Label>
+                    <Label htmlFor="invite-nom">{t("equipe.invite.fullName")}</Label>
                     <div className="relative">
                       <FiUser className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="invite-nom"
-                        placeholder="Ex : Awa Koné"
+                        placeholder={t("equipe.invite.placeholderName")}
                         value={nom}
                         onChange={(e) => setNom(e.target.value)}
                         className="h-11 rounded-md pl-10"
@@ -201,14 +203,14 @@ export default function InviterMembreDialog() {
 
                   <div className="space-y-1.5">
                     <Label htmlFor="invite-email">
-                      Adresse e-mail professionnelle
+                      {t("equipe.invite.email")}
                     </Label>
                     <div className="relative">
                       <FiMail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="invite-email"
                         type="email"
-                        placeholder="awa.kone@entreprise.com"
+                        placeholder={t("equipe.invite.placeholderEmail")}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         onBlur={() => setEmailTouched(true)}
@@ -234,13 +236,13 @@ export default function InviterMembreDialog() {
                     )}
                     {emailOk && (
                       <p className="text-xs text-emerald-600">
-                        Adresse e-mail valide ✓
+                        {t("equipe.invite.emailValid")}
                       </p>
                     )}
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label>Rôle</Label>
+                    <Label>{t("equipe.invite.role")}</Label>
                     <Select value={roleEquipe} onValueChange={handleRoleChange}>
                       <SelectTrigger className="h-11 w-full rounded-md">
                         <SelectValue />
@@ -249,10 +251,10 @@ export default function InviterMembreDialog() {
                         {ROLES_INVITABLES.map((r) => (
                           <SelectItem key={r.value} value={r.value}>
                             <div className="flex flex-col py-0.5">
-                              <span>{r.label}</span>
+                              <span>{t(r.labelKey)}</span>
                               {r.description && (
                                 <span className="text-[11px] text-muted-foreground">
-                                  {r.description}
+                                  {t(r.descriptionKey)}
                                 </span>
                               )}
                             </div>
@@ -269,7 +271,7 @@ export default function InviterMembreDialog() {
 
                   {catalogue && (
                     <div className="space-y-2">
-                      <Label>Fonctionnalités accessibles</Label>
+                      <Label>{t("equipe.invite.features")}</Label>
                       <div className="space-y-2 rounded-md border border-border p-3">
                         {catalogue.permissions.map((p) => (
                           <label
@@ -280,7 +282,7 @@ export default function InviterMembreDialog() {
                               checked={permissionsEffectives.includes(p.cle)}
                               onCheckedChange={() => togglePermission(p.cle)}
                             />
-                            {p.label}
+                            {permissionLabel(t, p)}
                           </label>
                         ))}
                       </div>
@@ -309,10 +311,10 @@ export default function InviterMembreDialog() {
                     {mutation.isPending ? (
                       <>
                         <FiLoader className="h-4 w-4 animate-spin" />
-                        Envoi en cours...
+                        {t("equipe.invite.sending")}
                       </>
                     ) : (
-                      "Envoyer l'invitation"
+                      t("equipe.invite.send")
                     )}
                   </Button>
                 </div>
@@ -320,7 +322,7 @@ export default function InviterMembreDialog() {
                 {/* Aperçu (desktop) */}
                 <div className="hidden border-l border-border bg-muted/30 p-5 md:block">
                   <p className="mb-3 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                    Aperçu
+                    {t("equipe.invite.preview")}
                   </p>
                   <div className="rounded-md border border-border bg-card p-4 shadow-sm">
                     <div className="mb-3 flex items-center gap-2">
@@ -332,8 +334,7 @@ export default function InviterMembreDialog() {
                       </span>
                     </div>
                     <p className="text-xs leading-relaxed text-muted-foreground">
-                      Vous êtes invité à rejoindre l&apos;équipe de cette
-                      entreprise.
+                      {t("equipe.invite.previewInvite")}
                     </p>
                     <div className="mt-4 space-y-2 border-t border-border pt-3">
                       <div className="flex items-center gap-2 text-xs">
@@ -350,7 +351,7 @@ export default function InviterMembreDialog() {
                       </div>
                       <div className="mt-1">
                         <span className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
-                          {ROLE_LABELS[roleEquipe] || roleEquipe}
+                          {roleLabel(t, roleEquipe) || roleEquipe}
                         </span>
                       </div>
                     </div>

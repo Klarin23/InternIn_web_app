@@ -22,6 +22,14 @@ import {
   FiClipboard,
   FiBarChart2,
   FiUserCheck,
+  FiSend,
+  FiSearch,
+  FiHeart,
+  FiShield,
+  FiClock,
+  FiActivity,
+  FiMonitor,
+  FiBell,
 } from "react-icons/fi";
 import { Building2 } from "lucide-react";
 import { useMesOffres } from "@/lib/queries/useMesOffres";
@@ -30,19 +38,30 @@ import { useCandidaturesEntreprise } from "@/lib/queries/useCandidaturesEntrepri
 import { useEntretiensEntreprise } from "@/lib/queries/useEntretiens";
 import { useEntretiensEnAttente } from "@/lib/queries/useEntretiens";
 import { useAdminStats } from "@/lib/queries/useAdminStats";
+import { useSecurityOverview } from "@/lib/queries/useSecurityCentre";
+import { useNotificationsNonLuesCount } from "@/lib/queries/useNotifications";
+import { useAdminProfile } from "@/lib/queries/useAdminProfile";
+import { adminCanAccessHref } from "@/lib/admin/adminScopes";
 import { useInvitationsRecues } from "@/lib/queries/usePartenariats";
 import {
   useMesStagiaires,
   useEvaluationsSuperviseur,
 } from "@/lib/queries/useSuperviseur";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { useOffres } from "@/lib/queries/useOffres";
 import { useMesCandidatures } from "@/lib/queries/useMesCandidatures";
 import { useMesEntretiens } from "@/lib/queries/useEntretiens";
+import { compterEntretiensATraiterStagiaire } from "@/lib/entretiens/statut";
 import { useMonStage } from "@/lib/queries/useStages";
+import {
+  usePropositionsStagiaire,
+  countPropositionsEnAttente,
+} from "@/lib/queries/usePropositionsStagiaire";
+import { useFavorisCount } from "@/lib/queries/useFavoris";
+import { useMonProfilEquipe } from "@/lib/queries/useEquipe";
+import { useEtatVue, useMarkEtatVue } from "@/lib/queries/useEtatsVue";
 
 // Table des libellés de rôle admin. Reste un objet simple (clé métier ->
 // clé de traduction) ; utiliser useRoleAdminLabels() pour obtenir la version
@@ -66,39 +85,18 @@ export function useRoleAdminLabels() {
   );
 }
 
-function subscribeOffresSeen(onChange) {
-  if (typeof window === "undefined") return () => {};
-  const handler = () => onChange();
-  window.addEventListener("internin-offres-seen", handler);
-  window.addEventListener("storage", handler);
-  return () => {
-    window.removeEventListener("internin-offres-seen", handler);
-    window.removeEventListener("storage", handler);
-  };
-}
-
-function getOffresSeenSnapshot(storageKey) {
-  if (typeof window === "undefined" || !storageKey) return null;
-  return localStorage.getItem(storageKey);
-}
-
-/** À appeler quand l'étudiant ouvre la page Offres */
-export function markOffresAsSeen(userId) {
-  if (typeof window === "undefined" || !userId) return;
-  const key = `internin:lastSeenOffres:${userId}`;
-  localStorage.setItem(key, new Date().toISOString());
-  window.dispatchEvent(new Event("internin-offres-seen"));
-}
-
 export function useStagiaireNavItems() {
   const { t } = useTranslation();
   const pathname = usePathname();
   const userId = useAuthStore((s) => s.user?.idUtilisateur);
 
   const { data: offresData } = useOffres({});
+  const { data: etatOffres } = useEtatVue("offres", Boolean(userId));
   const { data: candidaturesData } = useMesCandidatures();
   const { data: entretiensData } = useMesEntretiens();
   const { data: monStageData } = useMonStage();
+  const { data: favorisCount } = useFavorisCount();
+  const { data: propositionsData } = usePropositionsStagiaire();
 
   const offres = Array.isArray(offresData)
     ? offresData
@@ -118,20 +116,14 @@ export function useStagiaireNavItems() {
       ? entretiensData.entretiens
       : [];
 
-  // --- Dot "nouvelles offres" (localStorage, par utilisateur) ---
-  const storageKey = userId ? `internin:lastSeenOffres:${userId}` : null;
-
-  const lastSeenOffres = useSyncExternalStore(
-    subscribeOffresSeen,
-    () => getOffresSeenSnapshot(storageKey),
-    () => null, // serveur
-  );
+  // --- Dot "nouvelles offres" : état serveur, par utilisateur ---
+  const lastSeenOffres = etatOffres?.dateDerniereVue || null;
 
   const hasNouvellesOffres = offres.some((o) => {
     if (!o.datePublication) return false;
-    // Jamais consulté le menu → signaler s'il existe au moins une offre publiée
+    // Jamais consulté la section → signaler s'il existe au moins une offre publiée.
     if (!lastSeenOffres) return true;
-    return new Date(o.datePublication) > new Date(lastSeenOffres);
+    return new Date(o.datePublication).getTime() > new Date(lastSeenOffres).getTime();
   });
 
   // --- Compteurs ---
@@ -140,6 +132,8 @@ export function useStagiaireNavItems() {
   ).length;
 
   const nbEntretiens = entretiens.length;
+  // Actions requises (ex. nouvelle date à confirmer après replanification)
+  const nbEntretiensATraiter = compterEntretiensATraiterStagiaire(entretiens);
 
   const monStage =
     monStageData?.stage || monStageData?.monStage || monStageData || null;
@@ -148,12 +142,19 @@ export function useStagiaireNavItems() {
     monStage.idStage &&
     !["termine", "annule", "refuse"].includes(monStage.statut);
 
+  const propositions = Array.isArray(propositionsData)
+    ? propositionsData
+    : Array.isArray(propositionsData?.data)
+      ? propositionsData.data
+      : [];
+  const nbPropositionsEnAttente = countPropositionsEnAttente(propositions);
+
   return [
     { href: "/tableau-de-bord", label: t("sidebar.dashboard"), icon: FiGrid },
     {
       href: "/offres",
       label: t("sidebar.internshipOffers"),
-      icon: FiBriefcase,
+      icon: FiSearch,
       // Point clignotant (NavLink gère déjà `dot` + `animate-blink`)
       dot: hasNouvellesOffres,
       dotColor: "#14b8a6",
@@ -165,18 +166,43 @@ export function useStagiaireNavItems() {
       badge: nbCandidaturesActives || undefined,
     },
     {
+      href: "/favoris",
+      label: t("sidebar.favorites"),
+      icon: FiHeart,
+      badge: favorisCount || undefined,
+    },
+    {
+      href: "/propositions-stage",
+      label: t("sidebar.propositions"),
+      icon: FiSend,
+      badge: nbPropositionsEnAttente || undefined,
+      badgePulseColor: nbPropositionsEnAttente > 0 ? "#14b8a6" : null,
+    },
+    {
       href: "/entretiens",
       label: t("sidebar.interviews"),
       icon: FiCalendar,
-      badge: nbEntretiens || undefined,
+      // Badge = entretiens nécessitant une action (planifie), pas le total
+      badge: nbEntretiensATraiter || undefined,
+      badgePulseColor: nbEntretiensATraiter > 0 ? "#F59E0B" : null,
+    },
+    {
+      href: "/convention",
+      label: t("sidebar.convention"),
+      icon: FiFileText,
     },
     {
       href: "/stage",
       label: t("sidebar.myInternship"),
-      icon: FiBriefcase,
+      icon: FiClipboard,
       badge: hasStageActif ? 1 : undefined,
     },
     { href: "/certificats", label: t("sidebar.certificates"), icon: FiAward },
+    {
+      href: "/securite",
+      label: t("sidebar.safetyReports"),
+      icon: FiShield,
+    },
     {
       href: "/messages",
       label: t("sidebar.messages"),
@@ -219,8 +245,17 @@ export function useEntrepriseNavItems() {
       href: "/candidats",
       label: t("sidebar.applications"),
       icon: FiUsers,
-      badge: candidatures?.length,
+      badge:
+        nbReprogrammation > 0
+          ? nbReprogrammation
+          : candidatures?.length || undefined,
       badgePulseColor: nbReprogrammation > 0 ? "#F97316" : null,
+      section: "gestion",
+    },
+    {
+      href: "/talents",
+      label: t("sidebar.talents"),
+      icon: FiUserPlus,
       section: "gestion",
     },
     {
@@ -228,6 +263,12 @@ export function useEntrepriseNavItems() {
       label: t("sidebar.interviews"),
       icon: FiCalendar,
       badge: entretiens?.filter((e) => e.statut === "confirme").length,
+      section: "gestion",
+    },
+    {
+      href: "/conventions-entreprise",
+      label: t("sidebar.conventions"),
+      icon: FiFileText,
       section: "gestion",
     },
     {
@@ -254,7 +295,7 @@ export function useEntrepriseNavItems() {
     },
     {
       href: "/supervision/calendrier",
-      label: "Calendrier",
+      label: t("sidebar.calendar"),
       icon: FiCalendar,
       section: "supervision",
     },
@@ -279,7 +320,7 @@ export function useEntrepriseNavItems() {
     },
     {
       href: "/profil-entreprise",
-      label: "Mon profil",
+      label: t("sidebar.myProfileShort"),
       icon: Building2,
       section: "entreprise",
     },
@@ -330,38 +371,165 @@ export function useUniversiteNavItems() {
   ];
 }
 
-// Menu de l'Espace Superviseur — membre d'équipe (menu Équipe côté
-// Entreprise) connecté avec son propre compte. Volontairement minimal pour
-// l'instant : seuls "Tableau de bord" et "Mes stagiaires" existent.
+// Menu de l'espace membre d'équipe (typeUtilisateur = "membre_entreprise").
+// Construit dynamiquement à partir des permissions effectives renvoyées par
+// /equipe/moi. Ainsi, dès que l'entreprise ajoute ou retire un droit
+// (ex. offres.gerer), le menu du membre se met à jour au prochain chargement
+// / focus de la page.
 export function useSuperviseurNavItems() {
   const { t } = useTranslation();
+  const { data: profil } = useMonProfilEquipe();
   const { data: stagiaires } = useMesStagiaires();
   const { data: evaluations } = useEvaluationsSuperviseur();
+  const { data: offres } = useMesOffres();
+  const { data: candidatures } = useCandidaturesEntreprise();
+  const { data: entretiens } = useEntretiensEntreprise();
+  const { data: enAttente } = useEntretiensEnAttente();
+  const { data: invitationsPartenariat } = useInvitationsRecues();
+
+  // Permissions strictes du membre. Si le profil API est indisponible
+  // (ex. maintenance), on réutilise le dernier snapshot en session —
+  // JAMAIS un jeu de droits élargi.
+  const permissions = (() => {
+    if (Array.isArray(profil?.permissions)) return profil.permissions;
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = sessionStorage.getItem("internin_membre_perms");
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed?.permissions) ? parsed.permissions : [];
+    } catch {
+      return [];
+    }
+  })();
+  const has = (cle) => permissions.includes(cle);
+
   const aTraiter = evaluations?.filter(
     (e) =>
       e.statutAffichage === "a_effectuer" || e.statutAffichage === "en_retard",
   ).length;
+  const nbReprogrammation = enAttente?.reprogrammation ?? 0;
 
-  return [
+  // Toujours visible : tableau de bord
+  const items = [
     { href: "/tableau-de-bord", label: t("sidebar.dashboard"), icon: FiGrid },
-    {
+  ];
+
+  // —— Recrutement (permissions entreprise) ——
+  if (has("offres.gerer")) {
+    items.push({
+      href: "/offres-entreprise",
+      label: t("sidebar.internshipOffers"),
+      icon: FiBriefcase,
+      badge: offres?.filter((o) => o.statut === "publie").length || undefined,
+      section: "gestion",
+    });
+  }
+  if (has("candidats.gerer")) {
+    items.push({
+      href: "/candidats",
+      label: t("sidebar.applications"),
+      icon: FiUsers,
+      badge:
+        nbReprogrammation > 0
+          ? nbReprogrammation
+          : candidatures?.length || undefined,
+      badgePulseColor: nbReprogrammation > 0 ? "#F97316" : null,
+      section: "gestion",
+    });
+  }
+  if (has("talents.voir") || has("talents.proposer")) {
+    items.push({
+      href: "/talents",
+      label: t("sidebar.talents"),
+      icon: FiUserPlus,
+      section: "gestion",
+    });
+  }
+  if (has("conventions.voir") || has("conventions.gerer") || has("stagiaires.suivre")) {
+    items.push({
+      href: "/conventions-entreprise",
+      label: "Conventions",
+      icon: FiFileText,
+      section: "gestion",
+    });
+  }
+  if (has("entretiens.gerer")) {
+    items.push({
+      href: "/entretiens-entreprise",
+      label: t("sidebar.interviews"),
+      icon: FiCalendar,
+      badge:
+        entretiens?.filter((e) => e.statut === "confirme").length || undefined,
+      section: "gestion",
+    });
+  }
+  if (has("partenariats.gerer")) {
+    items.push({
+      href: "/partenariats-universites",
+      label: t("sidebar.universityPartnerships"),
+      icon: FiUserCheck,
+      badge: invitationsPartenariat?.length || undefined,
+      section: "gestion",
+    });
+  }
+
+  // —— Supervision ——
+  if (
+    has("stagiaires.suivre") ||
+    has("stagiaires.evaluer") ||
+    has("stagiaires.terminer")
+  ) {
+    items.push({
       href: "/mes-stagiaires",
       label: t("sidebar.myInterns"),
       icon: FiUsers,
-      badge: stagiaires?.length,
-    },
-    {
+      badge: stagiaires?.length || undefined,
+      section: "supervision",
+    });
+  }
+  if (has("stagiaires.evaluer")) {
+    items.push({
       href: "/mes-stagiaires/evaluations",
       label: t("sidebar.evaluations"),
       icon: FiClipboard,
-      badge: aTraiter,
-    },
-    {
+      badge: aTraiter || undefined,
+      section: "supervision",
+    });
+  }
+  // Calendrier utile dès qu'il y a du suivi ou des entretiens
+  if (
+    has("stagiaires.suivre") ||
+    has("stagiaires.evaluer") ||
+    has("entretiens.gerer")
+  ) {
+    items.push({
       href: "/calendrier-supervision",
       label: "Calendrier",
       icon: FiCalendar,
-    },
-  ];
+      section: "supervision",
+    });
+  }
+
+  // —— Administration ——
+  if (has("equipe.gerer")) {
+    items.push({
+      href: "/equipe",
+      label: t("sidebar.team"),
+      icon: FiUserPlus,
+      section: "entreprise",
+    });
+  }
+
+  // Messages : toujours proposés aux membres actifs (pas de permission dédiée)
+  items.push({
+    href: "/messages-entreprise",
+    label: t("sidebar.messages"),
+    icon: FiMessageSquare,
+    section: "entreprise",
+  });
+
+  return items;
 }
 
 // Menu de la Console Admin — "Entreprises" (app/(admin)/gestion-entreprises)
@@ -376,39 +544,150 @@ export function useSuperviseurNavItems() {
 export function useAdminNavItems() {
   const { t } = useTranslation();
   const { data: stats } = useAdminStats();
+  const { data: securityOverview } = useSecurityOverview({
+    refetchInterval: 60_000,
+  });
+  const { data: notifUnread } = useNotificationsNonLuesCount();
+  const { data: adminProfile } = useAdminProfile();
+  const scopes = adminProfile?.scopes || [];
+  const secEtat = securityOverview?.etat || "securisee";
+  const secAlert = secEtat === "critique" || secEtat === "attention";
 
-  return [
-    { href: "/tableau-de-bord", label: t("sidebar.dashboard"), icon: FiGrid },
+  const items = [
+    // —— PILOTAGE ——
+    {
+      href: "/tableau-de-bord",
+      label: t("sidebar.dashboard"),
+      icon: FiGrid,
+      section: "pilotage",
+    },
+    {
+      href: "/gestion-stages",
+      label: t("sidebar.internshipFiles"),
+      icon: FiMonitor,
+      section: "pilotage",
+    },
+    {
+      href: "/gestion-conventions",
+      label: t("sidebar.conventions"),
+      icon: FiFileText,
+      section: "pilotage",
+    },
+
+    // —— GESTION ——
     {
       href: "/verifications/offres-finales",
       label: t("sidebar.internshipOffers"),
-      icon: FiFileText,
+      icon: FiAward,
       badge: stats?.offresEnAttente,
+      badgeTone: stats?.offresEnAttente > 0 ? "warning" : undefined,
+      section: "gestion",
+    },
+    {
+      href: "/gestion-entreprises",
+      label: t("sidebar.companiesMgmt"),
+      icon: Building2,
+      badge: stats?.entitesNonVerifiees?.entreprises,
+      badgeTone:
+        stats?.entitesNonVerifiees?.entreprises > 0 ? "warning" : undefined,
+      section: "gestion",
     },
     {
       href: "/gestion-universites",
       label: t("sidebar.universitiesMgmt"),
       icon: FiHome,
       badge: stats?.entitesNonVerifiees?.universites,
+      badgeTone:
+        stats?.entitesNonVerifiees?.universites > 0 ? "warning" : undefined,
+      section: "gestion",
     },
     {
-      href: "/gestion-entreprises",
-      label: t("sidebar.companiesMgmt"),
-      icon: FiBriefcase,
-      badge: stats?.entitesNonVerifiees?.entreprises,
+      href: "/utilisateurs",
+      label: t("sidebar.users"),
+      icon: FiUsers,
+      section: "gestion",
     },
-    { href: "/utilisateurs", label: t("sidebar.users"), icon: FiUsers },
+
+    // —— SURVEILLANCE ——
+    {
+      href: "/centre-controle",
+      label: t("sidebar.controlCenter"),
+      icon: FiActivity,
+      section: "surveillance",
+    },
+    {
+      href: "/centre-securite",
+      label: t("sidebar.securityCenter"),
+      icon: FiShield,
+      section: "surveillance",
+      // Badge numérique si incidents critiques, sinon "!" en attention
+      badge:
+        secEtat === "critique"
+          ? securityOverview?.kpi?.comptesSuspectsCritiques ||
+            securityOverview?.kpi?.comptesSuspects ||
+            "!"
+          : secEtat === "attention"
+            ? securityOverview?.kpi?.comptesSuspects || "!"
+            : undefined,
+      badgeTone:
+        secEtat === "critique"
+          ? "danger"
+          : secEtat === "attention"
+            ? "warning"
+            : undefined,
+      dot: secAlert,
+      dotColor: secEtat === "critique" ? "#ef4444" : "#f59e0b",
+    },
+    {
+      href: "/centre-notifications",
+      label: t("sidebar.notificationsCenter"),
+      icon: FiBell,
+      section: "surveillance",
+      // Notifications non lues destinées à CET admin (COUNT SQL) — ≠ anomalies / sécurité
+      badge: (() => {
+        const n = Number(
+          notifUnread?.nonLues ??
+            notifUnread?.count ??
+            (typeof notifUnread === "number" ? notifUnread : 0),
+        );
+        return n > 0 ? n : undefined;
+      })(),
+      badgeTone: (() => {
+        const n = Number(
+          notifUnread?.nonLues ??
+            notifUnread?.count ??
+            (typeof notifUnread === "number" ? notifUnread : 0),
+        );
+        return n > 0 ? "warning" : undefined;
+      })(),
+    },
     {
       href: "/signalements",
       label: t("sidebar.flaggedReports"),
       icon: FiAlertTriangle,
       badge: stats?.signalementsOuverts,
-      badgePulseColor: stats?.signalementsOuverts > 0 ? "#EF4444" : null,
+      badgeTone: stats?.signalementsOuverts > 0 ? "danger" : undefined,
+      section: "surveillance",
     },
+
+    // —— TRAÇABILITÉ ——
+    {
+      href: "/journal-audit",
+      label: t("sidebar.auditLog"),
+      icon: FiClock,
+      section: "tracabilite",
+    },
+
+    // —— CONFIGURATION ——
     {
       href: "/parametres-admin",
       label: t("sidebar.settings"),
       icon: FiSettings,
+      section: "configuration",
     },
   ];
+
+  if (!adminProfile) return items;
+  return items.filter((item) => adminCanAccessHref(scopes, item.href));
 }
+

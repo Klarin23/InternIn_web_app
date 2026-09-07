@@ -5,6 +5,7 @@ import { FiPlus, FiTrash2, FiLoader } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import {
   useAjouterObjectif,
   useUpdateObjectif,
@@ -12,6 +13,7 @@ import {
 } from "@/lib/queries/useSuperviseur";
 
 export default function ObjectifsPanel({ idStage, objectifs }) {
+  const { t } = useTranslation();
   const [nouveau, setNouveau] = useState("");
   const ajouter = useAjouterObjectif(idStage);
   const update = useUpdateObjectif(idStage);
@@ -25,19 +27,19 @@ export default function ObjectifsPanel({ idStage, objectifs }) {
   const realises = objectifs.filter((o) => o.statut === "realise").length;
 
   return (
-    <div className="rounded-md border border-border bg-card p-5">
+    <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-semibold text-foreground">
-          Objectifs du stage
+          {t("mesStagiaires.progression.objectivesTitle")}
         </h2>
         <span className="text-xs text-muted-foreground">
-          {realises} / {objectifs.length} réalisés
+          {t("mesStagiaires.progression.completedCount", { done: realises, total: objectifs.length })}
         </span>
       </div>
 
       <div className="mb-4 flex gap-2">
         <Input
-          placeholder="Ajouter un objectif..."
+          placeholder={t("mesStagiaires.progression.addObjective")}
           value={nouveau}
           onChange={(e) => setNouveau(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleAjouter()}
@@ -59,7 +61,7 @@ export default function ObjectifsPanel({ idStage, objectifs }) {
 
       {objectifs.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Aucun objectif défini pour l&apos;instant.
+          {t("mesStagiaires.progression.noObjectivesYet")}
         </p>
       ) : (
         <ul className="space-y-2">
@@ -87,7 +89,7 @@ export default function ObjectifsPanel({ idStage, objectifs }) {
                 type="button"
                 onClick={() => supprimer.mutate(o.idObjectif)}
                 className="rounded-sm p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                aria-label="Supprimer l'objectif"
+                aria-label={t("mesStagiaires.progression.deleteObjective")}
               >
                 <FiTrash2 className="h-3.5 w-3.5" />
               </button>

@@ -14,6 +14,10 @@ export function errorHandler(err, req, res, next) {
 
   const status = err.status || 500;
 
+  if (err.retryAfter) {
+    res.set("Retry-After", String(err.retryAfter));
+  }
+
   // Ne jamais exposer les détails internes en production
   const message =
     err.status && err.status < 500 ? err.message : "Erreur interne du serveur";

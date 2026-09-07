@@ -17,14 +17,17 @@ import {
   STATUTS_PASSES,
   matchFiltreEntretien,
 } from "@/lib/entretiens/statut";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
-// Ce menu ne montre que les entretiens confirmés par l'entreprise (une fois
-// que le candidat a validé et que l'entreprise a confirmé la planification).
-// Les entretiens encore en cours de planification (planifié / validé / à
-// reprogrammer) se gèrent depuis la fiche du candidat, dans le menu
-// "Candidatures". Chaque carte reste cliquable/actionnable : on peut la
-// marquer "Terminé", puis faire l'offre finale directement depuis ici.
-const STATUTS_VISIBLES = ["confirme", "termine", "annule", "absent"];
+const STATUTS_VISIBLES = [
+  "planifie",
+  "valide",
+  "confirme",
+  "reprogramme",
+  "termine",
+  "annule",
+  "absent",
+];
 
 function matchRechercheEntreprise(entretien, recherche) {
   if (!recherche?.trim()) return true;
@@ -38,6 +41,7 @@ function matchRechercheEntreprise(entretien, recherche) {
 }
 
 function EmptyStateEntreprise() {
+  const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
   return (
     <motion.div
@@ -50,35 +54,35 @@ function EmptyStateEntreprise() {
         <Calendar className="size-6 text-muted-foreground" />
       </div>
       <h3 className="text-sm font-semibold text-foreground">
-        Aucun entretien à afficher
+        {t("interviews.entreprise.emptyTitle")}
       </h3>
       <p className="mt-1.5 max-w-sm text-sm text-muted-foreground">
-        Les entretiens confirmés apparaîtront ici dès qu&apos;un candidat aura
-        accepté votre proposition.
+        {t("interviews.entreprise.emptyDesc")}
       </p>
       <Link
         href="/candidats"
         className="mt-5 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       >
-        Voir les candidatures
+        {t("interviews.entreprise.viewApplications")}
       </Link>
     </motion.div>
   );
 }
 
-const VUES = [
-  { valeur: "cartes", label: "Cartes", Icon: LayoutGrid },
-  { valeur: "agenda", label: "Agenda", Icon: List },
-  { valeur: "calendrier", label: "Calendrier", Icon: CalendarDays },
-];
-
 export default function EntretiensEntreprisePage() {
+  const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
   const { data: entretiens, isLoading, isError } = useEntretiensEntreprise();
   const [recherche, setRecherche] = useState("");
-  const [filtre, setFiltre] = useState("a_venir");
+  const [filtre, setFiltre] = useState("toutes");
   const [vue, setVue] = useState("cartes");
   const [maintenant] = useState(() => Date.now());
+
+  const VUES = [
+    { valeur: "cartes", label: t("interviews.entreprise.viewCards"), Icon: LayoutGrid },
+    { valeur: "agenda", label: t("interviews.entreprise.viewAgenda"), Icon: List },
+    { valeur: "calendrier", label: t("interviews.entreprise.viewCalendar"), Icon: CalendarDays },
+  ];
 
   const entretiensConfirmes = useMemo(() => {
     return (entretiens || [])
@@ -106,6 +110,30 @@ export default function EntretiensEntreprisePage() {
       (e) => new Date(e.dateHeure).toDateString() === auj,
     );
   }, [aVenir, maintenant]);
+
+  const compteursFiltres = useMemo(() => {
+    const list = entretiensConfirmes;
+    return {
+      a_venir: list.filter((e) => matchFiltreEntretien(e, "a_venir", maintenant))
+        .length,
+      aujourdhui: list.filter((e) =>
+        matchFiltreEntretien(e, "aujourdhui", maintenant),
+      ).length,
+      termines: list.filter((e) => matchFiltreEntretien(e, "termines", maintenant))
+        .length,
+      annules: list.filter((e) => matchFiltreEntretien(e, "annules", maintenant))
+        .length,
+      offres_en_attente: list.filter((e) =>
+        matchFiltreEntretien(e, "offres_en_attente", maintenant),
+      ).length,
+      offres_acceptees: list.filter((e) =>
+        matchFiltreEntretien(e, "offres_acceptees", maintenant),
+      ).length,
+      offres_refusees: list.filter((e) =>
+        matchFiltreEntretien(e, "offres_refusees", maintenant),
+      ).length,
+    };
+  }, [entretiensConfirmes, maintenant]);
 
   const listeFiltree = useMemo(() => {
     return entretiensConfirmes
@@ -139,8 +167,8 @@ export default function EntretiensEntreprisePage() {
   return (
     <>
       <AppHeader
-        breadcrumb={[{ label: "Entretiens" }]}
-        subtitle="Gérez vos rendez-vous avec les candidats et suivez leur progression."
+        breadcrumb={[{ label: t("interviews.entreprise.breadcrumb") }]}
+        subtitle={t("interviews.entreprise.pageSubtitle")}
         refreshKeys={["entretiensEntreprise"]}
       />
 
@@ -149,13 +177,12 @@ export default function EntretiensEntreprisePage() {
 
         {isError && (
           <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            Impossible de charger les entretiens. Veuillez réessayer.
+            {t("interviews.entreprise.loadError")}
           </p>
         )}
 
         {!isLoading && !isError && (
           <>
-            {/* Header + stats */}
             <EntretiensHeaderStats
               entretiens={entretiensConfirmes}
               maintenant={maintenant}
@@ -165,7 +192,6 @@ export default function EntretiensEntreprisePage() {
               <EmptyStateEntreprise />
             ) : (
               <>
-                {/* Prochain entretien */}
                 {prochain && (
                   <ProchainEntretienHighlightEntreprise
                     entretien={prochain}
@@ -173,11 +199,10 @@ export default function EntretiensEntreprisePage() {
                   />
                 )}
 
-                {/* Filtres + vues */}
                 <div className="space-y-3">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h3 className="text-sm font-semibold text-foreground">
-                      Tous les entretiens
+                      {t("interviews.entreprise.allInterviews")}
                     </h3>
                     <div className="flex gap-1 self-start rounded-xl bg-muted p-1 sm:self-auto">
                       {VUES.map((v) => (
@@ -204,15 +229,15 @@ export default function EntretiensEntreprisePage() {
                     onRechercheChange={setRecherche}
                     filtreActif={filtre}
                     onFiltreChange={setFiltre}
+                    compteurs={compteursFiltres}
                   />
                 </div>
 
-                {/* Contenu selon la vue */}
                 {vue === "cartes" && (
                   <div className="space-y-8">
                     {listeFiltree.length === 0 ? (
                       <p className="rounded-2xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
-                        Aucun entretien ne correspond à vos critères.{" "}
+                        {t("interviews.entreprise.noMatch")}{" "}
                         <button
                           type="button"
                           onClick={() => {
@@ -221,14 +246,14 @@ export default function EntretiensEntreprisePage() {
                           }}
                           className="font-semibold text-primary hover:underline"
                         >
-                          Afficher tout
+                          {t("interviews.entreprise.showAll")}
                         </button>
                       </p>
                     ) : (
                       <>
                         {aujourdhuiFiltres.length > 0 && (
                           <SectionCartes
-                            titre="Aujourd'hui"
+                            titre={t("interviews.entreprise.sectionToday")}
                             count={aujourdhuiFiltres.length}
                             accent
                           >
@@ -245,7 +270,7 @@ export default function EntretiensEntreprisePage() {
 
                         {aVenirSansAujourdhui.length > 0 && (
                           <SectionCartes
-                            titre="À venir"
+                            titre={t("interviews.entreprise.sectionUpcoming")}
                             count={aVenirSansAujourdhui.length}
                           >
                             {aVenirSansAujourdhui.map((e, i) => (
@@ -261,7 +286,7 @@ export default function EntretiensEntreprisePage() {
 
                         {terminesFiltres.length > 0 && (
                           <SectionCartes
-                            titre="Terminés"
+                            titre={t("interviews.entreprise.sectionCompleted")}
                             count={terminesFiltres.length}
                           >
                             {terminesFiltres.map((e, i) => (
@@ -309,7 +334,7 @@ function SectionCartes({ titre, count, children, accent = false }) {
       <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
         {titre}
         <span
-          className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-bold ${
+          className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold ${
             accent
               ? "bg-primary text-primary-foreground"
               : "bg-muted text-muted-foreground"

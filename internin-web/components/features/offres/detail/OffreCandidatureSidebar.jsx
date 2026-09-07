@@ -19,6 +19,7 @@ import {
 import PostulerDialog from "@/components/features/offres/PostulerDialog";
 import CandidatureStatutTimeline from "./CandidatureStatutTimeline";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import OffrePostesIndicator from "@/components/features/offres/OffrePostesIndicator";
 
 function Ligne({ icon: Icon, label, value }) {
   if (!value) return null;
@@ -76,6 +77,9 @@ export default function OffreCandidatureSidebar({
             {formatRemuneration(t, offre)}
           </p>
         </div>
+        <div className="mb-4">
+          <OffrePostesIndicator offre={offre} />
+        </div>
         <div className="space-y-2.5">
           <Ligne
             icon={FiMapPin}
@@ -112,6 +116,12 @@ export default function OffreCandidatureSidebar({
           {t("offersPage.sidebar.application")}
         </h5>
 
+        {!candidature && Number(offre.nombreCandidaturesActives ?? 0) >= Number(offre.nombrePostes ?? 0) && (
+          <div className="mb-3 flex items-start gap-2 rounded-sm border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-xs text-destructive">
+            <FiAlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{t("offersPage.positions.fullHint")}</span>
+          </div>
+        )}
         {expiree && !candidature && (
           <div className="mb-3 flex items-start gap-2 rounded-sm border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-xs text-destructive">
             <FiAlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -135,11 +145,11 @@ export default function OffreCandidatureSidebar({
             <p className="text-xs text-muted-foreground">
               {t("offersPage.sidebar.openText")}
             </p>
-            <PostulerDialog
+            {Number(offre.nombreCandidaturesActives ?? 0) < Number(offre.nombrePostes ?? 0) && <PostulerDialog
               idOffre={offreId}
               offreTitle={offre.titre}
               offre={offre}
-            />
+            />}
             <button
               type="button"
               disabled

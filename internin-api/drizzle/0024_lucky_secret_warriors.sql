@@ -1,0 +1,1 @@
+ALTER TYPE "public"."statut_stage" ADD VALUE 'a_venir' BEFORE 'actif';

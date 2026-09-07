@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -27,10 +29,11 @@ import {
   REMUNERATION_OPTIONS,
 } from "../offreForm.constants";
 
-function formatDateLisible(value) {
+function formatDateLisible(value, locale = "fr") {
   if (!value) return null;
   try {
-    return new Date(value).toLocaleDateString("fr-FR", {
+    const tag = String(locale).toLowerCase().startsWith("en") ? "en-GB" : "fr-FR";
+    return new Date(value).toLocaleDateString(tag, {
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -52,7 +55,7 @@ function PreviewSection({ title, content }) {
   );
 }
 
-// Étape 4 — "Aperçu & publication" (points 11 et 12 du cahier des charges).
+// Étape 4 — "{t("entrepriseSpace.offers.previewTitle")}" (points 11 et 12 du cahier des charges).
 // `values` provient de `getValues()`/`watch()` côté OffreForm : uniquement
 // des données réellement saisies, aucune donnée fictive.
 export default function StepApercu({
@@ -64,6 +67,7 @@ export default function StepApercu({
   onSaveDraft,
   onPublish,
 }) {
+  const { t, locale } = useTranslation();
   const [confirmOpen, setConfirmOpen] = useState(false);
   // Le nom d'entreprise n'est pas garanti d'être présent dans le user store
   // (à vérifier côté payload /auth) — on protège avec un fallback plutôt que
@@ -73,7 +77,7 @@ export default function StepApercu({
   const remunerationOption = REMUNERATION_OPTIONS.find(
     (o) => o.value === values.remunerationType,
   );
-  const dateLimiteLisible = formatDateLisible(values.dateLimiteCandidature);
+  const dateLimiteLisible = formatDateLisible(values.dateLimiteCandidature, locale);
 
   function handlePublishClick() {
     setConfirmOpen(true);
@@ -93,38 +97,38 @@ export default function StepApercu({
     >
       <div>
         <h3 className="text-sm font-semibold text-foreground">
-          Aperçu & publication
+          {t("entrepriseSpace.offers.previewTitle")}
         </h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          Voici exactement ce que verra un candidat. Vérifiez avant de publier.
+          {t("entrepriseSpace.offers.previewHint")}
         </p>
       </div>
 
       <div className="overflow-hidden rounded-md border border-border bg-card">
         <div className="space-y-1.5 px-5 py-4">
           <h2 className="text-lg font-semibold text-foreground">
-            {values.titre || "Titre du poste"}
+            {values.titre || t("entrepriseSpace.offers.jobTitleFallback")}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {nomEntreprise || "Votre entreprise"}
+            {nomEntreprise || t("entrepriseSpace.offers.companyFallback")}
           </p>
           <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-1.5 text-sm text-foreground">
             {values.modeTravail && (
               <span className="flex items-center gap-1.5">
                 <FiMapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                {modeTravailLabelFor(values.modeTravail)}
+                {modeTravailLabelFor(values.modeTravail, t)}
               </span>
             )}
             {values.dureeStage && (
               <span className="flex items-center gap-1.5">
                 <FiClock className="h-3.5 w-3.5 text-muted-foreground" />
-                {dureeLabelFor(values.dureeStage)}
+                {dureeLabelFor(values.dureeStage, t)}
               </span>
             )}
             {values.nombrePostes && (
               <span className="flex items-center gap-1.5">
                 <FiUsers className="h-3.5 w-3.5 text-muted-foreground" />
-                {values.nombrePostes} poste{values.nombrePostes > 1 ? "s" : ""}
+                {t(values.nombrePostes > 1 ? "entrepriseSpace.offers.positionsCount_other" : "entrepriseSpace.offers.positionsCount", { count: values.nombrePostes })}
               </span>
             )}
             {remunerationOption && remunerationOption.value !== "aucune" && (
@@ -139,24 +143,24 @@ export default function StepApercu({
           </div>
         </div>
 
-        <PreviewSection title="Description" content={values.description} />
+        <PreviewSection title={t("entrepriseSpace.offers.sectionDescription")} content={values.description} />
         <PreviewSection
-          title="Responsabilités"
+          title={t("entrepriseSpace.offers.sectionResponsibilities")}
           content={values.responsabilites}
         />
         <PreviewSection
-          title="Compétences requises"
+          title={t("entrepriseSpace.offers.sectionSkills")}
           content={values.competencesRequises}
         />
         <PreviewSection
-          title="Opportunités d'apprentissage"
+          title={t("entrepriseSpace.offers.sectionLearning")}
           content={values.opportunitesApprentissage}
         />
 
         {dateLimiteLisible && (
           <div className="flex items-center gap-1.5 border-t border-border px-5 py-3 text-sm text-muted-foreground">
             <FiCalendar className="h-3.5 w-3.5" />
-            Date limite : {dateLimiteLisible}
+            {t("entrepriseSpace.offers.deadlineLabel")} {dateLimiteLisible}
           </div>
         )}
       </div>
@@ -170,7 +174,7 @@ export default function StepApercu({
           className="h-12 rounded-sm"
         >
           <FiEdit2 className="h-4 w-4" />
-          Modifier
+          {t("entrepriseSpace.offers.edit")}
         </Button>
         <div className="flex flex-col-reverse gap-3 sm:flex-row">
           <Button
@@ -183,10 +187,10 @@ export default function StepApercu({
             {isPending && publishingStatut === "brouillon" ? (
               <>
                 <FiLoader className="h-4 w-4 animate-spin" />
-                Enregistrement...
+                {t("entrepriseSpace.offers.saving")}
               </>
             ) : (
-              "Enregistrer en brouillon"
+              t("entrepriseSpace.offers.saveDraft")
             )}
           </Button>
           <Button
@@ -198,12 +202,12 @@ export default function StepApercu({
             {isPending && publishingStatut === "publie" ? (
               <>
                 <FiLoader className="h-4 w-4 animate-spin" />
-                {isEditing ? "Mise à jour..." : "Publication..."}
+                {isEditing ? t("entrepriseSpace.offers.updating") : t("entrepriseSpace.offers.publishing")}
               </>
             ) : isEditing ? (
-              "Enregistrer et publier"
+              t("entrepriseSpace.offers.saveAndPublish")
             ) : (
-              "Publier l'offre"
+              t("entrepriseSpace.offers.publish")
             )}
           </Button>
         </div>
@@ -212,10 +216,9 @@ export default function StepApercu({
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="sm:max-w-105">
           <DialogHeader>
-            <DialogTitle>Publier cette offre ?</DialogTitle>
+            <DialogTitle>{t("entrepriseSpace.offers.confirmPublishTitle")}</DialogTitle>
             <DialogDescription>
-              Cette offre deviendra visible aux candidats et pourra recevoir des
-              candidatures.
+              {t("entrepriseSpace.offers.confirmPublishDesc")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -225,14 +228,14 @@ export default function StepApercu({
               onClick={() => setConfirmOpen(false)}
               className="rounded-sm"
             >
-              Annuler
+              {t("entrepriseSpace.offers.cancel")}
             </Button>
             <Button
               type="button"
               onClick={handleConfirmPublish}
               className="rounded-sm"
             >
-              Publier l&apos;offre
+              {t("entrepriseSpace.offers.publishOfferConfirm")}
             </Button>
           </DialogFooter>
         </DialogContent>

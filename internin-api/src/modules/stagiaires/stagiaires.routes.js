@@ -5,25 +5,36 @@ import { upload } from "../../utils/upload.js";
 import {
   completeOnboardingSchema,
   updateProfileSchema,
+  updatePrivacySchema,
 } from "./stagiaires.schema.js";
 import {
   completeOnboarding,
   getMe,
   updateMe,
   updateMyPhoto,
+  updateMyPrivacy,
 } from "./stagiaires.controller.js";
+import { requireRole } from "../../middlewares/role.middleware.js";
 
 const router = Router();
 
 router.post(
   "/onboarding",
   requireAuth,
+  requireRole("stagiaire"),
   validate(completeOnboardingSchema),
   completeOnboarding,
 );
 
-router.get("/me", requireAuth, getMe);
-router.patch("/me", requireAuth, validate(updateProfileSchema), updateMe);
+router.get("/me", requireAuth, requireRole("stagiaire"), getMe);
+router.patch("/me", requireAuth, requireRole("stagiaire"), validate(updateProfileSchema), updateMe);
+router.patch(
+  "/me/privacy",
+  requireAuth,
+  requireRole("stagiaire"),
+  validate(updatePrivacySchema),
+  updateMyPrivacy,
+);
 // Le middleware `upload` (utils/upload.js) est partagé avec le module
 // documents et choisit le sous-dossier de destination à partir de
 // req.params.type — un paramètre qui n'existe que sur les routes de la

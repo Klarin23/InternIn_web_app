@@ -7,6 +7,7 @@ import {
   stages,
   partenariatsUniversiteEntreprise,
 } from "../../db/schema.js";
+import { resolveEntrepriseContextOrThrow } from "../equipe/equipe.permissions.js";
 import { creerNotification } from "../notifications/notifications.service.js";
 
 async function getUniversiteOrThrow(idUtilisateur) {
@@ -23,15 +24,8 @@ async function getUniversiteOrThrow(idUtilisateur) {
 }
 
 async function getEntrepriseOrThrow(idUtilisateur) {
-  const [entreprise] = await db
-    .select()
-    .from(entreprises)
-    .where(eq(entreprises.idUtilisateur, idUtilisateur));
-  if (!entreprise) {
-    const err = new Error("Profil entreprise introuvable");
-    err.status = 404;
-    throw err;
-  }
+  // Propriétaire OU membre d'équipe actif
+  const { entreprise } = await resolveEntrepriseContextOrThrow(idUtilisateur);
   return entreprise;
 }
 

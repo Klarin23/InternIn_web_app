@@ -25,6 +25,7 @@ const router = Router();
 router.post(
   "/onboarding",
   requireAuth,
+  requireRole("universite"),
   validate(completeOnboardingUniversiteSchema),
   completeOnboarding,
 );

@@ -1,7 +1,19 @@
-// Labels/couleurs d'affichage, dupliqués côté front comme le reste du
-// projet (cf. CandidatureRow.jsx) — la liste réelle des permissions par rôle
-// vient de l'API (/equipe/catalogue) pour rester la source de vérité.
+// Valeurs techniques stables — les labels passent par i18n (equipe.roles.* / equipe.status.*)
 
+export const ROLE_LABEL_KEYS = {
+  administrateur_principal: "equipe.roles.administrateur_principal",
+  gestionnaire_recrutement: "equipe.roles.gestionnaire_recrutement",
+  superviseur: "equipe.roles.superviseur",
+  lecture_seule: "equipe.roles.lecture_seule",
+};
+
+export const ROLE_DESCRIPTION_KEYS = {
+  gestionnaire_recrutement: "equipe.roleDescriptions.gestionnaire_recrutement",
+  superviseur: "equipe.roleDescriptions.superviseur",
+  lecture_seule: "equipe.roleDescriptions.lecture_seule",
+};
+
+/** @deprecated use ROLE_LABEL_KEYS + t() */
 export const ROLE_LABELS = {
   administrateur_principal: "Administrateur principal",
   gestionnaire_recrutement: "Gestionnaire recrutement",
@@ -9,6 +21,7 @@ export const ROLE_LABELS = {
   lecture_seule: "Lecture seule",
 };
 
+/** @deprecated use ROLE_DESCRIPTION_KEYS + t() */
 export const ROLE_DESCRIPTIONS = {
   gestionnaire_recrutement:
     "Accès avancé à la gestion des offres et candidatures.",
@@ -19,21 +32,28 @@ export const ROLE_DESCRIPTIONS = {
 export const ROLES_INVITABLES = [
   {
     value: "gestionnaire_recrutement",
-    label: "Gestionnaire recrutement",
-    description: ROLE_DESCRIPTIONS.gestionnaire_recrutement,
+    labelKey: "equipe.roles.gestionnaire_recrutement",
+    descriptionKey: "equipe.roleDescriptions.gestionnaire_recrutement",
   },
   {
     value: "superviseur",
-    label: "Superviseur",
-    description: ROLE_DESCRIPTIONS.superviseur,
+    labelKey: "equipe.roles.superviseur",
+    descriptionKey: "equipe.roleDescriptions.superviseur",
   },
   {
     value: "lecture_seule",
-    label: "Lecture seule",
-    description: ROLE_DESCRIPTIONS.lecture_seule,
+    labelKey: "equipe.roles.lecture_seule",
+    descriptionKey: "equipe.roleDescriptions.lecture_seule",
   },
 ];
 
+export const STATUT_MEMBRE_LABEL_KEYS = {
+  invite: "equipe.status.invite",
+  actif: "equipe.status.actif",
+  desactive: "equipe.status.desactive",
+};
+
+/** @deprecated use STATUT_MEMBRE_LABEL_KEYS + t() */
 export const STATUT_MEMBRE_LABELS = {
   invite: "Invitation en attente",
   actif: "Actif",
@@ -69,3 +89,39 @@ export const AVATAR_COLORS = [
   "#F97316",
   "#8B5CF6",
 ];
+
+export const CATEGORIE_LABEL_KEYS = {
+  recrutement: "equipe.categories.recrutement",
+  suivi: "equipe.categories.suivi",
+  partenariats: "equipe.categories.partenariats",
+  administration: "equipe.categories.administration",
+};
+
+/** Translate permission label: prefer equipe.permissions.<cle>, fallback to API label */
+export function permissionLabel(t, p) {
+  if (!p) return "";
+  const cle = (p.cle || "").replace(/\./g, "_");
+  if (p.cle) {
+    const key = `equipe.permissions.${p.cle.replace(/\./g, ".")}`;
+    const translated = t(key);
+    if (translated && translated !== key) return translated;
+  }
+  return p.label || p.cle || "";
+}
+
+export function roleLabel(t, role) {
+  const key = ROLE_LABEL_KEYS[role];
+  return key ? t(key) : role || "";
+}
+
+export function statutLabel(t, statut) {
+  const key = STATUT_MEMBRE_LABEL_KEYS[statut];
+  return key ? t(key) : statut || "";
+}
+
+export function categorieLabel(t, cat) {
+  if (!cat) return "";
+  const norm = String(cat).toLowerCase();
+  const key = CATEGORIE_LABEL_KEYS[norm];
+  return key ? t(key) : cat;
+}

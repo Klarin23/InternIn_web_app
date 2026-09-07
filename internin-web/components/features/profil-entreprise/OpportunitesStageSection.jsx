@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { FiFileText, FiSend, FiUserCheck, FiAward } from "react-icons/fi";
 import StatCard from "@/components/features/dashboard-entreprise/StatCard";
 import { Stagger, StaggerItem } from "@/components/motion/Stagger";
@@ -7,6 +9,7 @@ import { useMesOffres } from "@/lib/queries/useMesOffres";
 import { useCandidaturesEntreprise } from "@/lib/queries/useCandidaturesEntreprise";
 
 export default function OpportunitesStageSection() {
+  const { t } = useTranslation();
   const { data: offres } = useMesOffres();
   const { data: candidatures } = useCandidaturesEntreprise();
 
@@ -28,7 +31,7 @@ export default function OpportunitesStageSection() {
           <StatCard
             icon={FiFileText}
             value={offresActives}
-            label="Offres actives"
+            label={t("profilEntreprise.opportunities.activeOffers")}
             color="bg-success/10 text-green-700"
           />
         </StaggerItem>
@@ -36,7 +39,7 @@ export default function OpportunitesStageSection() {
           <StatCard
             icon={FiSend}
             value={offresPublieesTotal}
-            label="Offres publiées au total"
+            label={t("profilEntreprise.opportunities.totalPublished")}
             color="bg-primary/10 text-primary"
           />
         </StaggerItem>
@@ -44,7 +47,7 @@ export default function OpportunitesStageSection() {
           <StatCard
             icon={FiUserCheck}
             value={candidaturesRecues}
-            label="Candidatures reçues"
+            label={t("profilEntreprise.opportunities.applicationsReceived")}
             color="bg-info/10 text-blue-700"
           />
         </StaggerItem>
@@ -52,7 +55,7 @@ export default function OpportunitesStageSection() {
           <StatCard
             icon={FiAward}
             value={stagiairesRecrutes}
-            label="Stagiaires recrutés"
+            label={t("profilEntreprise.opportunities.internsRecruited")}
             color="bg-accent/40 text-amber-700"
           />
         </StaggerItem>

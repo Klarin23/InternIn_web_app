@@ -2,12 +2,10 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import { FiTrendingUp } from "react-icons/fi";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
-// Barre de progression affichée en haut du formulaire d'édition. Le score
-// est recalculé en direct à partir des valeurs du formulaire (voir
-// lib/utils/profilCompletion.js) pour donner un retour immédiat pendant la
-// saisie, avant même la sauvegarde.
 export default function EditProfilCompletionBar({ pourcentage, complet }) {
+  const { t } = useTranslation();
   const shouldReduceMotion = useReducedMotion();
 
   return (
@@ -15,11 +13,11 @@ export default function EditProfilCompletionBar({ pourcentage, complet }) {
       <div className="mb-2 flex items-center justify-between gap-3">
         <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
           <FiTrendingUp className="h-4 w-4 text-primary" />
-          Profil complété à {pourcentage}%
+          {t("profilEntreprise.completion.title", { score: pourcentage })}
         </span>
         {!complet && (
           <span className="hidden text-xs text-muted-foreground sm:inline">
-            Ajoutez les informations manquantes pour améliorer sa visibilité.
+            {t("profilEntreprise.completion.hint")}
           </span>
         )}
       </div>
@@ -33,8 +31,7 @@ export default function EditProfilCompletionBar({ pourcentage, complet }) {
       </div>
       {!complet && (
         <p className="mt-1.5 text-xs text-muted-foreground sm:hidden">
-          Votre profil est presque complet. Ajoutez les informations
-          manquantes pour améliorer sa visibilité.
+          {t("profilEntreprise.completion.almostComplete")}
         </p>
       )}
     </div>

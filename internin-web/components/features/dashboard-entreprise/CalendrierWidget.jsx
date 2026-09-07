@@ -1,4 +1,6 @@
 "use client";
+
+import { useTranslation } from "@/lib/i18n/useTranslation";
 // Calendrier entreprise : fusionne deux sources — les entretiens planifiés
 // (déjà présents) et les stages actifs (nouveau, via useMesStages, la même
 // requête que "Suivi des stagiaires") — pour afficher aussi les débuts et
@@ -19,25 +21,27 @@ function estAujourdhui(date) {
 const TYPE_CONFIG = {
   entretien: {
     icon: FiCalendar,
-    label: "Entretien",
+    getLabel: (tt) => tt("entrepriseSpace.dashboard.eventInterview"),
     badge: "bg-primary text-primary-foreground",
     rowBg: "bg-primary/5",
   },
   debut_stage: {
     icon: FiUserCheck,
-    label: "Début de stage",
+    getLabel: (tt) => tt("entrepriseSpace.dashboard.eventStageStart"),
     badge: "bg-success text-white",
     rowBg: "bg-success/5",
   },
   fin_stage: {
     icon: FiFlag,
-    label: "Fin de stage",
+    getLabel: (tt) => tt("entrepriseSpace.dashboard.eventStageEnd"),
     badge: "bg-accent text-amber-900",
     rowBg: "bg-accent/10",
   },
 };
 
 export default function CalendrierWidget({ entretiens }) {
+  const { t, locale } = useTranslation();
+  const loc = locale === "fr" ? "fr-FR" : "en-GB";
   const { data: stages } = useMesStages();
 
   const evenementsEntretiens = (entretiens || [])
@@ -97,20 +101,20 @@ export default function CalendrierWidget({ entretiens }) {
     .sort((a, b) => new Date(a.date) - new Date(b.date))
     .slice(0, 4);
 
-  const dateAujourdhui = new Date().toLocaleDateString("fr-FR", {
+  const dateAujourdhui = new Date().toLocaleDateString(loc, {
     weekday: "long",
     day: "numeric",
     month: "long",
   });
 
   return (
-    <div className="rounded-md border border-border bg-card p-5">
+    <div className="rounded-2xl border border-border bg-card shadow-sm p-5">
       <div className="mb-4 flex items-center gap-2.5">
         <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
           <FiCalendar className="h-4.5 w-4.5" />
         </div>
         <div className="min-w-0">
-          <h5 className="text-sm font-semibold text-foreground">Calendrier</h5>
+          <h5 className="text-sm font-semibold text-foreground">{t("entrepriseSpace.dashboard.calendar")}</h5>
           <p className="truncate text-xs capitalize text-muted-foreground">
             {dateAujourdhui}
           </p>
@@ -119,11 +123,11 @@ export default function CalendrierWidget({ entretiens }) {
 
       <div className="mb-4">
         <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          Aujourd&apos;hui {aujourdHui.length > 0 && `(${aujourdHui.length})`}
+          {t("entrepriseSpace.dashboard.today")} {aujourdHui.length > 0 && `(${aujourdHui.length})`}
         </p>
         {aujourdHui.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Rien de prévu aujourd&apos;hui
+            {t("entrepriseSpace.dashboard.nothingToday")}
           </p>
         ) : (
           <div className="space-y-2">
@@ -140,7 +144,7 @@ export default function CalendrierWidget({ entretiens }) {
                   >
                     <Icon className="h-3 w-3" />
                     {e.type === "entretien"
-                      ? new Date(e.date).toLocaleTimeString("fr-FR", {
+                      ? new Date(e.date).toLocaleTimeString(loc, {
                           hour: "2-digit",
                           minute: "2-digit",
                         })
@@ -163,11 +167,11 @@ export default function CalendrierWidget({ entretiens }) {
 
       <div>
         <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          Rendez-vous à venir
+          {t("entrepriseSpace.dashboard.upcomingEvents")}
         </p>
         {aVenir.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Rien de prévu prochainement
+            {t("entrepriseSpace.dashboard.nothingSoon")}
           </p>
         ) : (
           <div className="space-y-2">
@@ -187,7 +191,7 @@ export default function CalendrierWidget({ entretiens }) {
                     </p>
                   </div>
                   <span className="flex-shrink-0 text-xs text-muted-foreground">
-                    {new Date(e.date).toLocaleDateString("fr-FR", {
+                    {new Date(e.date).toLocaleDateString(loc, {
                       day: "2-digit",
                       month: "2-digit",
                     })}
@@ -203,7 +207,7 @@ export default function CalendrierWidget({ entretiens }) {
         href="/entretiens-entreprise"
         className="mt-4 block text-center text-xs font-semibold text-primary hover:underline"
       >
-        Voir tous les entretiens
+        {t("entrepriseSpace.dashboard.viewAllInterviews")}
       </Link>
     </div>
   );

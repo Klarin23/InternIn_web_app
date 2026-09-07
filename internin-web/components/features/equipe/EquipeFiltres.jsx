@@ -8,14 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ROLES_INVITABLES } from "./equipeConstants";
-
-const STATUTS = [
-  { value: "tous", label: "Tous les statuts" },
-  { value: "actif", label: "Actif" },
-  { value: "invite", label: "Invitation en attente" },
-  { value: "desactive", label: "Désactivé" },
-];
+import { useTranslation } from "@/lib/i18n/useTranslation";
+import { ROLES_INVITABLES, roleLabel } from "./equipeConstants";
 
 export default function EquipeFiltres({
   role,
@@ -23,6 +17,15 @@ export default function EquipeFiltres({
   statut,
   onStatutChange,
 }) {
+  const { t } = useTranslation();
+
+  const STATUTS = [
+    { value: "tous", label: t("equipe.filters.allStatuses") },
+    { value: "actif", label: t("equipe.status.actif") },
+    { value: "invite", label: t("equipe.status.invite") },
+    { value: "desactive", label: t("equipe.status.desactive") },
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
@@ -32,16 +35,16 @@ export default function EquipeFiltres({
     >
       <Select value={role} onValueChange={onRoleChange}>
         <SelectTrigger className="h-10 w-full min-w-[160px] rounded-md sm:w-[190px]">
-          <SelectValue placeholder="Tous les rôles" />
+          <SelectValue placeholder={t("equipe.filters.allRoles")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="tous">Tous les rôles</SelectItem>
+          <SelectItem value="tous">{t("equipe.filters.allRoles")}</SelectItem>
           <SelectItem value="administrateur_principal">
-            Administrateur principal
+            {roleLabel(t, "administrateur_principal")}
           </SelectItem>
           {ROLES_INVITABLES.map((r) => (
             <SelectItem key={r.value} value={r.value}>
-              {r.label}
+              {t(r.labelKey)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -49,7 +52,7 @@ export default function EquipeFiltres({
 
       <Select value={statut} onValueChange={onStatutChange}>
         <SelectTrigger className="h-10 w-full min-w-[160px] rounded-md sm:w-[190px]">
-          <SelectValue placeholder="Tous les statuts" />
+          <SelectValue placeholder={t("equipe.filters.allStatuses")} />
         </SelectTrigger>
         <SelectContent>
           {STATUTS.map((s) => (

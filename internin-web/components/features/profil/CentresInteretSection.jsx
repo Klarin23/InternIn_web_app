@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { motion } from "framer-motion";
@@ -17,6 +19,7 @@ import { useCentresInteret } from "@/lib/queries/useCentresInteret";
 import { useUpdateStagiaireProfile } from "@/lib/queries/useStagiaireProfile";
 
 export default function CentresInteretSection({ profil }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const { data: liste, isLoading } = useCentresInteret();
   const updateProfile = useUpdateStagiaireProfile();
@@ -40,7 +43,7 @@ export default function CentresInteretSection({ profil }) {
   return (
     <>
       <ProfilSectionCard
-        title="Centres d'intérêt"
+        title={t("stagiaireSpace.profile.interests")}
         icon={FiHeart}
         onEdit={() => setOpen(true)}
       >
@@ -67,7 +70,7 @@ export default function CentresInteretSection({ profil }) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Centres d&apos;intérêt</DialogTitle>
+            <DialogTitle>{t("stagiaireSpace.profile.interests")}</DialogTitle>
           </DialogHeader>
 
           {isLoading ? (
@@ -112,7 +115,7 @@ export default function CentresInteretSection({ profil }) {
                 )}
               />
               <Button type="submit" disabled={isSubmitting} className="w-full">
-                Enregistrer
+                {t("stagiaireSpace.profile.save")}
               </Button>
             </form>
           )}

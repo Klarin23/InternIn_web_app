@@ -1,12 +1,13 @@
 "use client";
 // Bloc Hero de la page de détail — refonte visuelle uniquement (aucune
-// logique métier). Le cœur "favori" reste désactivé : aucune fonctionnalité
+// logique métier). Le cœur favori est connecté au backend
 // de stages sauvés n'existe encore côté backend (voir OffreCard.jsx) — l'UI
 // est prête pour l'activer, mais rien n'est simulé.
 
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { FiArrowLeft, FiMapPin, FiUsers, FiHeart } from "react-icons/fi";
+import { FiArrowLeft, FiMapPin, FiUsers } from "react-icons/fi";
+import FavoriteButton from "@/components/features/offres/FavoriteButton";
 import {
   modeBadge as getModeBadge,
   couleurAvatar,
@@ -86,15 +87,11 @@ export default function OffreDetailHero({ offre, isNew }) {
               <h1 className="text-2xl font-bold leading-tight text-foreground sm:text-3xl">
                 {offre.titre}
               </h1>
-              <button
-                type="button"
-                disabled
-                title={t("offersPage.card.saveComingSoon")}
-                aria-label={t("offersPage.card.saveAria")}
-                className="mt-1 flex h-9 w-9 shrink-0 cursor-not-allowed items-center justify-center rounded-full text-muted-foreground/50"
-              >
-                <FiHeart className="h-5 w-5" />
-              </button>
+              <FavoriteButton
+                idOffre={offre.idOffre}
+                isFavorite={Boolean(offre.isFavorite)}
+                size="md"
+              />
             </div>
             <p className="mt-1 text-base font-medium text-muted-foreground">
               {offre.nomEntreprise}

@@ -1,25 +1,34 @@
 import crypto from "crypto";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gt, sql } from "drizzle-orm";
 
 import { db } from "../../db/index.js";
 import {
   utilisateurs,
   verificationsEmail,
   sessionsUtilisateur,
+  tentativesConnexion,
 } from "../../db/schema.js";
 
 import { hashPassword, comparePassword } from "../../utils/password.js";
 
 import {
-  signToken,
   generateRefreshToken,
   hashRefreshToken,
   getRefreshTokenExpiry,
 } from "../../utils/jwt.js";
+import { signAccessToken, incrementerVersionJeton } from "../../utils/versionJeton.js";
+import { resolveGeoFromIp } from "../../utils/geoIp.js";
 import {
-  sendVerificationEmail,
+   sendVerificationEmail,
   sendPasswordResetEmail,
 } from "../../utils/email.js";
+
+import {
+  assertLoginAllowed,
+  recordLoginFailure,
+  clearLoginAccountLimit,
+} from "./loginRateLimit.service.js";
+ 
 
 const VERIFICATION_TOKEN_DURATION_MS = 24 * 60 * 60 * 1000;
 const RESET_PASSWORD_TOKEN_DURATION_MS = 60 * 60 * 1000;
@@ -138,10 +147,7 @@ export async function registerUser({ email, password, typeUtilisateur }, req) {
       );
     }
 
-  const token = signToken({
-    idUtilisateur: nouvelUtilisateur.idUtilisateur,
-    typeUtilisateur: nouvelUtilisateur.typeUtilisateur,
-  });
+  const token = signAccessToken(nouvelUtilisateur);
 
   const refreshToken = await createSession(
     nouvelUtilisateur.idUtilisateur,
@@ -162,89 +168,105 @@ export async function registerUser({ email, password, typeUtilisateur }, req) {
 export async function verifyEmail(rawToken) {
   if (!rawToken || typeof rawToken !== "string") {
     const err = new Error("Lien de vérification invalide");
-
     err.status = 400;
     throw err;
   }
 
   const hashedToken = hashVerificationToken(rawToken);
 
-  const [verification] = await db
-    .select()
-    .from(verificationsEmail)
-    .where(
-      and(
-        eq(verificationsEmail.codeJeton, hashedToken),
-        eq(verificationsEmail.type, "verification_email"),
-      ),
-    );
+  // La consommation du token et la validation du compte doivent être une
+  // seule opération transactionnelle. Le UPDATE conditionnel joue le rôle
+  // de "claim" atomique : une seule requête concurrente peut obtenir la ligne.
+  const utilisateurMisAJour = await db.transaction(async (tx) => {
+    const maintenant = new Date();
 
-  if (!verification) {
-    const err = new Error("Lien de vérification invalide ou expiré");
-
-    err.status = 400;
-    throw err;
-  }
-
-  if (verification.statut !== "en_attente") {
-    const err = new Error(
-      "Ce lien de vérification a déjà été utilisé ou n'est plus valide",
-    );
-
-    err.status = 400;
-    throw err;
-  }
-
-  if (new Date() > new Date(verification.dateExpiration)) {
-    await db
-      .update(verificationsEmail)
-      .set({
-        statut: "expire",
-      })
-      .where(
-        eq(verificationsEmail.idVerification, verification.idVerification),
-      );
-
-    const err = new Error("Ce lien de vérification a expiré");
-
-    err.status = 400;
-    throw err;
-  }
-
-  const [utilisateur] = await db
-    .select()
-    .from(utilisateurs)
-    .where(eq(utilisateurs.idUtilisateur, verification.idUtilisateur));
-
-  if (!utilisateur) {
-    const err = new Error("Utilisateur introuvable");
-
-    err.status = 404;
-    throw err;
-  }
-
-  await db.transaction(async (tx) => {
-    await tx
-      .update(utilisateurs)
-      .set({
-        emailVerifie: true,
-      })
-      .where(eq(utilisateurs.idUtilisateur, utilisateur.idUtilisateur));
-
-    await tx
+    const [verification] = await tx
       .update(verificationsEmail)
       .set({
         statut: "utilise",
       })
       .where(
-        eq(verificationsEmail.idVerification, verification.idVerification),
-      );
-  });
+        and(
+          eq(verificationsEmail.codeJeton, hashedToken),
+          eq(verificationsEmail.type, "verification_email"),
+          eq(verificationsEmail.statut, "en_attente"),
+          gt(verificationsEmail.dateExpiration, maintenant),
+        ),
+      )
+      .returning();
 
-  const [utilisateurMisAJour] = await db
-    .select()
-    .from(utilisateurs)
-    .where(eq(utilisateurs.idUtilisateur, utilisateur.idUtilisateur));
+    if (!verification) {
+      const [tokenExistant] = await tx
+        .select({
+          idVerification: verificationsEmail.idVerification,
+          statut: verificationsEmail.statut,
+          dateExpiration: verificationsEmail.dateExpiration,
+        })
+        .from(verificationsEmail)
+        .where(
+          and(
+            eq(verificationsEmail.codeJeton, hashedToken),
+            eq(verificationsEmail.type, "verification_email"),
+          ),
+        )
+        .limit(1);
+
+      if (!tokenExistant) {
+        const err = new Error("Lien de vérification invalide ou expiré");
+        err.status = 400;
+        throw err;
+      }
+
+      if (
+        tokenExistant.statut === "en_attente" &&
+        new Date(tokenExistant.dateExpiration) <= maintenant
+      ) {
+        await tx
+          .update(verificationsEmail)
+          .set({ statut: "expire" })
+          .where(eq(verificationsEmail.idVerification, tokenExistant.idVerification));
+
+        const err = new Error("Ce lien de vérification a expiré");
+        err.status = 400;
+        throw err;
+      }
+
+      const err = new Error(
+        "Ce lien de vérification a déjà été utilisé ou n'est plus valide",
+      );
+      err.status = 400;
+      throw err;
+    }
+
+    const [utilisateur] = await tx
+      .select()
+      .from(utilisateurs)
+      .where(eq(utilisateurs.idUtilisateur, verification.idUtilisateur));
+
+    if (!utilisateur) {
+      // Le rollback remet automatiquement le token à "en_attente".
+      const err = new Error("Utilisateur introuvable");
+      err.status = 404;
+      throw err;
+    }
+
+    const [userUpdated] = await tx
+      .update(utilisateurs)
+      .set({
+        emailVerifie: true,
+      })
+      .where(eq(utilisateurs.idUtilisateur, utilisateur.idUtilisateur))
+      .returning();
+
+    if (!userUpdated) {
+      // Le rollback remet également le token à "en_attente".
+      const err = new Error("Impossible de vérifier l'adresse e-mail");
+      err.status = 500;
+      throw err;
+    }
+
+    return userUpdated;
+  });
 
   return {
     user: sanitizeUser(utilisateurMisAJour),
@@ -357,67 +379,93 @@ export async function resetPassword(rawToken, newPassword) {
   }
 
   const hashedToken = hashVerificationToken(rawToken);
-
-  const [verification] = await db
-    .select()
-    .from(verificationsEmail)
-    .where(
-      and(
-        eq(verificationsEmail.codeJeton, hashedToken),
-        eq(verificationsEmail.type, "reinitialisation_mdp"),
-      ),
-    );
-
-  if (!verification) {
-    const err = new Error("Lien de réinitialisation invalide ou expiré");
-
-    err.status = 400;
-    throw err;
-  }
-
-  if (verification.statut !== "en_attente") {
-    const err = new Error(
-      "Ce lien de réinitialisation a déjà été utilisé ou n'est plus valide",
-    );
-
-    err.status = 400;
-    throw err;
-  }
-
-  if (new Date() > new Date(verification.dateExpiration)) {
-    await db
-      .update(verificationsEmail)
-      .set({
-        statut: "expire",
-      })
-      .where(
-        eq(verificationsEmail.idVerification, verification.idVerification),
-      );
-
-    const err = new Error("Ce lien de réinitialisation a expiré");
-
-    err.status = 400;
-    throw err;
-  }
-
+  // Hash hors transaction (coûteux) — la consommation atomique du token
+  // reste le point critique contre les courses.
   const motDePasseHash = await hashPassword(newPassword);
 
-  await db.transaction(async (tx) => {
-    await tx
-      .update(utilisateurs)
-      .set({
-        motDePasseHash,
-      })
-      .where(eq(utilisateurs.idUtilisateur, verification.idUtilisateur));
+  // Consommation atomique du token (anti race / TOCTOU) :
+  // UPDATE ... WHERE statut = 'en_attente' AND non expiré RETURNING
+  // Une seule requête concurrente peut obtenir rowsAffected = 1.
+  let idUtilisateur = null;
 
-    await tx
+  await db.transaction(async (tx) => {
+    const now = new Date();
+    const [consumed] = await tx
       .update(verificationsEmail)
       .set({
         statut: "utilise",
       })
       .where(
-        eq(verificationsEmail.idVerification, verification.idVerification),
-      );
+        and(
+          eq(verificationsEmail.codeJeton, hashedToken),
+          eq(verificationsEmail.type, "reinitialisation_mdp"),
+          eq(verificationsEmail.statut, "en_attente"),
+          gt(verificationsEmail.dateExpiration, now),
+        ),
+      )
+      .returning({
+        idVerification: verificationsEmail.idVerification,
+        idUtilisateur: verificationsEmail.idUtilisateur,
+      });
+
+    if (!consumed) {
+      // Distinguer expiré / déjà utilisé / inconnu sans fuite d'info utile
+      // pour un attaquant : message générique cohérent avec l'API existante.
+      const [existing] = await tx
+        .select({
+          statut: verificationsEmail.statut,
+          dateExpiration: verificationsEmail.dateExpiration,
+        })
+        .from(verificationsEmail)
+        .where(
+          and(
+            eq(verificationsEmail.codeJeton, hashedToken),
+            eq(verificationsEmail.type, "reinitialisation_mdp"),
+          ),
+        )
+        .limit(1);
+
+      if (existing && existing.statut === "en_attente") {
+        // encore en_attente mais expiration dépassée — marquer expiré
+        await tx
+          .update(verificationsEmail)
+          .set({ statut: "expire" })
+          .where(
+            and(
+              eq(verificationsEmail.codeJeton, hashedToken),
+              eq(verificationsEmail.type, "reinitialisation_mdp"),
+              eq(verificationsEmail.statut, "en_attente"),
+            ),
+          );
+        const err = new Error("Ce lien de réinitialisation a expiré");
+        err.status = 400;
+        throw err;
+      }
+
+      if (existing && existing.statut !== "en_attente") {
+        const err = new Error(
+          "Ce lien de réinitialisation a déjà été utilisé ou n'est plus valide",
+        );
+        err.status = 400;
+        throw err;
+      }
+
+      const err = new Error("Lien de réinitialisation invalide ou expiré");
+      err.status = 400;
+      throw err;
+    }
+
+    idUtilisateur = consumed.idUtilisateur;
+
+    await tx
+      .update(utilisateurs)
+      .set({
+        motDePasseHash,
+      })
+      .where(eq(utilisateurs.idUtilisateur, consumed.idUtilisateur));
+
+    // Révoque immédiatement tous les access JWT en cours
+    await incrementerVersionJeton(consumed.idUtilisateur, tx);
 
     // Invalider les autres demandes de réinitialisation encore en attente
     // pour cet utilisateur (un ancien lien ne doit plus fonctionner).
@@ -428,15 +476,17 @@ export async function resetPassword(rawToken, newPassword) {
       })
       .where(
         and(
-          eq(verificationsEmail.idUtilisateur, verification.idUtilisateur),
+          eq(verificationsEmail.idUtilisateur, consumed.idUtilisateur),
           eq(verificationsEmail.type, "reinitialisation_mdp"),
           eq(verificationsEmail.statut, "en_attente"),
         ),
       );
   });
 
-  // Révoquer toutes les sessions existantes (sécurité)
-  await revokeAllSessions(verification.idUtilisateur);
+  // Révoquer toutes les sessions refresh existantes (sécurité)
+  if (idUtilisateur) {
+    await revokeAllSessions(idUtilisateur);
+  }
 
   return {
     message: "Votre mot de passe a été réinitialisé avec succès",
@@ -446,15 +496,32 @@ export async function resetPassword(rawToken, newPassword) {
 
 /**
  * Crée une session (refresh token) en base.
+ * @param {string} idUtilisateur
+ * @param {object} [req]
+ * @param {object} [executor=db] — passer `tx` pour rester dans une transaction
  */
-async function createSession(idUtilisateur, req) {
+async function createSession(idUtilisateur, req, executor = db) {
   const { raw, hashed } = generateRefreshToken();
   const dateExpiration = getRefreshTokenExpiry();
+  const adresseIp = req?.ip || null;
 
-  await db.insert(sessionsUtilisateur).values({
+  // Géolocalisation best-effort (ne bloque pas le login si l'API géo échoue)
+  let paysConnexion = null;
+  let villeConnexion = null;
+  try {
+    const geo = await resolveGeoFromIp(adresseIp);
+    paysConnexion = geo.pays;
+    villeConnexion = geo.ville;
+  } catch {
+    /* ignore */
+  }
+
+  await executor.insert(sessionsUtilisateur).values({
     idUtilisateur,
     jeton: hashed,
-    adresseIp: req?.ip || null,
+    adresseIp,
+    paysConnexion,
+    villeConnexion,
     dateExpiration,
   });
 
@@ -464,14 +531,46 @@ async function createSession(idUtilisateur, req) {
 /**
  * Login / Register : renvoie accessToken + refreshToken
  */
+
+/** Enregistre une tentative de connexion échouée (activité suspecte). */
+async function enregistrerTentativeEchouee({
+  email,
+  idUtilisateur = null,
+  adresseIp = null,
+  motif = "identifiants_invalides",
+}) {
+  try {
+    await db.insert(tentativesConnexion).values({
+      email: (email || "").toLowerCase().trim().slice(0, 255),
+      idUtilisateur: idUtilisateur || null,
+      adresseIp: adresseIp ? String(adresseIp).slice(0, 45) : null,
+      motif: String(motif).slice(0, 80),
+    });
+  } catch {
+    /* ne jamais faire échouer le login pour un problème de journalisation */
+  }
+}
+
 export async function loginUser({ email, password }, req) {
   email = normalizeEmail(email);
+  const ip = req?.ip || null;
+
+  // Rate-limit IP + compte AVANT tout travail crypto / lookup coûteux
+  await assertLoginAllowed({ emailNormalise: email, ip });
+
   const [utilisateur] = await db
     .select()
     .from(utilisateurs)
     .where(eq(utilisateurs.email, email));
 
   if (!utilisateur || !utilisateur.motDePasseHash) {
+    recordLoginFailure({ emailNormalise: email, ip });
+    await enregistrerTentativeEchouee({
+      email,
+      idUtilisateur: utilisateur?.idUtilisateur || null,
+      adresseIp: ip,
+      motif: "identifiants_invalides",
+    });
     const err = new Error("Identifiants invalides");
     err.status = 401;
     throw err;
@@ -483,12 +582,26 @@ export async function loginUser({ email, password }, req) {
   );
 
   if (!motDePasseValide) {
+    recordLoginFailure({ emailNormalise: email, ip });
+    await enregistrerTentativeEchouee({
+      email,
+      idUtilisateur: utilisateur.idUtilisateur,
+      adresseIp: ip,
+      motif: "mot_de_passe_invalide",
+    });
     const err = new Error("Identifiants invalides");
     err.status = 401;
     throw err;
   }
 
   if (utilisateur.statutCompte === "suspendu") {
+    // Ne pas compter comme brute-force password, mais journaliser
+    await enregistrerTentativeEchouee({
+      email,
+      idUtilisateur: utilisateur.idUtilisateur,
+      adresseIp: ip,
+      motif: "compte_suspendu",
+    });
     const err = new Error(
       "Ce compte a été suspendu. Contacter le support InternIn pour plus d'informations.",
     );
@@ -496,15 +609,15 @@ export async function loginUser({ email, password }, req) {
     throw err;
   }
 
+  // Succès : reset compteur compte uniquement (pas le compteur IP global)
+  clearLoginAccountLimit(email);
+
   await db
     .update(utilisateurs)
     .set({ derniereConnexion: new Date() })
     .where(eq(utilisateurs.idUtilisateur, utilisateur.idUtilisateur));
 
-  const accessToken = signToken({
-    idUtilisateur: utilisateur.idUtilisateur,
-    typeUtilisateur: utilisateur.typeUtilisateur,
-  });
+  const accessToken = signAccessToken(utilisateur);
 
   const refreshToken = await createSession(utilisateur.idUtilisateur, req);
 
@@ -516,72 +629,76 @@ export async function loginUser({ email, password }, req) {
 }
 
 /**
- * Rafraîchit l'access token à partir d'un refresh token valide.
- */
-/**
  * Rafraîchit l'access token + rotation du refresh token.
- * L'ancien refresh token est immédiatement invalidé.
+ *
+ * Rotation atomique concurrent-safe :
+ *   DELETE ... WHERE jeton = hash AND date_expiration > NOW() RETURNING *
+ * Une seule requête concurrente peut consommer un refresh token donné.
+ * L'INSERT du nouveau token se fait dans la MÊME transaction.
  */
 export async function refreshAccessToken(rawRefreshToken, req) {
   if (!rawRefreshToken || typeof rawRefreshToken !== "string") {
-    const err = new Error("Refresh token manquant");
+    const err = new Error("Session expirée, veuillez vous reconnecter");
     err.status = 401;
     throw err;
   }
 
   const hashed = hashRefreshToken(rawRefreshToken);
 
-  const [session] = await db
-    .select()
-    .from(sessionsUtilisateur)
-    .where(eq(sessionsUtilisateur.jeton, hashed));
+  let utilisateur = null;
+  let newRefreshToken = null;
 
-  if (!session) {
-    const err = new Error("Session invalide ou expirée");
-    err.status = 401;
+  try {
+    await db.transaction(async (tx) => {
+      // 1) Consommation atomique de l'ancien refresh token
+      const [session] = await tx
+        .delete(sessionsUtilisateur)
+        .where(
+          and(
+            eq(sessionsUtilisateur.jeton, hashed),
+            sql`${sessionsUtilisateur.dateExpiration} > NOW()`,
+          ),
+        )
+        .returning();
+
+      if (!session) {
+        // Nettoyage best-effort des sessions expirées portant ce hash
+        await tx
+          .delete(sessionsUtilisateur)
+          .where(eq(sessionsUtilisateur.jeton, hashed));
+
+        const err = new Error("Session expirée, veuillez vous reconnecter");
+        err.status = 401;
+        err.code = "REFRESH_INVALID";
+        throw err;
+      }
+
+      // 2) Vérifier le compte dans la même transaction
+      const [user] = await tx
+        .select()
+        .from(utilisateurs)
+        .where(eq(utilisateurs.idUtilisateur, session.idUtilisateur))
+        .limit(1);
+
+      if (!user || user.statutCompte === "suspendu") {
+        // Session déjà consommée (supprimée) ; pas de nouveau token
+        const err = new Error("Session expirée, veuillez vous reconnecter");
+        err.status = 401;
+        err.code = "REFRESH_ACCOUNT";
+        throw err;
+      }
+
+      // 3) Nouveau refresh token (même transaction)
+      newRefreshToken = await createSession(user.idUtilisateur, req, tx);
+      utilisateur = user;
+    });
+  } catch (err) {
+    if (err?.status === 401) throw err;
     throw err;
   }
 
-  if (new Date() > new Date(session.dateExpiration)) {
-    await db
-      .delete(sessionsUtilisateur)
-      .where(eq(sessionsUtilisateur.idSession, session.idSession));
-
-    const err = new Error("Session expirée");
-    err.status = 401;
-    throw err;
-  }
-
-  const [utilisateur] = await db
-    .select()
-    .from(utilisateurs)
-    .where(eq(utilisateurs.idUtilisateur, session.idUtilisateur));
-
-  if (!utilisateur || utilisateur.statutCompte === "suspendu") {
-    // On supprime la session même en cas de compte suspendu
-    await db
-      .delete(sessionsUtilisateur)
-      .where(eq(sessionsUtilisateur.idSession, session.idSession));
-
-    const err = new Error("Compte invalide ou suspendu");
-    err.status = 403;
-    throw err;
-  }
-
-  // === ROTATION ===
-  // 1. Supprimer l'ancien refresh token
-  await db
-    .delete(sessionsUtilisateur)
-    .where(eq(sessionsUtilisateur.idSession, session.idSession));
-
-  // 2. Créer un nouveau refresh token
-  const newRefreshToken = await createSession(utilisateur.idUtilisateur, req);
-
-  // 3. Nouvel access token
-  const accessToken = signToken({
-    idUtilisateur: utilisateur.idUtilisateur,
-    typeUtilisateur: utilisateur.typeUtilisateur,
-  });
+  // Access token hors transaction (pas d'état DB)
+  const accessToken = signAccessToken(utilisateur);
 
   return {
     token: accessToken,
@@ -686,10 +803,7 @@ export async function loginWithGoogle({ accessToken, idToken, typeUtilisateur },
     utilisateur = updated;
   }
 
-  const accessJwt = signToken({
-    idUtilisateur: utilisateur.idUtilisateur,
-    typeUtilisateur: utilisateur.typeUtilisateur,
-  });
+  const accessJwt = signAccessToken(utilisateur);
 
   const refreshToken = await createSession(utilisateur.idUtilisateur, req);
 
@@ -704,6 +818,18 @@ export async function loginWithGoogle({ accessToken, idToken, typeUtilisateur },
 async function fetchGoogleProfile({ accessToken, idToken }) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
 
+  // Sans GOOGLE_CLIENT_ID configuré, on ne peut pas vérifier l'audience
+  // (aud) du id_token : il faut refuser plutôt que sauter la vérification,
+  // sinon n'importe quel id_token Google valide (émis pour une AUTRE
+  // application) serait accepté ici.
+  if (!clientId) {
+    const err = new Error(
+      "Connexion Google indisponible (configuration serveur incomplète)",
+    );
+    err.status = 500;
+    throw err;
+  }
+
   if (idToken) {
     const url = `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`;
     const res = await fetch(url);
@@ -713,7 +839,7 @@ async function fetchGoogleProfile({ accessToken, idToken }) {
       throw err;
     }
     const data = await res.json();
-    if (clientId && data.aud !== clientId) {
+    if (data.aud !== clientId) {
       const err = new Error("Jeton Google non reconnu (client_id)");
       err.status = 401;
       throw err;

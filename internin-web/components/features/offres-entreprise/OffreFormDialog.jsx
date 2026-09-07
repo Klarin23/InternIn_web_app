@@ -10,13 +10,10 @@ import {
 } from "@/components/ui/dialog";
 import OffreForm from "./OffreForm";
 import { useOffreEntreprise } from "@/lib/queries/useCreateOffre";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
-// Point 13 : le parcours en 4 étapes contient davantage de contenu que
-// l'ancien formulaire vertical -> largeur portée de 600px à ~760px sur
-// desktop. Le header reste fixe et le contenu défile (overflow-y-auto sur
-// DialogContent), le footer d'actions vit dans StepApercu / OffreForm et
-// reste donc toujours visible en bas du contenu scrollable.
 export default function OffreFormDialog({ open, onOpenChange, idOffre }) {
+  const { t } = useTranslation();
   const { data: existingOffre, isLoading } = useOffreEntreprise(idOffre);
 
   return (
@@ -29,12 +26,14 @@ export default function OffreFormDialog({ open, onOpenChange, idOffre }) {
             </div>
             <div>
               <DialogTitle>
-                {idOffre ? "Modifier l'offre" : "Nouvelle offre de stage"}
+                {idOffre
+                  ? t("entrepriseSpace.offers.editOfferTitle")
+                  : t("entrepriseSpace.offers.newOfferTitle")}
               </DialogTitle>
               <DialogDescription>
                 {idOffre
-                  ? "Mettez à jour les informations de votre offre."
-                  : "Créez une offre claire et attractive pour attirer les meilleurs candidats."}
+                  ? t("entrepriseSpace.offers.editOfferDesc")
+                  : t("entrepriseSpace.offers.newOfferDesc")}
               </DialogDescription>
             </div>
           </div>
@@ -42,7 +41,7 @@ export default function OffreFormDialog({ open, onOpenChange, idOffre }) {
 
         {idOffre && isLoading ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
-            Chargement...
+            {t("entrepriseSpace.offers.loading")}
           </p>
         ) : (
           <OffreForm

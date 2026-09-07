@@ -285,9 +285,10 @@ export default function GlobalSearch({ className, placeholder }) {
     return unique.slice(0, 12);
   }, [query, navItems, queryClient, type, t]);
 
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [results]);
+  // Index sûr sans setState dans un effect (react-hooks/set-state-in-effect).
+  // Reset à 0 via onChange quand la query change ; clamp si la liste raccourcit.
+  const safeActiveIndex =
+    results.length === 0 ? 0 : Math.min(activeIndex, results.length - 1);
 
   useEffect(() => {
     function onDocClick(e) {
@@ -337,7 +338,7 @@ export default function GlobalSearch({ className, placeholder }) {
       setActiveIndex((i) => (i - 1 + results.length) % results.length);
     } else if (e.key === "Enter") {
       e.preventDefault();
-      const r = results[activeIndex];
+      const r = results[safeActiveIndex];
       if (r) goTo(r.href);
     }
   }
@@ -359,9 +360,11 @@ export default function GlobalSearch({ className, placeholder }) {
         <input
           ref={inputRef}
           type="search"
+          role="combobox"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
+            setActiveIndex(0);
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
@@ -372,6 +375,7 @@ export default function GlobalSearch({ className, placeholder }) {
           aria-expanded={showDropdown}
           aria-controls="global-search-results"
           aria-autocomplete="list"
+          aria-haspopup="listbox"
           autoComplete="off"
         />
         {query ? (
@@ -408,14 +412,14 @@ export default function GlobalSearch({ className, placeholder }) {
               {results.map((r, i) => {
                 const Icon = r.icon;
                 return (
-                  <li key={r.id} role="option" aria-selected={i === activeIndex}>
+                  <li key={r.id} role="option" aria-selected={i === safeActiveIndex}>
                     <button
                       type="button"
                       onMouseEnter={() => setActiveIndex(i)}
                       onClick={() => goTo(r.href)}
                       className={cn(
                         "flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors",
-                        i === activeIndex
+                        i === safeActiveIndex
                           ? "bg-primary/10 text-foreground"
                           : "text-foreground hover:bg-muted/80",
                       )}
@@ -423,7 +427,7 @@ export default function GlobalSearch({ className, placeholder }) {
                       <span
                         className={cn(
                           "flex h-8 w-8 items-center justify-center rounded-lg",
-                          i === activeIndex
+                          i === safeActiveIndex
                             ? "bg-primary/15 text-primary"
                             : "bg-muted text-muted-foreground",
                         )}

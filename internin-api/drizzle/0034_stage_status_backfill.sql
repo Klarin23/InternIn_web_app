@@ -1,0 +1,7 @@
+-- Backfill des statuts de stage reporté hors migration.
+--
+-- La valeur ENUM 'a_venir' est ajoutée dans 0024.
+-- PostgreSQL interdit l'utilisation d'une nouvelle valeur ENUM
+-- avant le commit de la transaction qui l'a créée.
+--
+-- Le backfill sera exécuté séparément après les migrations.

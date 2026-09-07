@@ -176,7 +176,40 @@ export function useMonProfilEquipe() {
   const token = useAuthStore((state) => state.token);
   return useQuery({
     queryKey: ["monProfilEquipe"],
-    queryFn: () => getMonProfilRequest(token),
+    queryFn: async () => {
+      const data = await getMonProfilRequest(token);
+      // Snapshot des droits assignés — permet de conserver le menu filtré
+      // pendant une maintenance (sans élargir les permissions).
+      if (typeof window !== "undefined" && data) {
+        try {
+          sessionStorage.setItem(
+            "internin_membre_perms",
+            JSON.stringify({
+              permissions: Array.isArray(data.permissions)
+                ? data.permissions
+                : [],
+              roleEquipe: data.roleEquipe ?? null,
+              nom: data.nom ?? null,
+              nomEntreprise: data.nomEntreprise ?? null,
+              at: Date.now(),
+            }),
+          );
+        } catch {
+          /* ignore quota / private mode */
+        }
+      }
+      return data;
+    },
     enabled: !!token,
+    // Les permissions peuvent être modifiées à tout moment par l'entreprise :
+    // on revalide au focus pour que le menu se mette à jour sans re-login.
+    staleTime: 30_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: true,
+    placeholderData: (previousData) => previousData,
+    retry: (failureCount, error) => {
+      if (error?.code === "MAINTENANCE" || error?.status === 503) return false;
+      return failureCount < 2;
+    },
   });
 }

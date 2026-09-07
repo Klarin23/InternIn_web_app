@@ -19,6 +19,7 @@ import {
   PERMISSIONS_DISPONIBLES,
   ROLES_EQUIPE,
   PERMISSIONS_PAR_DEFAUT_ROLE,
+  CATEGORIES_PERMISSIONS,
 } from "./equipe.constants.js";
 
 export async function getMembres(req, res, next) {
@@ -41,6 +42,7 @@ export async function getCatalogue(req, res, next) {
       permissions: PERMISSIONS_DISPONIBLES,
       roles: ROLES_EQUIPE,
       permissionsParDefautRole: PERMISSIONS_PAR_DEFAUT_ROLE,
+      categories: CATEGORIES_PERMISSIONS,
     });
   } catch (err) {
     next(err);

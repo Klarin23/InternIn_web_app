@@ -1,4 +1,5 @@
 "use client";
+import { formatDateHeureLocale } from "@/lib/entretiens/planification";
 
 import { FiVideo, FiPhone, FiMapPin, FiUser } from "react-icons/fi";
 
@@ -15,7 +16,7 @@ const MODE_LABELS = { video: "Vidéo", telephone: "Téléphone", presentiel: "Pr
 
 export default function EntretienTodayCard({ entretien, nomAffiche, sousTitre }) {
   const ModeIcon = MODE_ICONS[entretien.modeEntretien];
-  const heure = new Date(entretien.dateHeure).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const heure = formatDateHeureLocale(entretien.dateHeure, "fr", { withTime: true }).split(" à ").pop() || "—";
 
   return (
     <div className="rounded-md border-l-4 border-primary bg-card p-5 shadow-sm">

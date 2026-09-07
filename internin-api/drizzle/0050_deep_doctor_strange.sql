@@ -1,0 +1,1 @@
+ALTER TABLE "litiges_reclamations" ADD CONSTRAINT "litiges_reclamations_reference_unique" UNIQUE("reference");

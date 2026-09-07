@@ -1,7 +1,9 @@
 // Upload de fichiers : cas particulier du client API, car il envoie du
 // FormData (pas du JSON) — on ne réutilise donc pas apiFetch ici.
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+//
+// Étape 2/4 : passe par le proxy Next.js ("/api/...") comme apiFetch,
+// au lieu de l'URL Railway en direct — voir lib/api/client.js.
+const API_URL = "/api";
 
 export async function uploadDocumentRequest(file, type, token) {
   const formData = new FormData();

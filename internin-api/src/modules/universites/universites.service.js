@@ -589,27 +589,67 @@ export async function validerConvention(idUtilisateur, idConvention, valider) {
 // Génère (à chaque appel, pour rester à jour) un PDF récapitulatif de la
 // convention et renvoie son URL absolue — même approche que le certificat
 // de stage (utils/certificatPdf.js).
-export async function genererPdfConvention(idUtilisateur, idConvention) {
+export async function genererPdfConvention(idUtilisateur, idConvention, lang = "fr") {
   const universite = await getUniversiteProfile(idUtilisateur);
   const c = await getConventionUniversiteOuThrow(
     universite.idUniversite,
     idConvention,
   );
 
-  const cheminRelatif = genererConventionPdf({
-    idConvention: c.idConvention,
-    numero: c.numero,
-    nomStagiaire: `${c.prenomStagiaire} ${c.nomStagiaire}`,
-    nomEntreprise: c.nomEntreprise,
-    intitulePoste: c.intitulePoste,
-    dureeStage: c.dureeStage,
-    volumeHoraireHebdo: c.volumeHoraireHebdo,
-    dateDebut: c.dateDebut,
-    accepteeParEntreprise: c.accepteeParEntreprise,
-    accepteeParStagiaire: c.accepteeParStagiaire,
-    approuveeParPlateforme: c.approuveeParPlateforme,
-    valideeParUniversite: c.valideeParUniversite,
-  });
+  const numeroAffiche =
+    c.numero != null
+      ? `CS-${new Date().getFullYear()}-${String(c.numero).padStart(5, "0")}`
+      : null;
+
+  const cheminRelatif = genererConventionPdf(
+    {
+      idConvention: c.idConvention,
+      numero: c.numero,
+      numeroAffiche,
+      dateGeneration: new Date(),
+      statut: null,
+      stagiaire: {
+        nomComplet: `${c.prenomStagiaire} ${c.nomStagiaire}`,
+        email: null,
+        telephone: null,
+        etablissement: null,
+        formationDiplome: null,
+        anneeEtude: null,
+      },
+      entreprise: {
+        nom: c.nomEntreprise,
+        secteur: null,
+        adresseComplete: null,
+        pays: null,
+      },
+      superviseur: null,
+      stage: {
+        intitulePoste: c.intitulePoste,
+        objectifsApprentissage: null,
+        dateDebut: c.dateDebut,
+        dureeStage: c.dureeStage,
+        volumeHoraireHebdo: c.volumeHoraireHebdo,
+        modeTravail: null,
+        remunerationType: null,
+      },
+      missions: [],
+      signatures: {
+        entreprise: !!c.accepteeParEntreprise,
+        stagiaire: !!c.accepteeParStagiaire,
+        plateforme: !!c.approuveeParPlateforme,
+        dateEntreprise: null,
+        dateStagiaire: null,
+        datePlateforme: null,
+      },
+      historique: {
+        dateCreation: c.dateCreation || null,
+        dateAcceptationEntreprise: null,
+        dateValidationPlateforme: null,
+        dateAcceptationStagiaire: null,
+      },
+    },
+    lang === "en" ? "en" : "fr",
+  );
 
   const base = process.env.API_PUBLIC_URL || "http://localhost:4000";
   return { url: `${base}/uploads/${cheminRelatif}` };
@@ -691,7 +731,24 @@ export async function getStatistiquesUniversite(idUtilisateur) {
 }
 
 export async function completeUniversiteOnboarding(idUtilisateur, payload) {
+  const autoVerif = await isAutoValidationEnabled(ELEMENT_UNIVERSITES);
   return db.transaction(async (tx) => {
+    // Défense en profondeur : le service vérifie lui-même le rôle attendu,
+    // même si la route est normalement protégée par requireRole("universite").
+    const [utilisateur] = await tx
+      .select({ typeUtilisateur: utilisateurs.typeUtilisateur })
+      .from(utilisateurs)
+      .where(eq(utilisateurs.idUtilisateur, idUtilisateur))
+      .limit(1);
+
+    if (!utilisateur || utilisateur.typeUtilisateur !== "universite") {
+      const err = new Error(
+        "Seuls les comptes université peuvent compléter cet onboarding",
+      );
+      err.status = 403;
+      throw err;
+    }
+
     const [universite] = await tx
       .insert(universites)
       .values({
@@ -711,9 +768,8 @@ export async function completeUniversiteOnboarding(idUtilisateur, payload) {
           ? Number(payload.heuresRecommandeesSemaine)
           : null,
         nomCoordinateurStage: payload.nomCoordinateurStage || null,
-        // Comme pour les entreprises, un administrateur devra vérifier
-        // l'établissement avant qu'il puisse inviter des étudiants
-        statutVerification: "en_attente",
+        statutVerification: autoVerif ? "verifiee" : "en_attente",
+        dateVerification: autoVerif ? new Date() : null,
       })
       .returning();
 

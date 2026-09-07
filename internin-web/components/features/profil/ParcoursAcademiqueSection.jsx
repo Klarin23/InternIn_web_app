@@ -1,23 +1,20 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { FiBookOpen } from "react-icons/fi";
 import ProfilSectionCard from "./ProfilSectionCard";
 
-const LABELS_TYPE_FORMATION = {
-  universitaire: "Universitaire",
-  professionnelle: "Formation professionnelle",
-  autre: "Autre",
-};
-
 export default function ParcoursAcademiqueSection({ profil }) {
+  const { t } = useTranslation();
   const formations = profil.formations || [];
   const plusieurs = formations.length > 1;
 
   return (
-    <ProfilSectionCard title="Parcours académique" icon={FiBookOpen}>
+    <ProfilSectionCard title={t("stagiaireSpace.profile.academic")} icon={FiBookOpen}>
       {formations.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Aucune formation renseignée.
+          {t("stagiaireSpace.profile.academicSection.empty")}
         </p>
       ) : (
         <div className={plusieurs ? "relative space-y-5 pl-5" : "space-y-4"}>
@@ -39,9 +36,9 @@ export default function ParcoursAcademiqueSection({ profil }) {
                   {f.departement ? ` — ${f.departement}` : ""}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {LABELS_TYPE_FORMATION[f.typeFormation] || f.typeFormation}
-                  {f.anneeEtude ? ` · Année ${f.anneeEtude}` : ""}
-                  {f.anneeObtention ? ` · Obtention ${f.anneeObtention}` : ""}
+                  {t(`stagiaireSpace.profile.formationTypes.${f.typeFormation}`) || f.typeFormation}
+                  {f.anneeEtude ? ` · ${t("stagiaireSpace.profile.academicSection.year")} ${f.anneeEtude}` : ""}
+                  {f.anneeObtention ? ` · ${t("stagiaireSpace.profile.academicSection.obtained")} ${f.anneeObtention}` : ""}
                 </p>
               </div>
             </div>

@@ -2,7 +2,7 @@
 // si une étape échoue (ex. contrainte violée), tout est annulé — on ne
 // veut jamais un profil stagiaire à moitié créé en base.
 
-import { eq, getTableColumns, and, ilike } from "drizzle-orm";
+import { eq, getTableColumns, and, ilike, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
   utilisateurs,
@@ -23,6 +23,32 @@ import {
 async function resoudreCompetences(tx, liste = []) {
   const resultat = [];
 
+  // Prend tous les verrous de noms dans un ordre déterministe pour
+  // éviter les deadlocks lorsque deux requêtes créent plusieurs
+  // compétences personnalisées dans des ordres différents.
+  const nomsPersonnalises = [
+    ...new Set(
+      liste
+        .filter(
+          (c) =>
+            c?.isCustom ||
+            (typeof c?.idCompetence === "string" &&
+              c.idCompetence.startsWith("custom:")) ||
+            (!c?.idCompetence && c?.nom),
+        )
+        .map((c) => (c?.nom || "").trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  ].sort();
+
+  for (const nomNormalise of nomsPersonnalises) {
+    await tx.execute(sql`
+      SELECT pg_advisory_xact_lock(
+        hashtextextended(${nomNormalise}, 0)
+      )
+    `);
+  }
+
   for (const c of liste) {
     const niveau = c.niveau || "intermediaire";
     const estCustom =
@@ -42,7 +68,7 @@ async function resoudreCompetences(tx, liste = []) {
     const [existante] = await tx
       .select()
       .from(competences)
-      .where(ilike(competences.nom, nom))
+      .where(sql`lower(trim(${competences.nom})) = lower(trim(${nom}))`)
       .limit(1);
 
     if (existante) {
@@ -102,9 +128,58 @@ function calculerScoreCompletude(profil) {
   return Math.round((nombreComplets / criteres.length) * 100);
 }
 
-async function synchroniserStatutCompteStagiaire(tx, idUtilisateur, profil) {
-  const score = calculerScoreCompletude(profil);
+async function synchroniserStatutCompteStagiaire(tx, idUtilisateur, profilHint = null) {
+  // Toujours recalculer à partir des données RÉELLES en base (pas du payload partiel).
+  // C'est la cause principale du statut qui restait "inactif" alors que le
+  // frontend affichait 100 % : le calcul utilisait un objet incomplet.
+  const [stagiaire] = await tx
+    .select()
+    .from(stagiaires)
+    .where(eq(stagiaires.idUtilisateur, idUtilisateur));
 
+  if (!stagiaire) {
+    return { score: 0, statutCompte: "inactif" };
+  }
+
+  const idStagiaire = stagiaire.idStagiaire;
+
+  const [formationsData, competencesData, centresData] = await Promise.all([
+    tx.select().from(formations).where(eq(formations.idStagiaire, idStagiaire)),
+    tx
+      .select()
+      .from(stagiaireCompetences)
+      .where(eq(stagiaireCompetences.idStagiaire, idStagiaire)),
+    tx
+      .select()
+      .from(stagiaireCentresInteret)
+      .where(eq(stagiaireCentresInteret.idStagiaire, idStagiaire)),
+  ]);
+
+  const profilComplet = {
+    ...stagiaire,
+    // si un hint vient d'être écrit dans la même transaction, on le privilégie
+    ...(profilHint || {}),
+    formations:
+      (profilHint && Array.isArray(profilHint.formations) && profilHint.formations.length > 0
+        ? profilHint.formations
+        : formationsData) || [],
+    competences:
+      (profilHint && Array.isArray(profilHint.competences) && profilHint.competences.length > 0
+        ? profilHint.competences
+        : competencesData) || [],
+    centresInteret:
+      (profilHint && Array.isArray(profilHint.centresInteret) && profilHint.centresInteret.length > 0
+        ? profilHint.centresInteret
+        : centresData) || [],
+    secteursRecherches: stagiaire.secteursRecherches || [],
+    villesRecherchees: stagiaire.villesRecherchees || [],
+    photoProfilUrl: stagiaire.photoProfilUrl,
+    titreProfessionnel: stagiaire.titreProfessionnel,
+    presentation: stagiaire.presentation,
+    cvUrl: stagiaire.cvUrl,
+  };
+
+  const score = calculerScoreCompletude(profilComplet);
   const nouveauStatut = score >= 100 ? "actif" : "inactif";
 
   await tx
@@ -112,7 +187,7 @@ async function synchroniserStatutCompteStagiaire(tx, idUtilisateur, profil) {
     .set({
       scoreCompletudeProfil: score,
     })
-    .where(eq(stagiaires.idStagiaire, profil.idStagiaire));
+    .where(eq(stagiaires.idStagiaire, idStagiaire));
 
   await tx
     .update(utilisateurs)
@@ -373,8 +448,42 @@ export async function getStagiaireProfile(idUtilisateur) {
     db.select().from(formations).where(eq(formations.idStagiaire, idStagiaire)),
   ]);
 
+  const profilPourScore = {
+    ...stagiaire,
+    competences: competencesData,
+    centresInteret: centresData,
+    formations: formationsData,
+    secteursRecherches: stagiaire.secteursRecherches || [],
+    villesRecherchees: stagiaire.villesRecherchees || [],
+  };
+
+  const scoreCalcule = calculerScoreCompletude(profilPourScore);
+
+  // Auto-réparation : si le profil est complet mais le statut en base est
+  // encore "inactif" (bug ancien calcul), on synchronise immédiatement.
+  let statutCompte = stagiaire.statutCompte;
+  if (scoreCalcule >= 100 && statutCompte !== "actif" && statutCompte !== "suspendu") {
+    await db
+      .update(stagiaires)
+      .set({ scoreCompletudeProfil: scoreCalcule })
+      .where(eq(stagiaires.idStagiaire, idStagiaire));
+    await db
+      .update(utilisateurs)
+      .set({ statutCompte: "actif", dateMaj: new Date() })
+      .where(eq(utilisateurs.idUtilisateur, idUtilisateur));
+    statutCompte = "actif";
+  } else if (stagiaire.scoreCompletudeProfil !== scoreCalcule) {
+    // garder le score affiché cohérent
+    await db
+      .update(stagiaires)
+      .set({ scoreCompletudeProfil: scoreCalcule })
+      .where(eq(stagiaires.idStagiaire, idStagiaire));
+  }
+
   return {
     ...stagiaire,
+    scoreCompletudeProfil: scoreCalcule,
+    statutCompte,
     competences: competencesData,
     centresInteret: centresData,
     objectifsDeveloppement: objectifsData.map((o) => o.nom),
@@ -406,12 +515,16 @@ export async function updateStagiaireProfile(idUtilisateur, payload) {
     const idStagiaire = stagiaireExistant.idStagiaire;
 
     // Champs simples de la table stagiaires (on isole les champs relationnels)
+    // formations est une table séparée : ne pas la passer à .set()
     const {
       competences: nouvellesCompetences,
       centresInteret: nouveauxCentresInteret,
+      formations: nouvellesFormations,
       joursDisponibles,
       heureDebutDisponible,
       heureFinDisponible,
+      // Confidentialité : uniquement via PATCH /stagiaires/me/privacy
+      profilVisibleEntreprises: _ignorePrivacy,
       ...champsDirects
     } = payload;
 
@@ -462,6 +575,27 @@ export async function updateStagiaireProfile(idUtilisateur, payload) {
       }
     }
 
+    // Formations : remplacement complet si fourni
+    if (nouvellesFormations) {
+      await tx
+        .delete(formations)
+        .where(eq(formations.idStagiaire, idStagiaire));
+      if (nouvellesFormations.length > 0) {
+        await tx.insert(formations).values(
+          nouvellesFormations.map((f) => ({
+            idStagiaire,
+            typeFormation: f.typeFormation,
+            nomUniversite: f.nomUniversite,
+            faculte: f.faculte || null,
+            departement: f.departement || null,
+            diplome: f.diplome,
+            anneeEtude: f.anneeEtude ? Number(f.anneeEtude) : null,
+            anneeObtention: f.anneeObtention ? Number(f.anneeObtention) : null,
+          })),
+        );
+      }
+    }
+
     if (joursDisponibles) {
       await tx
         .delete(disponibilitesStagiaire)
@@ -478,52 +612,17 @@ export async function updateStagiaireProfile(idUtilisateur, payload) {
       }
     }
 
-    // Recharger le profil complet après toutes les modifications.
-    // Le statut du compte dépend maintenant réellement de son niveau
-    // de complétude.
-
+    // Recalcul du score / statut à partir des données réellement en base
     const [profilFinal] = await tx
       .select()
       .from(stagiaires)
       .where(eq(stagiaires.idStagiaire, idStagiaire));
 
-    const [formationsFinales] = await Promise.all([
-      tx
-        .select()
-        .from(formations)
-        .where(eq(formations.idStagiaire, idStagiaire)),
-    ]);
-
-    const competencesFinales = await tx
-      .select()
-      .from(stagiaireCompetences)
-      .where(eq(stagiaireCompetences.idStagiaire, idStagiaire));
-
-    const centresInteretFinales = await tx
-      .select()
-      .from(stagiaireCentresInteret)
-      .where(eq(stagiaireCentresInteret.idStagiaire, idStagiaire));
-
-        const profilPourCalcul = {
-          ...stagiaireMaj,
-          formations: payload.formations || stagiaireMaj.formations || [],
-          competences: nouvellesCompetences ?? [],
-          centresInteret: nouveauxCentresInteret ?? [],
-          secteursRecherches:
-            payload.secteursRecherches ?? stagiaireMaj.secteursRecherches ?? [],
-          villesRecherchees:
-            payload.villesRecherchees ?? stagiaireMaj.villesRecherchees ?? [],
-          photoProfilUrl: stagiaireMaj.photoProfilUrl,
-          titreProfessionnel: stagiaireMaj.titreProfessionnel,
-          presentation: stagiaireMaj.presentation,
-          cvUrl: stagiaireMaj.cvUrl,
-        };
-
-        const { score, statutCompte } = await synchroniserStatutCompteStagiaire(
-          tx,
-          idUtilisateur,
-          profilPourCalcul,
-        );
+    const { score, statutCompte } = await synchroniserStatutCompteStagiaire(
+      tx,
+      idUtilisateur,
+      null, // force lecture DB (évite le payload partiel)
+    );
 
     return {
       ...profilFinal,
@@ -548,39 +647,10 @@ export async function updateStagiairePhoto(idUtilisateur, photoProfilUrl) {
       throw err;
     }
 
-    const formationsFinales = await tx
-      .select()
-      .from(formations)
-      .where(eq(formations.idStagiaire, stagiaire.idStagiaire));
-
-    const competencesFinales = await tx
-      .select()
-      .from(stagiaireCompetences)
-      .where(eq(stagiaireCompetences.idStagiaire, stagiaire.idStagiaire));
-
-    const centresInteretFinales = await tx
-      .select()
-      .from(stagiaireCentresInteret)
-      .where(eq(stagiaireCentresInteret.idStagiaire, stagiaire.idStagiaire));
-
-    const profilPourCalcul = {
-      ...stagiaire,
-
-      formations: formationsFinales,
-
-      competences: competencesFinales,
-
-      centresInteret: centresInteretFinales,
-
-      secteursRecherches: stagiaire.secteursRecherches || [],
-
-      villesRecherchees: stagiaire.villesRecherchees || [],
-    };
-
     const { score, statutCompte } = await synchroniserStatutCompteStagiaire(
       tx,
       idUtilisateur,
-      profilPourCalcul,
+      null,
     );
 
     return {
@@ -589,4 +659,35 @@ export async function updateStagiairePhoto(idUtilisateur, photoProfilUrl) {
       statutCompte,
     };
   });
+}
+
+/**
+ * Met à jour uniquement la visibilité professionnelle du stagiaire connecté.
+ * L'identité est dérivée de idUtilisateur (JWT) — jamais d'un id fourni par le client.
+ */
+export async function updateStagiairePrivacy(idUtilisateur, { profilVisibleEntreprises }) {
+  const [stagiaire] = await db
+    .select({ idStagiaire: stagiaires.idStagiaire })
+    .from(stagiaires)
+    .where(eq(stagiaires.idUtilisateur, idUtilisateur))
+    .limit(1);
+
+  if (!stagiaire) {
+    const err = new Error("Profil stagiaire introuvable");
+    err.status = 404;
+    throw err;
+  }
+
+  const [maj] = await db
+    .update(stagiaires)
+    .set({ profilVisibleEntreprises: Boolean(profilVisibleEntreprises) })
+    .where(eq(stagiaires.idStagiaire, stagiaire.idStagiaire))
+    .returning({
+      profilVisibleEntreprises: stagiaires.profilVisibleEntreprises,
+      idStagiaire: stagiaires.idStagiaire,
+    });
+
+  return {
+    profilVisibleEntreprises: maj.profilVisibleEntreprises,
+  };
 }

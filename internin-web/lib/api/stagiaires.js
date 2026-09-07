@@ -1,7 +1,5 @@
 import { apiFetch } from "./client";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-
 export function completeOnboardingRequest(payload, token) {
   return apiFetch("/stagiaires/onboarding", {
     method: "POST",
@@ -24,6 +22,11 @@ export function updateStagiaireProfileRequest(payload, token) {
 
 // Upload de la photo de profil : FormData, donc pas apiFetch (comme
 // uploadDocumentRequest dans lib/api/documents.js).
+//
+// Étape 2/4 : passe par le proxy Next.js ("/api/...") comme apiFetch,
+// au lieu de l'URL Railway en direct — voir lib/api/client.js.
+const API_URL = "/api";
+
 export async function uploadPhotoProfilRequest(file, token) {
   const formData = new FormData();
   formData.append("file", file);
@@ -41,4 +44,12 @@ export async function uploadPhotoProfilRequest(file, token) {
   }
 
   return data;
+}
+
+export function updateStagiairePrivacyRequest(payload, token) {
+  return apiFetch("/stagiaires/me/privacy", {
+    method: "PATCH",
+    body: payload,
+    token,
+  });
 }

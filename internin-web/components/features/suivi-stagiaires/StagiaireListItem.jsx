@@ -9,6 +9,7 @@ import {
   getStatutAffichage,
   STATUT_CONFIG,
 } from "./stageUtils";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function StagiaireListItem({
   stage,
@@ -17,6 +18,7 @@ export default function StagiaireListItem({
   onClick,
   onStatutCalcule,
 }) {
+  const {t} = useTranslation()
   const { data: evaluations } = useEvaluations(stage.idStage);
   const moyenne = getMoyenneDerniereEvaluation(evaluations);
   const statutAffichage = getStatutAffichage(stage, moyenne);
@@ -43,7 +45,7 @@ export default function StagiaireListItem({
       <div className="mb-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <span
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
             style={{ backgroundColor: couleur }}
           >
             {stage.prenom?.charAt(0)}
@@ -59,14 +61,14 @@ export default function StagiaireListItem({
           </div>
         </div>
         <span
-          className={`flex-shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${config.color}`}
+          className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${config.color}`}
         >
-          {config.label}
+          {t(config.labelKey)}
         </span>
       </div>
 
       <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
-        <span>Avancement</span>
+        <span>{t("suivi.progress")}</span>
         <span className="font-semibold text-foreground">{avancement}%</span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-muted">

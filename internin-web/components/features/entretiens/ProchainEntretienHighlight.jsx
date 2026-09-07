@@ -80,7 +80,7 @@ export default function ProchainEntretienHighlight({ entretien, maintenant, onVo
 
       {compteARebours && (
         <p className="mt-2 text-xs font-medium text-white/70">
-          ⏱ {compteARebours}
+          {compteARebours}
         </p>
       )}
 

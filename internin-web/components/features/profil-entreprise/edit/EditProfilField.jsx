@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
@@ -16,12 +17,13 @@ export default function EditProfilField({
   className,
   children,
 }) {
+  const { t } = useTranslation();
   return (
     <div className={cn("space-y-1.5", className)}>
       <div className="flex items-baseline justify-between gap-2">
         <Label htmlFor={id}>{label}</Label>
         {typeof charCount === "number" && (
-          <span className="text-xs text-muted-foreground">{charCount} caractères</span>
+          <span className="text-xs text-muted-foreground">{t("profilEntreprise.edit.characters", { count: charCount })}</span>
         )}
       </div>
       {children}

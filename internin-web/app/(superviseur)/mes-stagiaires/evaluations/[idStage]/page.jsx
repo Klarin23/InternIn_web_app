@@ -22,64 +22,66 @@ import {
   useModifierEvaluation,
 } from "@/lib/queries/useSuperviseur";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
-const CRITERES = [
+const CRITERES_DEF = [
   {
     key: "noteAssiduite",
-    label: "Assiduité",
-    description: "Respect des horaires, présence et ponctualité",
+    labelKey: "mesStagiaires.evaluation.criteriaLabels.assiduite",
+    descriptionKey: "mesStagiaires.evaluation.criteriaDesc.assiduite",
   },
   {
     key: "noteCommunication",
-    label: "Communication",
-    description: "Clarté des échanges oraux et écrits avec l'équipe",
+    labelKey: "mesStagiaires.evaluation.criteriaLabels.communication",
+    descriptionKey: "mesStagiaires.evaluation.criteriaDesc.communication",
   },
   {
     key: "noteInitiative",
-    label: "Autonomie / Initiative",
-    description: "Capacité à avancer seul et à proposer des idées",
+    labelKey: "mesStagiaires.evaluation.criteriaLabels.initiative",
+    descriptionKey: "mesStagiaires.evaluation.criteriaDesc.initiative",
   },
   {
     key: "noteProfessionnalisme",
-    label: "Professionnalisme",
-    description: "Attitude, sérieux et posture en entreprise",
+    labelKey: "mesStagiaires.evaluation.criteriaLabels.professionalism",
+    descriptionKey: "mesStagiaires.evaluation.criteriaDesc.professionalism",
   },
   {
     key: "noteTravailEquipe",
-    label: "Travail d'équipe",
-    description: "Collaboration, entraide et esprit collectif",
+    labelKey: "mesStagiaires.evaluation.criteriaLabels.teamwork",
+    descriptionKey: "mesStagiaires.evaluation.criteriaDesc.teamwork",
   },
   {
     key: "notePerformanceTechnique",
-    label: "Progression / Objectifs atteints",
-    description: "Qualité du travail et atteinte des objectifs",
+    labelKey: "mesStagiaires.evaluation.criteriaLabels.progression",
+    descriptionKey: "mesStagiaires.evaluation.criteriaDesc.performance",
   },
 ];
 
-const FEEDBACK_NOTE = {
-  1: "Insuffisant",
-  2: "À renforcer",
-  3: "Correct",
-  4: "Très bonne maîtrise",
-  5: "Excellent",
+const FEEDBACK_NOTE_KEYS = {
+  1: "mesStagiaires.evaluation.feedback.1",
+  2: "mesStagiaires.evaluation.feedback.2",
+  3: "mesStagiaires.evaluation.feedback.3",
+  4: "mesStagiaires.evaluation.feedback.4",
+  5: "mesStagiaires.evaluation.feedback.5",
 };
 
-function labelNoteGlobale(moyenne) {
-  if (moyenne >= 4.5) return "Excellente évaluation";
-  if (moyenne >= 3.5) return "Très bonne évaluation";
-  if (moyenne >= 2.5) return "Évaluation correcte";
-  if (moyenne >= 1.5) return "À renforcer";
-  return "Points d'attention";
+function labelNoteGlobale(moyenne, t) {
+  if (moyenne >= 4.5) return t("mesStagiaires.evaluation.levels.excellent");
+  if (moyenne >= 3.5) return t("mesStagiaires.evaluation.levels.good");
+  if (moyenne >= 2.5) return t("mesStagiaires.evaluation.levels.fair");
+  if (moyenne >= 1.5) return t("mesStagiaires.evaluation.levels.needsWork");
+  return t("mesStagiaires.evaluation.levels.attention");
 }
 
-function labelStatutStage(statut) {
-  if (statut === "actif") return "Stage actif";
-  if (statut === "termine") return "Stage terminé";
-  if (statut === "suspendu") return "Stage suspendu";
-  return statut || "Stage";
+function labelStatutStage(statut, t) {
+  if (statut === "actif") return t("mesStagiaires.evaluation.stageActive");
+  if (statut === "termine") return t("mesStagiaires.evaluation.stageCompleted");
+  if (statut === "suspendu") return t("mesStagiaires.evaluation.stageSuspended");
+  return statut || t("mesStagiaires.evaluation.stageFallback");
 }
 
 function Etoiles({ valeur, onChange, lectureSeule }) {
+  const { t } = useTranslation();
   const [hover, setHover] = useState(0);
   const affiche = hover || valeur;
 
@@ -89,7 +91,7 @@ function Etoiles({ valeur, onChange, lectureSeule }) {
         className="flex gap-0.5"
         onMouseLeave={() => !lectureSeule && setHover(0)}
         role="group"
-        aria-label="Notation sur 5"
+        aria-label={t("mesStagiaires.evaluation.ratingAria")}
       >
         {[1, 2, 3, 4, 5].map((n) => {
           const active = n <= affiche;
@@ -105,7 +107,7 @@ function Etoiles({ valeur, onChange, lectureSeule }) {
                 !lectureSeule && "hover:scale-110 active:scale-95",
                 lectureSeule && "cursor-default opacity-90",
               )}
-              aria-label={`${n} sur 5`}
+              aria-label={t("mesStagiaires.evaluation.starsAria", { n })}
               aria-pressed={valeur >= n}
             >
               <FiStar
@@ -124,14 +126,14 @@ function Etoiles({ valeur, onChange, lectureSeule }) {
         {valeur > 0 ? (
           <>
             {valeur} / 5
-            {FEEDBACK_NOTE[valeur] && (
+            {FEEDBACK_NOTE_KEYS[valeur] && (
               <span className="ml-1.5 font-medium text-foreground/80">
-                · {FEEDBACK_NOTE[valeur]}
+                · {t(FEEDBACK_NOTE_KEYS[valeur])}
               </span>
             )}
           </>
         ) : (
-          "Non noté"
+          t("mesStagiaires.evaluation.notGraded")
         )}
       </span>
     </div>
@@ -156,10 +158,20 @@ function initials(prenom, nom) {
 // dès que les données arrivent (évite setState dans un useEffect).
 // -----------------------------------------------------------------------
 export default function FormulaireEvaluationPage() {
+  const { t } = useTranslation();
   const { evaluationsPath, basePath } = useSupervisionContext();
   const params = useParams();
   const searchParams = useSearchParams();
   const idStage = params.idStage;
+  const CRITERES = useMemo(
+    () =>
+      CRITERES_DEF.map((c) => ({
+        key: c.key,
+        label: t(c.labelKey),
+        description: t(c.descriptionKey),
+      })),
+    [t],
+  );
   const idEvaluation = searchParams.get("idEvaluation");
   const numeroSemaineDepart = searchParams.get("numeroSemaine");
 
@@ -174,13 +186,13 @@ export default function FormulaireEvaluationPage() {
       <>
         <AppHeader
           breadcrumb={[
-            { label: "Évaluations", href: evaluationsPath },
+            { label: t("mesStagiaires.evaluation.listTitle"), href: evaluationsPath },
             { label: "..." },
           ]}
         />
         <div className="flex items-center justify-center gap-2 py-20 text-muted-foreground">
           <FiLoader className="h-5 w-5 animate-spin" />
-          Chargement de l&apos;évaluation…
+          {t("mesStagiaires.evaluation.loadingDetail")}
         </div>
       </>
     );
@@ -211,6 +223,16 @@ function Formulaire({
   stage,
   formation,
 }) {
+  const { t, locale } = useTranslation();
+  const CRITERES = useMemo(
+    () =>
+      CRITERES_DEF.map((c) => ({
+        key: c.key,
+        label: t(c.labelKey),
+        description: t(c.descriptionKey),
+      })),
+    [t],
+  );
   const { evaluationsPath } = useSupervisionContext();
   const router = useRouter();
   const creer = useCreerEvaluation(idStage);
@@ -249,7 +271,7 @@ function Formulaire({
   async function enregistrer(statutCible) {
     setErreur("");
     if (statutCible === "soumise" && !notesCompletes) {
-      setErreur("Merci de noter les 6 critères avant de soumettre.");
+      setErreur(t("mesStagiaires.evaluation.rateAllCriteria"));
       return;
     }
     const payload = {
@@ -269,7 +291,7 @@ function Formulaire({
       }
       router.push(evaluationsPath);
     } catch (err) {
-      setErreur(err?.message || "Une erreur est survenue, merci de réessayer.");
+      setErreur(err?.message || t("mesStagiaires.evaluation.errorRetry"));
     }
   }
 
@@ -301,7 +323,7 @@ function Formulaire({
     <>
       <AppHeader
         breadcrumb={[
-          { label: "Évaluations", href: evaluationsPath },
+          { label: t("mesStagiaires.evaluation.listTitle"), href: evaluationsPath },
           {
             label: stagiaire
               ? `${stagiaire.prenom} ${stagiaire.nom}`
@@ -318,7 +340,7 @@ function Formulaire({
           className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card px-3 py-1.5 text-sm text-muted-foreground shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:text-foreground active:scale-[0.97] motion-reduce:transform-none"
         >
           <FiArrowLeft className="h-4 w-4" />
-          Retour aux évaluations
+          {t("mesStagiaires.evaluation.backToList")}
         </button>
 
         {/* Header stagiaire */}
@@ -346,11 +368,11 @@ function Formulaire({
                   <h1 className="truncate text-xl font-bold tracking-tight text-foreground sm:text-2xl">
                     {stagiaire
                       ? `${stagiaire.prenom} ${stagiaire.nom}`
-                      : "Stagiaire"}
+                      : t("mesStagiaires.evaluation.internFallback")}
                   </h1>
                   {semaineLabel && (
                     <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-primary">
-                      Semaine {String(semaineLabel).padStart(2, "0")}
+                      {t("mesStagiaires.evaluation.week", { n: String(String(semaineLabel).padStart(2, "0")).padStart(2, "0") })}
                     </span>
                   )}
                 </div>
@@ -363,18 +385,18 @@ function Formulaire({
                   {stage?.statut && (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-400">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      {labelStatutStage(stage.statut)}
+                      {labelStatutStage(stage.statut, t)}
                     </span>
                   )}
                   {dejaSoumise ? (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-400">
                       <FiCheck className="h-3 w-3" />
-                      Évaluation soumise
+                      {t("mesStagiaires.evaluation.submitted")}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-400">
                       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
-                      Évaluation en cours
+                      {t("mesStagiaires.evaluation.inProgress")}
                     </span>
                   )}
                   {dejaSoumise && evaluationExistante?.dateSoumission && (
@@ -382,7 +404,7 @@ function Formulaire({
                       le{" "}
                       {new Date(
                         evaluationExistante.dateSoumission,
-                      ).toLocaleDateString("fr-FR")}
+                      ).toLocaleDateString(locale === "en" ? "en-GB" : "fr-FR")}
                     </span>
                   )}
                 </div>
@@ -443,7 +465,7 @@ function Formulaire({
                   htmlFor="commentaire-superviseur"
                   className="text-sm font-semibold text-foreground"
                 >
-                  Commentaire du superviseur
+                  {t("mesStagiaires.evaluation.supervisorComment")}
                 </label>
                 <span
                   className={cn(
@@ -453,7 +475,7 @@ function Formulaire({
                       : "text-muted-foreground",
                   )}
                 >
-                  {commentaires.length} car.
+                  {t("mesStagiaires.evaluation.chars", { n: commentaires.length })}
                 </span>
               </div>
               <textarea
@@ -462,7 +484,7 @@ function Formulaire({
                 onChange={(e) => setCommentaires(e.target.value)}
                 disabled={dejaSoumise}
                 rows={5}
-                placeholder="Observations de la semaine : points forts, axes de progression, contexte…"
+                placeholder={t("mesStagiaires.evaluation.commentPlaceholder")}
                 className={cn(
                   "w-full resize-y rounded-xl border bg-background px-3.5 py-3 text-sm text-foreground placeholder:text-muted-foreground transition-all duration-200",
                   "focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
@@ -487,11 +509,9 @@ function Formulaire({
             <div className="animate-in fade-in slide-in-from-bottom-2 rounded-2xl border border-border/70 bg-card p-5 shadow-sm duration-500 fill-mode-both motion-reduce:animate-none"
               style={{ animationDelay: "120ms" }}
             >
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Progression
-              </p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("mesStagiaires.evaluation.progress")}</p>
               <p className="mt-2 text-sm font-medium text-foreground">
-                {criteresRemplis} / {CRITERES.length} critères complétés
+                {t("mesStagiaires.evaluation.criteriaCompleted", { done: criteresRemplis, total: CRITERES.length })}
               </p>
               <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-muted">
                 <div
@@ -505,18 +525,18 @@ function Formulaire({
                 </span>
                 <span className="text-muted-foreground">
                   {notesCompletes
-                    ? "Prête à soumettre"
-                    : "En cours de saisie"}
+                    ? t("mesStagiaires.evaluation.readyToSubmit")
+                    : t("mesStagiaires.evaluation.editing")}
                 </span>
               </div>
             </div>
 
-            {/* Note globale */}
+            {/* {t("mesStagiaires.evaluation.overallScore")} */}
             <div className="animate-in fade-in zoom-in-95 rounded-2xl border border-border/70 bg-linear-to-br from-card to-primary/[0.04] p-5 shadow-sm duration-500 fill-mode-both motion-reduce:animate-none"
               style={{ animationDelay: "180ms" }}
             >
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Note globale
+                {t("mesStagiaires.evaluation.overallScore")}
               </p>
               {notesSelectionnees.length > 0 ? (
                 <>
@@ -541,12 +561,12 @@ function Formulaire({
                     ))}
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    {labelNoteGlobale(moyenne)}
+                    {labelNoteGlobale(moyenne, t)}
                   </p>
                 </>
               ) : (
                 <p className="mt-3 text-sm text-muted-foreground">
-                  La moyenne apparaîtra dès la première note.
+                  {t("mesStagiaires.evaluation.averageHint")}
                 </p>
               )}
             </div>
@@ -562,10 +582,10 @@ function Formulaire({
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-foreground">
-                      Analyse Coach IA
+                      {t("mesStagiaires.evaluation.coachTitle")}
                     </h3>
                     <p className="text-[11px] text-muted-foreground">
-                      Synthèse à partir des notes
+                      {t("mesStagiaires.evaluation.coachSubtitle")}
                     </p>
                   </div>
                 </div>
@@ -575,9 +595,7 @@ function Formulaire({
                       style={{ animationDelay: "320ms" }}
                     >
                       <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
-                        <FiTrendingUp className="h-3.5 w-3.5" />
-                        Forces
-                      </div>
+                        <FiTrendingUp className="h-3.5 w-3.5" />{t("mesStagiaires.evaluation.strengths")}</div>
                       {forces.length > 0 ? (
                         <ul className="space-y-1.5">
                           {forces.map((f, i) => (
@@ -603,7 +621,7 @@ function Formulaire({
                     >
                       <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
                         <FiAlertTriangle className="h-3.5 w-3.5" />
-                        Axes d&apos;amélioration
+                        {t("mesStagiaires.evaluation.improvements")}
                       </div>
                       {axes.length > 0 ? (
                         <ul className="space-y-1.5">
@@ -631,7 +649,7 @@ function Formulaire({
                     >
                       <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-400">
                         <FiZap className="h-3.5 w-3.5" />
-                        Actions recommandées
+                        {t("mesStagiaires.evaluation.actions")}
                       </div>
                       {actions.length > 0 ? (
                         <ul className="space-y-1.5">
@@ -667,10 +685,10 @@ function Formulaire({
               <span className="font-semibold tabular-nums text-foreground">
                 {criteresRemplis} / {CRITERES.length}
               </span>{" "}
-              critères complétés
+              {t("mesStagiaires.evaluation.criteriaCompleted", { done: criteresRemplis, total: CRITERES.length }).replace(String(criteresRemplis)+" / "+String(CRITERES.length)+" ", "").replace(/^\d+ \/ \d+ /, "")}
               {notesCompletes && (
                 <span className="ml-2 text-emerald-600 dark:text-emerald-400">
-                  · Prête à soumettre
+                  · {t("mesStagiaires.evaluation.readyToSubmit")}
                 </span>
               )}
             </p>
@@ -681,7 +699,7 @@ function Formulaire({
                 onClick={() => enregistrer("brouillon")}
                 className="flex-1 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-muted active:scale-[0.97] disabled:opacity-50 motion-reduce:transform-none sm:flex-none"
               >
-                Enregistrer comme brouillon
+                {t("mesStagiaires.evaluation.saveDraft")}
               </button>
               <button
                 type="button"
@@ -694,7 +712,7 @@ function Formulaire({
                 ) : (
                   <FiCheck className="h-4 w-4" />
                 )}
-                Soumettre l&apos;évaluation
+                {t("mesStagiaires.evaluation.submitEval")}
               </button>
             </div>
           </div>

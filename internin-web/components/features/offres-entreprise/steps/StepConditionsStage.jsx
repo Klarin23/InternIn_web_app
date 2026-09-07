@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { Controller, useWatch } from "react-hook-form";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiMinus, FiPlus, FiCalendar } from "react-icons/fi";
@@ -26,6 +28,7 @@ const todayIso = () => new Date().toISOString().split("T")[0];
 // garantit un re-render que dans le composant qui a appelé useForm() ;
 // `useWatch` est l'outil prévu par RHF pour un composant enfant.
 export default function StepConditionsStage({ control, register, errors }) {
+  const { t } = useTranslation();
   const remunerationType = useWatch({ control, name: "remunerationType" });
   const nombrePostes = useWatch({ control, name: "nombrePostes" }) || 1;
   const showMontant = REMUNERATION_OPTIONS.find(
@@ -41,7 +44,7 @@ export default function StepConditionsStage({ control, register, errors }) {
     >
       <div>
         <h3 className="text-sm font-semibold text-foreground">
-          Conditions du stage
+          {t("entrepriseSpace.offers.conditionsTitle")}
         </h3>
         <p className="mt-1 text-xs text-muted-foreground">
           Les informations pratiques que les candidats consultent en premier.
@@ -50,14 +53,14 @@ export default function StepConditionsStage({ control, register, errors }) {
 
       {/* Mode de travail — cartes sélectionnables (point 5) */}
       <div className="space-y-2">
-        <Label>Mode de travail</Label>
+        <Label>{t("entrepriseSpace.offers.workMode")}</Label>
         <Controller
           name="modeTravail"
           control={control}
           render={({ field }) => (
             <div
               role="radiogroup"
-              aria-label="Mode de travail"
+              aria-label={t("entrepriseSpace.offers.workMode")}
               className="grid grid-cols-1 gap-3 sm:grid-cols-3"
             >
               {MODE_TRAVAIL_OPTIONS.map((option) => (
@@ -66,7 +69,7 @@ export default function StepConditionsStage({ control, register, errors }) {
                   selected={field.value === option.value}
                   onSelect={() => field.onChange(option.value)}
                   icon={option.icon}
-                  label={option.label}
+                  label={t(option.labelKey)}
                   description={option.description}
                 />
               ))}
@@ -84,8 +87,8 @@ export default function StepConditionsStage({ control, register, errors }) {
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <div className="space-y-2">
           <Label>
-            Durée du stage{" "}
-            <span className="text-muted-foreground">(facultatif)</span>
+            {t("entrepriseSpace.offers.duration")}{" "}
+            <span className="text-muted-foreground">{t("entrepriseSpace.offers.optional")}</span>
           </Label>
           <Controller
             name="dureeStage"
@@ -93,7 +96,7 @@ export default function StepConditionsStage({ control, register, errors }) {
             render={({ field }) => (
               <div
                 role="radiogroup"
-                aria-label="Durée du stage"
+                aria-label={t("entrepriseSpace.offers.duration")}
                 className="inline-flex rounded-md border border-border bg-muted/40 p-1"
               >
                 {DUREE_OPTIONS.map((option) => (
@@ -110,7 +113,7 @@ export default function StepConditionsStage({ control, register, errors }) {
                         : "text-muted-foreground hover:text-foreground",
                     )}
                   >
-                    {option.label}
+                    {t(option.labelKey)}
                   </button>
                 ))}
               </div>
@@ -119,7 +122,7 @@ export default function StepConditionsStage({ control, register, errors }) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="nombrePostes">Nombre de postes</Label>
+          <Label htmlFor="nombrePostes">{t("entrepriseSpace.offers.positions")}</Label>
           <Controller
             name="nombrePostes"
             control={control}
@@ -127,7 +130,7 @@ export default function StepConditionsStage({ control, register, errors }) {
               <div className="inline-flex items-center gap-3 rounded-md border border-border px-3 py-1.5">
                 <button
                   type="button"
-                  aria-label="Réduire le nombre de postes"
+                  aria-label={t("entrepriseSpace.offers.decreasePositions")}
                   disabled={(field.value ?? 1) <= 1}
                   onClick={() =>
                     field.onChange(Math.max(1, (field.value ?? 1) - 1))
@@ -148,7 +151,7 @@ export default function StepConditionsStage({ control, register, errors }) {
                 />
                 <button
                   type="button"
-                  aria-label="Augmenter le nombre de postes"
+                  aria-label={t("entrepriseSpace.offers.increasePositions")}
                   onClick={() => field.onChange((field.value ?? 1) + 1)}
                   className="flex h-7 w-7 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted"
                 >
@@ -167,14 +170,14 @@ export default function StepConditionsStage({ control, register, errors }) {
 
       {/* Rémunération — cartes + montant conditionnel (point 7) */}
       <div className="space-y-2">
-        <Label>Rémunération</Label>
+        <Label>{t("entrepriseSpace.offers.remuneration")}</Label>
         <Controller
           name="remunerationType"
           control={control}
           render={({ field }) => (
             <div
               role="radiogroup"
-              aria-label="Type de rémunération"
+              aria-label={t("entrepriseSpace.offers.remunerationType")}
               className="grid grid-cols-2 gap-3 sm:grid-cols-3"
             >
               {REMUNERATION_OPTIONS.map((option) => (
@@ -183,7 +186,7 @@ export default function StepConditionsStage({ control, register, errors }) {
                   selected={field.value === option.value}
                   onSelect={() => field.onChange(option.value)}
                   icon={option.icon}
-                  label={option.label}
+                  label={t(option.labelKey)}
                   className="p-3"
                 />
               ))}
@@ -206,7 +209,7 @@ export default function StepConditionsStage({ control, register, errors }) {
               className="overflow-hidden"
             >
               <div className="space-y-1.5 pt-3">
-                <Label htmlFor="montantRemuneration">Montant</Label>
+                <Label htmlFor="montantRemuneration">{t("entrepriseSpace.offers.amount")}</Label>
                 <div className="relative w-full sm:w-56">
                   <Input
                     id="montantRemuneration"
@@ -229,8 +232,8 @@ export default function StepConditionsStage({ control, register, errors }) {
       {/* Date limite de candidature (point 8) */}
       <div className="space-y-1.5">
         <Label htmlFor="dateLimiteCandidature">
-          Date limite de candidature{" "}
-          <span className="text-muted-foreground">(facultatif)</span>
+          {t("entrepriseSpace.offers.applicationDeadline")}{" "}
+          <span className="text-muted-foreground">{t("entrepriseSpace.offers.optional")}</span>
         </Label>
         <div className="relative w-full sm:w-64">
           <FiCalendar className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -242,8 +245,9 @@ export default function StepConditionsStage({ control, register, errors }) {
             {...register("dateLimiteCandidature")}
           />
         </div>
-        <p className="text-xs text-muted-foreground">
-          📅 Les candidatures seront acceptées jusqu&apos;à cette date.
+        <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+          <FiCalendar className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+          {t("entrepriseSpace.offers.deadlineHint")}
         </p>
         {errors.dateLimiteCandidature && (
           <p className="text-xs text-destructive">

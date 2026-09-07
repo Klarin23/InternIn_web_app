@@ -29,24 +29,25 @@ import {
   useParametresEquipe,
   useUpdateParametresEquipe,
 } from "@/lib/queries/useEquipe";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
-const SECTIONS = [
+const SECTION_DEFS = [
   {
     id: "invitations",
-    label: "Invitations",
-    description: "Rôle par défaut et expiration",
+    labelKey: "equipe.parametres.sections.invitations",
+    descriptionKey: "equipe.parametres.sections.invitationsDescription",
     icon: FiMail,
   },
   {
     id: "approbation",
-    label: "Approbation",
-    description: "Validation des invitations",
+    labelKey: "equipe.parametres.sections.approbation",
+    descriptionKey: "equipe.parametres.sections.approbationDescription",
     icon: FiShield,
   },
   {
     id: "notifications",
-    label: "Notifications",
-    description: "Alertes administrateur",
+    labelKey: "equipe.parametres.sections.notifications",
+    descriptionKey: "equipe.parametres.sections.notificationsDescription",
     icon: FiBell,
   },
 ];
@@ -55,6 +56,7 @@ const SECTIONS = [
 // paramètres déjà chargés (le parent ne le monte qu'une fois les données
 // disponibles), donc pas besoin d'effet pour "synchroniser" l'état.
 function ParametresEquipeForm({ parametres }) {
+  const { t } = useTranslation();
   const mutation = useUpdateParametresEquipe();
   const [section, setSection] = useState("invitations");
 
@@ -89,7 +91,6 @@ function ParametresEquipeForm({ parametres }) {
   ]);
 
   function handleSubmit() {
-    if (!hasChanges || mutation.isPending) return;
     mutation.mutate({
       roleParDefautInvitation,
       expirationInvitationJours: Number(expirationInvitationJours),
@@ -98,27 +99,36 @@ function ParametresEquipeForm({ parametres }) {
     });
   }
 
+  const errorMessage =
+    mutation.isError
+      ? mutation.error?.code
+        ? t(`equipe.parametres.errors.${mutation.error.code}`, {
+            defaultValue: mutation.error?.message || t("equipe.parametres.errors.generic"),
+          })
+        : mutation.error?.message || t("equipe.parametres.errors.generic")
+      : null;
+
   return (
     <div className="space-y-5">
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
         <h2 className="text-lg font-semibold text-foreground">
-          Paramètres de l&apos;équipe
+          {t("equipe.parametres.title")}
         </h2>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          Configurez les règles d&apos;invitation, d&apos;approbation et de
-          notification.
+          {t("equipe.parametres.description")}
         </p>
       </motion.div>
 
       <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
-        {/* Navigation sections */}
-        <nav className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible" aria-label="Sections des paramètres">
-          {SECTIONS.map((s) => {
+        <nav
+          className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible"
+          aria-label={t("equipe.parametres.navAria")}
+        >
+          {SECTION_DEFS.map((s) => {
             const Icon = s.icon;
             const active = section === s.id;
             return (
@@ -134,9 +144,11 @@ function ParametresEquipeForm({ parametres }) {
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 <span className="min-w-0">
-                  <span className="block text-sm font-semibold">{s.label}</span>
+                  <span className="block text-sm font-semibold">
+                    {t(s.labelKey)}
+                  </span>
                   <span className="hidden text-[11px] opacity-80 lg:block">
-                    {s.description}
+                    {t(s.descriptionKey)}
                   </span>
                 </span>
                 {active && (
@@ -151,7 +163,6 @@ function ParametresEquipeForm({ parametres }) {
           })}
         </nav>
 
-        {/* Contenu */}
         <div className="min-w-0">
           <AnimatePresence mode="wait">
             {section === "invitations" && (
@@ -165,8 +176,10 @@ function ParametresEquipeForm({ parametres }) {
               >
                 <SettingCard
                   icon={FiShield}
-                  title="Rôle par défaut"
-                  description="Rôle attribué automatiquement aux nouvelles invitations."
+                  title={t("equipe.parametres.invitations.defaultRole")}
+                  description={t(
+                    "equipe.parametres.invitations.defaultRoleDescription",
+                  )}
                 >
                   <Select
                     value={roleParDefautInvitation}
@@ -178,21 +191,33 @@ function ParametresEquipeForm({ parametres }) {
                     <SelectContent>
                       {ROLES_INVITABLES.map((r) => (
                         <SelectItem key={r.value} value={r.value}>
-                          {r.label}
+                          {t(r.labelKey)}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {ROLES_INVITABLES.find(
+                    (r) => r.value === roleParDefautInvitation,
+                  )?.descriptionKey && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {t(
+                        ROLES_INVITABLES.find(
+                          (r) => r.value === roleParDefautInvitation,
+                        ).descriptionKey,
+                      )}
+                    </p>
+                  )}
                 </SettingCard>
 
                 <SettingCard
                   icon={FiClock}
-                  title="Expiration des invitations"
-                  description="Nombre de jours avant expiration d'une invitation non acceptée."
+                  title={t("equipe.parametres.invitations.expiration")}
+                  description={t(
+                    "equipe.parametres.invitations.expirationDescription",
+                  )}
                 >
                   <div className="flex items-center gap-2">
                     <Input
-                      id="expiration"
                       type="number"
                       min={1}
                       max={90}
@@ -200,10 +225,14 @@ function ParametresEquipeForm({ parametres }) {
                       onChange={(e) =>
                         setExpirationInvitationJours(e.target.value)
                       }
-                      className="h-11 w-28 rounded-md"
-                      aria-label="Jours d'expiration"
+                      className="h-11 w-24 rounded-md"
+                      aria-label={t(
+                        "equipe.parametres.invitations.expirationDaysAria",
+                      )}
                     />
-                    <span className="text-sm text-muted-foreground">jours</span>
+                    <span className="text-sm text-muted-foreground">
+                      {t("equipe.parametres.invitations.days")}
+                    </span>
                   </div>
                 </SettingCard>
               </motion.div>
@@ -219,19 +248,20 @@ function ParametresEquipeForm({ parametres }) {
               >
                 <SettingCard
                   icon={FiShield}
-                  title="Validation des invitations"
-                  description="Les administrateurs doivent valider une invitation avant son envoi."
+                  title={t("equipe.parametres.approbation.title")}
+                  description={t("equipe.parametres.approbation.description")}
                 >
-                  <label className="flex cursor-pointer items-center justify-between gap-4">
-                    <span className="text-sm font-medium text-foreground">
-                      Exiger une validation avant l&apos;envoi
-                    </span>
+                  <label className="flex cursor-pointer items-start gap-3">
                     <Checkbox
-                      checked={approbationRequisePourInvitation}
+                      checked={!!approbationRequisePourInvitation}
                       onCheckedChange={(v) =>
                         setApprobationRequisePourInvitation(!!v)
                       }
+                      className="mt-0.5"
                     />
+                    <span className="text-sm text-foreground">
+                      {t("equipe.parametres.approbation.requireApproval")}
+                    </span>
                   </label>
                 </SettingCard>
               </motion.div>
@@ -247,38 +277,37 @@ function ParametresEquipeForm({ parametres }) {
               >
                 <SettingCard
                   icon={FiBell}
-                  title="Alertes administrateur"
-                  description="Recevoir une notification pour les activités importantes de l'équipe."
+                  title={t("equipe.parametres.notifications.title")}
+                  description={t(
+                    "equipe.parametres.notifications.description",
+                  )}
                 >
-                  <label className="flex cursor-pointer items-center justify-between gap-4">
-                    <span className="text-sm font-medium text-foreground">
-                      Notifier l&apos;administrateur principal
-                    </span>
+                  <label className="flex cursor-pointer items-start gap-3">
                     <Checkbox
-                      checked={notifierAdminNouvelleActivite}
+                      checked={!!notifierAdminNouvelleActivite}
                       onCheckedChange={(v) =>
                         setNotifierAdminNouvelleActivite(!!v)
                       }
+                      className="mt-0.5"
                     />
+                    <span className="text-sm text-foreground">
+                      {t(
+                        "equipe.parametres.notifications.notifyPrimaryAdmin",
+                      )}
+                    </span>
                   </label>
                 </SettingCard>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Erreur / Sauvegarde */}
-          <div className="mt-6 space-y-3">
+          <div className="mt-6 border-t border-border pt-4">
             {mutation.isError && (
-              <motion.div
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-              >
-                <FiAlertCircle className="h-4 w-4 shrink-0" />
-                {mutation.error.message}
-              </motion.div>
+              <div className="mb-3 flex items-start gap-2 rounded-md border border-destructive/25 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                <FiAlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
             )}
-
             <div className="flex flex-wrap items-center gap-3">
               <Button
                 type="button"
@@ -289,20 +318,20 @@ function ParametresEquipeForm({ parametres }) {
                 {mutation.isPending ? (
                   <>
                     <FiLoader className="h-4 w-4 animate-spin" />
-                    Enregistrement...
+                    {t("equipe.parametres.actions.saving")}
                   </>
                 ) : mutation.isSuccess && !hasChanges ? (
                   <>
                     <FiCheck className="h-4 w-4" />
-                    Modifications enregistrées
+                    {t("equipe.parametres.actions.saved")}
                   </>
                 ) : (
-                  "Enregistrer les modifications"
+                  t("equipe.parametres.actions.save")
                 )}
               </Button>
               {!hasChanges && !mutation.isPending && (
                 <span className="text-xs text-muted-foreground">
-                  Aucune modification en attente
+                  {t("equipe.parametres.actions.noPendingChanges")}
                 </span>
               )}
             </div>

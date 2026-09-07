@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { useState } from "react";
 import {
   FiBriefcase,
@@ -53,18 +55,18 @@ const DUREE_LABELS = {
   "3_mois": "3 mois",
 };
 
-const REMUNERATION_LABELS = {
-  aucune: "Non rémunéré",
-  indemnite_transport: "Indemnité transport",
-  indemnite_repas: "Indemnité repas",
-  indemnite_internet_appel: "Indemnité internet / appel",
-  allocation_mensuelle: "Allocation mensuelle",
+const REMUNERATION_LABEL_KEYS = {
+  aucune: "entrepriseSpace.candidatures.remNone",
+  indemnite_transport: "entrepriseSpace.candidatures.remTransport",
+  indemnite_repas: "entrepriseSpace.candidatures.remMeals",
+  indemnite_internet_appel: "entrepriseSpace.candidatures.remInternet",
+  allocation_mensuelle: "entrepriseSpace.candidatures.remMonthly",
 };
 
-const MODE_TRAVAIL_LABELS = {
-  presentiel: "Présentiel",
-  hybride: "Hybride",
-  distance: "Distance",
+const MODE_TRAVAIL_LABEL_KEYS = {
+  presentiel: "entrepriseSpace.candidatures.modeOnsite",
+  hybride: "entrepriseSpace.candidatures.modeHybrid",
+  distance: "entrepriseSpace.candidatures.modeRemote",
 };
 
 // Les colonnes "heure_debut"/"heure_fin" (type TIME) peuvent revenir au
@@ -81,6 +83,7 @@ export default function FaireOffreDialog({
   onOpenChangeControlled,
   hideTrigger = false,
 }) {
+  const { t } = useTranslation();
   const [openInterne, setOpenInterne] = useState(false);
   const open = openControlled !== undefined ? openControlled : openInterne;
   const setOpen = onOpenChangeControlled || setOpenInterne;
@@ -93,6 +96,7 @@ export default function FaireOffreDialog({
     remunerationType: "",
     dateDebut: "",
   });
+  const [formError, setFormError] = useState(null);
   const mutation = useCreateOffreFinale();
     const { data: candidatInfo, isLoading: loadingDispos } =
       useDisponibilitesCandidat(idEntretien);
@@ -101,10 +105,60 @@ export default function FaireOffreDialog({
     const preferences = candidatInfo?.preferences ?? null;
   const update = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
+  function validateForm() {
+    if (!form.intitulePoste?.trim()) {
+      return t("entrepriseSpace.candidatures.errJobTitleRequired");
+    }
+    const objectifs = String(form.objectifsApprentissage || "")
+      .split(/\r?\n+/)
+      .map((l) => l.replace(/^\d+[\.\)\-]\s*/, "").trim())
+      .filter(Boolean);
+    if (objectifs.length < 1) {
+      return t("entrepriseSpace.candidatures.errObjectives");
+    }
+    for (let i = 0; i < objectifs.length; i++) {
+      if (objectifs[i].length < 10) {
+        return `L'objectif ${i + 1} est trop court (minimum 10 caractères).`;
+      }
+      if (objectifs[i].length > 500) {
+        return `L'objectif ${i + 1} est trop long (maximum 500 caractères).`;
+      }
+    }
+    if (!form.dureeStage) return t("entrepriseSpace.candidatures.errDuration");
+    if (!form.modeTravail) return t("entrepriseSpace.candidatures.errWorkMode");
+    if (!form.remunerationType) return t("entrepriseSpace.candidatures.errRemuneration");
+    if (!form.dateDebut) return t("entrepriseSpace.candidatures.errStartDate");
+    const vol = Number(form.volumeHoraireHebdo);
+    if (!Number.isFinite(vol) || vol < 15 || vol > 40) {
+      return t("entrepriseSpace.candidatures.errHours");
+    }
+    return null;
+  }
+
   function handleSubmit() {
+    const errMsg = validateForm();
+    if (errMsg) {
+      setFormError(errMsg);
+      return;
+    }
+    setFormError(null);
     mutation.mutate(
-      { idEntretien, ...form },
-      { onSuccess: () => setOpen(false) },
+      {
+        idEntretien,
+        intitulePoste: form.intitulePoste.trim(),
+        objectifsApprentissage: form.objectifsApprentissage.trim(),
+        volumeHoraireHebdo: Number(form.volumeHoraireHebdo),
+        dureeStage: form.dureeStage,
+        modeTravail: form.modeTravail,
+        remunerationType: form.remunerationType,
+        dateDebut: form.dateDebut,
+      },
+      {
+        onSuccess: () => {
+          setOpen(false);
+          setFormError(null);
+        },
+      },
     );
   }
 
@@ -118,9 +172,9 @@ export default function FaireOffreDialog({
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="max-h-[85vh] overflow-y-auto rounded-md sm:max-w-120">
+      <DialogContent className="internin-custom-scrollbar max-h-[85vh] overflow-y-auto rounded-md sm:max-w-120">
         <DialogHeader>
-          <DialogTitle>Offre finale — {candidatNom}</DialogTitle>
+          <DialogTitle>{t("entrepriseSpace.candidatures.finalOfferTitle", { name: candidatNom })}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
@@ -164,7 +218,7 @@ export default function FaireOffreDialog({
                                 {heureFin}
                               </>
                             ) : (
-                              "Dispo"
+                              t("entrepriseSpace.candidatures.available")
                             )}
                           </span>
                         ) : (
@@ -244,9 +298,15 @@ export default function FaireOffreDialog({
                   </p>
                   <p className="font-medium text-foreground">
                     {preferences.remunerationSouhaitee
-                      ? REMUNERATION_LABELS[
+                      ? (REMUNERATION_LABEL_KEYS[
                           preferences.remunerationSouhaitee
-                        ] || preferences.remunerationSouhaitee
+                        ]
+                          ? t(
+                              REMUNERATION_LABEL_KEYS[
+                                preferences.remunerationSouhaitee
+                              ],
+                            )
+                          : preferences.remunerationSouhaitee)
                       : "—"}
                   </p>
                 </div>
@@ -259,7 +319,11 @@ export default function FaireOffreDialog({
                     {Array.isArray(preferences.modalitesTravailSouhaitees) &&
                     preferences.modalitesTravailSouhaitees.length > 0
                       ? preferences.modalitesTravailSouhaitees
-                          .map((m) => MODE_TRAVAIL_LABELS[m] || m)
+                          .map((m) =>
+                            MODE_TRAVAIL_LABEL_KEYS[m]
+                              ? t(MODE_TRAVAIL_LABEL_KEYS[m])
+                              : m,
+                          )
                           .join(", ")
                       : "—"}
                   </p>
@@ -278,7 +342,7 @@ export default function FaireOffreDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Intitulé du poste</Label>
+            <Label>{t("entrepriseSpace.candidatures.jobTitle")}</Label>
             <Input
               className="h-11 rounded-sm"
               value={form.intitulePoste}
@@ -288,20 +352,27 @@ export default function FaireOffreDialog({
 
           <div className="space-y-1.5">
             <Label>
-              Objectifs d&apos;apprentissage{" "}
-              <span className="text-muted-foreground">(facultatif)</span>
+              {t("entrepriseSpace.candidatures.learningObjectives")}{" "}
+              <span className="text-destructive">*</span>
             </Label>
             <textarea
               rows={3}
               className="w-full resize-y rounded-sm border border-border bg-background px-3.5 py-3 text-sm focus:border-primary focus:outline-none"
               value={form.objectifsApprentissage}
-              onChange={(e) => update("objectifsApprentissage", e.target.value)}
+              onChange={(e) => {
+                update("objectifsApprentissage", e.target.value);
+                setFormError(null);
+              }}
+              placeholder={t("entrepriseSpace.candidatures.objectivesPlaceholder")}
             />
+            <p className="text-[11px] text-muted-foreground">
+              Au moins 1 objectif pédagogique (10 à 500 caractères par ligne).
+            </p>
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Heures par semaine</Label>
+              <Label>{t("entrepriseSpace.candidatures.hoursPerWeek")}</Label>
               <span className="text-sm font-semibold text-primary">
                 {form.volumeHoraireHebdo}h
               </span>
@@ -317,66 +388,66 @@ export default function FaireOffreDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Durée</Label>
+              <Label>{t("entrepriseSpace.candidatures.duration")}</Label>
               <Select
                 value={form.dureeStage}
                 onValueChange={(v) => update("dureeStage", v)}
               >
                 <SelectTrigger className="h-11 w-full rounded-sm">
-                  <SelectValue placeholder="Sélectionnez" />
+                  <SelectValue placeholder={t("entrepriseSpace.candidatures.select")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1_mois">1 mois</SelectItem>
-                  <SelectItem value="2_mois">2 mois</SelectItem>
-                  <SelectItem value="3_mois">3 mois</SelectItem>
+                  <SelectItem value="1_mois">{t("entrepriseSpace.candidatures.duration1Month")}</SelectItem>
+                  <SelectItem value="2_mois">{t("entrepriseSpace.candidatures.duration2Months")}</SelectItem>
+                  <SelectItem value="3_mois">{t("entrepriseSpace.candidatures.duration3Months")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Mode de travail</Label>
+              <Label>{t("entrepriseSpace.candidatures.workMode")}</Label>
               <Select
                 value={form.modeTravail}
                 onValueChange={(v) => update("modeTravail", v)}
               >
                 <SelectTrigger className="h-11 w-full rounded-sm">
-                  <SelectValue placeholder="Sélectionnez" />
+                  <SelectValue placeholder={t("entrepriseSpace.candidatures.select")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="distance">Distance</SelectItem>
-                  <SelectItem value="hybride">Hybride</SelectItem>
-                  <SelectItem value="presentiel">Présentiel</SelectItem>
+                  <SelectItem value="distance">{t("entrepriseSpace.candidatures.modeRemote")}</SelectItem>
+                  <SelectItem value="hybride">{t("entrepriseSpace.candidatures.modeHybrid")}</SelectItem>
+                  <SelectItem value="presentiel">{t("entrepriseSpace.candidatures.modeOnsite")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label>Rémunération</Label>
+            <Label>{t("entrepriseSpace.candidatures.remuneration")}</Label>
             <Select
               value={form.remunerationType}
               onValueChange={(v) => update("remunerationType", v)}
             >
               <SelectTrigger className="h-11 w-full rounded-sm">
-                <SelectValue placeholder="Sélectionnez" />
+                <SelectValue placeholder={t("entrepriseSpace.candidatures.select")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="aucune">Non rémunéré</SelectItem>
+                <SelectItem value="aucune">{t("entrepriseSpace.candidatures.remNone")}</SelectItem>
                 <SelectItem value="indemnite_transport">
-                  Indemnité transport
+                  {t("entrepriseSpace.candidatures.remTransport")}
                 </SelectItem>
-                <SelectItem value="indemnite_repas">Indemnité repas</SelectItem>
+                <SelectItem value="indemnite_repas">{t("entrepriseSpace.candidatures.remMeals")}</SelectItem>
                 <SelectItem value="indemnite_internet_appel">
-                  Indemnité internet / appel
+                  {t("entrepriseSpace.candidatures.remInternet")}
                 </SelectItem>
                 <SelectItem value="allocation_mensuelle">
-                  Allocation mensuelle
+                  {t("entrepriseSpace.candidatures.remMonthly")}
                 </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-1.5">
-            <Label>Date de début</Label>
+            <Label>{t("entrepriseSpace.candidatures.startDate")}</Label>
             <Input
               type="date"
               className="h-11 rounded-sm"
@@ -385,10 +456,10 @@ export default function FaireOffreDialog({
             />
           </div>
 
-          {mutation.isError && (
-            <div className="flex items-center gap-2 rounded-sm border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              <FiAlertCircle className="h-4 w-4 shrink-0" />
-              {mutation.error.message}
+          {(formError || mutation.isError) && (
+            <div className="flex items-start gap-2 rounded-sm border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              <FiAlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{formError || mutation.error?.message}</span>
             </div>
           )}
 
@@ -401,7 +472,7 @@ export default function FaireOffreDialog({
             {mutation.isPending ? (
               <FiLoader className="h-4 w-4 animate-spin" />
             ) : (
-              "Envoyer l'offre finale"
+              t("entrepriseSpace.candidatures.sendFinalOffer")
             )}
           </Button>
         </div>

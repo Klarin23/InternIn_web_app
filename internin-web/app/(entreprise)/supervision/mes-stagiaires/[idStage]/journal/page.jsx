@@ -1,9 +1,9 @@
 "use client";
 
 import { SupervisionProvider } from "@/lib/supervision/SupervisionContext";
-import JournalPage from "@/app/(superviseur)/mes-stagiaires/[idStage]/journal/page";
+import Page from "@/app/(superviseur)/mes-stagiaires/[idStage]/journal/page";
 
-export default function EntrepriseJournalPage({ params, searchParams } = {}) {
+export default function EntrepriseJournalPage() {
   return (
     <SupervisionProvider
       basePath="/supervision/mes-stagiaires"
@@ -12,7 +12,7 @@ export default function EntrepriseJournalPage({ params, searchParams } = {}) {
       roleLabel="Entreprise"
       isEntreprise
     >
-      <JournalPage params={params} searchParams={searchParams} />
+      <Page />
     </SupervisionProvider>
   );
 }

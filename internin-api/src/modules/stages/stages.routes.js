@@ -4,26 +4,38 @@ import {
   mesStages,
   terminer,
   certificat,
+  mesCertificats,
+  downloadCertificat,
   verifier,
   getJournal,
   postJournal,
   patchJournal,
   deleteJournal,
+  corrigerDates,
 } from "./stages.controller.js";
 import { requireAuth } from "../../middlewares/auth.middleware.js";
 import { validate } from "../../middlewares/validate.middleware.js";
 import {
   ajouterEntreeJournalSchema,
   updateEntreeJournalSchema,
+  corrigerDatesStageSchema,
 } from "./stages.schema.js";
 import { requireActiveAccount } from "../../middlewares/activeAccount.middleware.js";
-
-
+import { requireEquipePermission } from "../equipe/equipe.permissions.js";
 
 const router = Router();
 
+// Publique — avant requireAuth
+router.get("/verifier/:code", verifier);
+
 router.get("/mon-stage", requireAuth, requireActiveAccount, monStage);
 router.get("/mes-stages", requireAuth, requireActiveAccount, mesStages);
+router.get(
+  "/mes-certificats",
+  requireAuth,
+  requireActiveAccount,
+  mesCertificats,
+);
 router.patch("/:id/terminer", requireAuth, requireActiveAccount, terminer);
 router.get(
   "/:idStage/certificat",
@@ -31,10 +43,22 @@ router.get(
   requireActiveAccount,
   certificat,
 );
-router.get("/verifier/:code", verifier); // publique, pas de requireAuth : vérification d'un certificat par un tiers (ex: recruteur)
+router.get(
+  "/:idStage/certificat/download",
+  requireAuth,
+  requireActiveAccount,
+  downloadCertificat,
+);
 
-// Journal de stage / activités (côté stagiaire — la modération par le
-// superviseur se fait via /superviseur/stagiaires/:idStage/journal)
+router.patch(
+  "/:idStage/corriger-dates",
+  requireAuth,
+  requireActiveAccount,
+  requireEquipePermission("stagiaires.suivre"),
+  validate(corrigerDatesStageSchema),
+  corrigerDates,
+);
+
 router.get("/:idStage/journal", requireAuth, requireActiveAccount, getJournal);
 router.post(
   "/:idStage/journal",

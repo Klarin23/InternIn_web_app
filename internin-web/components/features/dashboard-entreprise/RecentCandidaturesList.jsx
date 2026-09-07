@@ -1,4 +1,6 @@
 "use client";
+
+import { useTranslation } from "@/lib/i18n/useTranslation";
 // Version animée : chaque candidature entre en glissant depuis la droite avec
 // un léger rebond (spring). AnimatePresence gère aussi la sortie si une
 // candidature disparaît de la liste (ex: retirée par le stagiaire).
@@ -6,14 +8,7 @@
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
-const STATUT_LABELS = {
-  soumise: "Nouveau",
-  consultee: "Consultée",
-  preselectionnee: "Entretien",
-  rejetee: "Refusée",
-  retiree: "Retirée",
-  acceptee: "Acceptée",
-};
+// STATUT_LABELS déplacé dans le composant (traduit selon la langue).
 const STATUT_COLORS = {
   soumise: "bg-primary/10 text-primary",
   consultee: "bg-[#DBEAFE] text-[#1D4ED8]",
@@ -24,27 +19,36 @@ const STATUT_COLORS = {
 };
 
 export default function RecentCandidaturesList({ candidatures }) {
+  const { t, locale } = useTranslation();
+  const STATUT_LABELS = {
+    soumise: t("entrepriseSpace.dashboard.statusNew"),
+    consultee: t("applicationStatus.consultee"),
+    preselectionnee: t("entrepriseSpace.dashboard.statusInterview"),
+    rejetee: t("applicationStatus.rejetee"),
+    retiree: t("applicationStatus.retiree"),
+    acceptee: t("applicationStatus.acceptee"),
+  };
   const dernieres = [...(candidatures || [])]
     .sort((a, b) => new Date(b.dateCandidature) - new Date(a.dateCandidature))
     .slice(0, 4);
 
   return (
-    <div className="rounded-md border border-border bg-card p-5">
+    <div className="rounded-2xl border border-border bg-card shadow-sm p-5">
       <div className="mb-4 flex items-center justify-between">
         <h5 className="text-sm font-semibold text-foreground">
-          Dernières candidatures
+          {t("entrepriseSpace.dashboard.latestApplicationsTitle")}
         </h5>
         <Link
           href="/candidats"
           className="text-xs font-semibold text-secondary-foreground hover:underline"
         >
-          Voir tout
+          {t("entrepriseSpace.dashboard.viewAll")}
         </Link>
       </div>
 
       {dernieres.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
-          Aucune candidature pour l&apos;instant
+          {t("entrepriseSpace.dashboard.noRecentApplications")}
         </p>
       ) : (
         <div className="space-y-3">

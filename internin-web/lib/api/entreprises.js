@@ -12,7 +12,9 @@ export function getEntrepriseProfileRequest(token) {
   return apiFetch("/entreprises/me", { token });
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+// Étape 2/4 : passe par le proxy Next.js ("/api/...") comme apiFetch,
+// au lieu de l'URL Railway en direct — voir lib/api/client.js.
+const API_URL = "/api";
 
 export function updateEntrepriseProfileRequest(payload, token) {
   return apiFetch("/entreprises/me", {

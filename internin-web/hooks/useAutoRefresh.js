@@ -28,7 +28,11 @@ function toKeyArray(key) {
 export function useAutoRefresh(queryKeys = [], intervalMs = AUTO_REFRESH_INTERVALS.medium) {
   const queryClient = useQueryClient();
   const keysRef = useRef(queryKeys);
-  keysRef.current = queryKeys;
+
+  // Sync après le rendu (react-hooks/refs) — le timer lit toujours les clés à jour.
+  useEffect(() => {
+    keysRef.current = queryKeys;
+  });
 
   useEffect(() => {
     if (!intervalMs || keysRef.current.length === 0) return;

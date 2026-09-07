@@ -11,11 +11,13 @@ export const updateObjectifSchema = z.object({
 
 export const ajouterTacheSchema = z.object({
   description: z.string().min(1, "La description est requise"),
+  idObjectif: z.string().uuid("Objectif invalide").optional().nullable(),
 });
 
 export const updateTacheSchema = z.object({
   description: z.string().min(1).optional(),
   statut: z.enum(["a_faire", "terminee"]).optional(),
+  idObjectif: z.string().uuid("Objectif invalide").optional().nullable(),
 });
 
 export const ajouterCompetenceAcquiseSchema = z.object({

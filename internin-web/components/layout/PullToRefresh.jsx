@@ -130,7 +130,7 @@ export default function PullToRefresh({ children, onRefresh, className = "" }) {
     } else {
       updatePull(0);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [handleRefresh]);
 
   const progress = Math.min(pullDistance / REFRESH_THRESHOLD, 1);

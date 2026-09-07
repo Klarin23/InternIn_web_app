@@ -24,6 +24,8 @@ import UniversiteDashboardContent from "../../dashboard-universite/UniversiteDas
 import { useMonProfilEquipe } from "@/lib/queries/useEquipe";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import InactiveAccountGate from "@/components/features/account/InactiveAccountGate";
+import AdminMaintenanceToast from "@/components/features/system/AdminMaintenanceToast";
+import MaintenanceGate from "@/components/features/system/MaintenanceGate";
 
 export default function DashboardRouter() {
   const router = useRouter();
@@ -64,11 +66,13 @@ export default function DashboardRouter() {
         />
 
         <PullToRefresh className="h-screen flex-1 overflow-y-auto">
-          {user.statutCompte !== "actif" ? (
-            <InactiveAccountGate />
-          ) : (
-            <StagiaireDashboardContent />
-          )}
+          <MaintenanceGate>
+            {user.statutCompte !== "actif" ? (
+              <InactiveAccountGate />
+            ) : (
+              <StagiaireDashboardContent />
+            )}
+          </MaintenanceGate>
         </PullToRefresh>
       </div>
     );
@@ -94,7 +98,9 @@ export default function DashboardRouter() {
           }
         />
         <PullToRefresh className="h-screen flex-1 overflow-y-auto">
-          <EntrepriseDashboardContent />
+          <MaintenanceGate>
+            <EntrepriseDashboardContent />
+          </MaintenanceGate>
         </PullToRefresh>
       </div>
     );
@@ -132,7 +138,9 @@ export default function DashboardRouter() {
           }}
         />
         <PullToRefresh className="h-screen flex-1 overflow-y-auto">
-          <UniversiteDashboardContent />
+          <MaintenanceGate>
+            <UniversiteDashboardContent />
+          </MaintenanceGate>
         </PullToRefresh>
       </div>
     );
@@ -150,6 +158,7 @@ export default function DashboardRouter() {
 
     return (
       <div className="role-admin flex h-screen overflow-hidden bg-muted/30">
+        <AdminMaintenanceToast />
         <AppSidebar
           items={adminNavItems}
           roleLabel={t("roles.adminConsole")}
@@ -179,31 +188,32 @@ export default function DashboardRouter() {
           .toUpperCase()
       : user.email?.slice(0, 2).toUpperCase();
 
-    // Seul le rôle "superviseur" a un espace construit pour l'instant — les
-    // autres rôles du menu Équipe (gestionnaire recrutement, lecture seule)
-    // n'ont pas encore leur propre tableau de bord.
-    if (membreProfile && membreProfile.roleEquipe !== "superviseur") {
-      return (
-        <div className="flex h-screen items-center justify-center text-sm text-muted-foreground">
-          {t("roles.noSpaceAvailable")}
-        </div>
-      );
-    }
+    const nomEntreprise =
+      membreProfile?.nomEntreprise ||
+      t("roles.supervisorFallback") ||
+      "Entreprise";
 
+    // Même identité visuelle que l'espace entreprise (compte dérivé)
+    // + orgCard pour que le nom d'entreprise reste visible sur le dashboard
     return (
-      <div className="role-superviseur flex h-screen overflow-hidden bg-muted/30">
+      <div className="role-entreprise flex h-screen overflow-hidden bg-muted/30">
         <AppSidebar
           items={superviseurNavItems}
           roleLabel={t("roles.supervisorSpace")}
+          orgCard={{
+            name: nomEntreprise,
+            subtitle: membreProfile?.roleEquipe || t("roles.supervisorSpace"),
+          }}
           userFooter={{
             initials,
             name: membreProfile?.nom || user.email,
-            subtitle:
-              membreProfile?.nomEntreprise || t("roles.supervisorFallback"),
+            subtitle: nomEntreprise,
           }}
         />
         <PullToRefresh className="h-screen flex-1 overflow-y-auto">
-          <SuperviseurDashboardContent />
+          <MaintenanceGate>
+            <SuperviseurDashboardContent />
+          </MaintenanceGate>
         </PullToRefresh>
       </div>
     );

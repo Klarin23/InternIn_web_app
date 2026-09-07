@@ -1,0 +1,1 @@
+ALTER TABLE "parametres_plateforme" ADD COLUMN "elements_validation_automatique" jsonb DEFAULT '[]'::jsonb NOT NULL;

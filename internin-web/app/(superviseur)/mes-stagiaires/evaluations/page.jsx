@@ -16,31 +16,32 @@ import {
 import AppHeader from "@/components/layout/AppHeader";
 import { useEvaluationsSuperviseur } from "@/lib/queries/useSuperviseur";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
-const FILTRES = [
-  { valeur: "toutes", label: "Toutes" },
-  { valeur: "a_effectuer", label: "À effectuer" },
-  { valeur: "en_retard", label: "En retard" },
-  { valeur: "terminee", label: "Terminées" },
+const FILTRE_DEFS = [
+  { valeur: "toutes", labelKey: "mesStagiaires.evaluation.filterAll" },
+  { valeur: "a_effectuer", labelKey: "mesStagiaires.evaluation.filterTodo" },
+  { valeur: "en_retard", labelKey: "mesStagiaires.evaluation.filterOverdue" },
+  { valeur: "terminee", labelKey: "mesStagiaires.evaluation.filterCompleted" },
 ];
 
-const STATUT_INFO = {
+const STATUT_INFO_BASE = {
   a_effectuer: {
-    label: "À effectuer",
+    labelKey: "mesStagiaires.evaluation.statusTodo",
     classe:
       "bg-amber-500/10 text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-400",
   },
   en_retard: {
-    label: "En retard",
+    labelKey: "mesStagiaires.evaluation.statusOverdue",
     classe: "bg-destructive/10 text-destructive ring-1 ring-destructive/20",
   },
   brouillon: {
-    label: "Brouillon",
+    labelKey: "mesStagiaires.evaluation.statusDraft",
     classe:
       "bg-accent/50 text-amber-800 ring-1 ring-amber-500/15 dark:text-amber-300",
   },
   terminee: {
-    label: "Terminée",
+    labelKey: "mesStagiaires.evaluation.statusDone",
     classe:
       "bg-emerald-500/10 text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-400",
   },
@@ -63,7 +64,9 @@ function useCountUp(target, duration = 700) {
   const [value, setValue] = useState(0);
   const reduced = usePrefersReducedMotion();
   useEffect(() => {
-    if (reduced) { setValue(target); return; }
+    // Pas d'animation si prefers-reduced-motion : on lit directement `target`
+    // (évite setState synchrone dans l'effect — react-hooks/set-state-in-effect).
+    if (reduced) return;
     let frame;
     const start = performance.now();
     const tick = (now) => {
@@ -75,7 +78,8 @@ function useCountUp(target, duration = 700) {
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [target, duration, reduced]);
-  return value;
+  // Valeur finale immédiate si reduced ; sinon valeur animée.
+  return reduced ? target : value;
 }
 
 function StatCard({ icon: Icon, value, label, hint, tone, delay }) {
@@ -113,7 +117,19 @@ function initials(prenom, nom) {
 }
 
 export default function EvaluationsPage() {
-  const { evaluationsPath } = useSupervisionContext();
+  const { t } = useTranslation();
+  const { isEntreprise, roleLabel, evaluationsPath } = useSupervisionContext();
+  const FILTRES = useMemo(
+    () => FILTRE_DEFS.map((f) => ({ valeur: f.valeur, label: t(f.labelKey) })),
+    [t],
+  );
+  const STATUT_INFO = useMemo(() => {
+    const out = {};
+    for (const [k, v] of Object.entries(STATUT_INFO_BASE)) {
+      out[k] = { label: t(v.labelKey), classe: v.classe };
+    }
+    return out;
+  }, [t]);
   const router = useRouter();
   const { data: evaluations, isLoading } = useEvaluationsSuperviseur();
   const [filtre, setFiltre] = useState("toutes");
@@ -147,8 +163,8 @@ export default function EvaluationsPage() {
   return (
     <>
       <AppHeader
-        breadcrumb={[{ label: "Évaluations" }]}
-        subtitle="Évaluations de vos stagiaires encadrés"
+        breadcrumb={[{ label: t("mesStagiaires.evaluation.listTitle") }]}
+        subtitle={t("mesStagiaires.evaluation.listSubtitle")}
         refreshKeys={["evaluationsSuperviseur"]}
       />
 
@@ -156,23 +172,23 @@ export default function EvaluationsPage() {
         <div className={cn("mb-8 max-w-3xl", !reduced && "animate-in fade-in slide-in-from-bottom-2 duration-500")}>
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
             <FiClipboard className="h-3.5 w-3.5" />
-            Espace superviseur
+            {isEntreprise ? t("mesStagiaires.evaluation.workspaceCompany") : t("mesStagiaires.evaluation.workspaceSupervisor")}
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Évaluations</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{t("mesStagiaires.evaluation.listTitle")}</h1>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Suivez et complétez les évaluations hebdomadaires de vos stagiaires.
+            {t("mesStagiaires.evaluation.listDescription")}
             {total > 0 && (
               <span className="ml-1 font-medium text-foreground">
-                {total} évaluation{total > 1 ? "s" : ""} au total.
+                {total > 1 ? t("mesStagiaires.evaluation.totalOther", { count: total }) : t("mesStagiaires.evaluation.totalOne", { count: total })}
               </span>
             )}
           </p>
         </div>
 
         <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <StatCard icon={FiClock} value={stats.aEffectuer} label="À effectuer" hint="En attente" tone="amber" delay={80} />
-          <StatCard icon={FiAlertCircle} value={stats.enRetard} label="En retard" hint="Urgent" tone="red" delay={160} />
-          <StatCard icon={FiCheckCircle} value={stats.terminees} label="Terminées" hint="Validées" tone="emerald" delay={240} />
+          <StatCard icon={FiClock} value={stats.aEffectuer} label={t("mesStagiaires.evaluation.statTodo")} hint={t("mesStagiaires.evaluation.statPending")} tone="amber" delay={80} />
+          <StatCard icon={FiAlertCircle} value={stats.enRetard} label={t("mesStagiaires.evaluation.statOverdue")} hint={t("mesStagiaires.evaluation.statUrgent")} tone="red" delay={160} />
+          <StatCard icon={FiCheckCircle} value={stats.terminees} label={t("mesStagiaires.evaluation.statCompleted")} hint={t("mesStagiaires.evaluation.statValidated")} tone="emerald" delay={240} />
         </div>
 
         <div
@@ -183,7 +199,7 @@ export default function EvaluationsPage() {
             <div
               className="inline-flex min-w-min gap-1 rounded-xl border border-border bg-muted/40 p-1"
               role="tablist"
-              aria-label="Filtrer les évaluations"
+              aria-label={t("mesStagiaires.evaluation.filterAria")}
             >
               {FILTRES.map((f) => {
                 const actif = filtre === f.valeur;
@@ -219,15 +235,15 @@ export default function EvaluationsPage() {
         {isLoading ? (
           <div className="flex items-center justify-center gap-2 py-20 text-muted-foreground">
             <FiLoader className="h-5 w-5 animate-spin" />
-            Chargement des évaluations…
+            {t("mesStagiaires.evaluation.loading")}
           </div>
         ) : resultats.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
               <FiClipboard className="h-6 w-6" />
             </div>
-            <p className="text-sm font-medium text-foreground">Aucune évaluation dans ce filtre</p>
-            <p className="mt-1 text-xs text-muted-foreground">Changez de filtre ou attendez les prochaines échéances.</p>
+            <p className="text-sm font-medium text-foreground">{t("mesStagiaires.evaluation.emptyFilter")}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{t("mesStagiaires.evaluation.emptyFilterHint")}</p>
           </div>
         ) : (
           <>
@@ -241,10 +257,10 @@ export default function EvaluationsPage() {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-border/60 bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="px-5 py-3.5 font-semibold">Stagiaire</th>
-                    <th className="px-5 py-3.5 font-semibold">Période</th>
-                    <th className="px-5 py-3.5 font-semibold">Statut</th>
-                    <th className="px-5 py-3.5 text-right font-semibold">Action</th>
+                    <th className="px-5 py-3.5 font-semibold">{t("mesStagiaires.evaluation.colIntern")}</th>
+                    <th className="px-5 py-3.5 font-semibold">{t("mesStagiaires.evaluation.colPeriod")}</th>
+                    <th className="px-5 py-3.5 font-semibold">{t("mesStagiaires.evaluation.colStatus")}</th>
+                    <th className="px-5 py-3.5 text-right font-semibold">{t("mesStagiaires.evaluation.colAction")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
@@ -265,13 +281,13 @@ export default function EvaluationsPage() {
                               <p className="truncate font-semibold text-foreground">
                                 {e.prenomStagiaire} {e.nomStagiaire}
                               </p>
-                              <p className="text-xs text-muted-foreground">Stage encadré</p>
+                              <p className="text-xs text-muted-foreground">{t("mesStagiaires.evaluation.supervisedInternship")}</p>
                             </div>
                           </div>
                         </td>
                         <td className="px-5 py-4 text-muted-foreground">
                           <span className="inline-flex items-center rounded-md bg-muted/60 px-2 py-1 text-xs font-medium text-foreground">
-                            Semaine {e.numeroSemaine}
+                            {t("mesStagiaires.evaluation.week", { n: String(e.numeroSemaine).padStart(2, "0") })}
                           </span>
                         </td>
                         <td className="px-5 py-4">
@@ -281,7 +297,7 @@ export default function EvaluationsPage() {
                         </td>
                         <td className="px-5 py-4 text-right">
                           <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary transition-transform group-hover:translate-x-0.5">
-                            {e.statutAffichage === "terminee" ? "Consulter" : "Évaluer"}
+                            {e.statutAffichage === "terminee" ? t("mesStagiaires.evaluation.view") : t("mesStagiaires.evaluation.evaluate")}
                             <FiChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                           </span>
                         </td>
@@ -309,7 +325,7 @@ export default function EvaluationsPage() {
                       <p className="truncate font-semibold text-foreground">
                         {e.prenomStagiaire} {e.nomStagiaire}
                       </p>
-                      <p className="text-xs text-muted-foreground">Semaine {e.numeroSemaine}</p>
+                      <p className="text-xs text-muted-foreground">{t("mesStagiaires.evaluation.week", { n: String(e.numeroSemaine).padStart(2, "0") })}</p>
                       <span className={cn("mt-1.5 inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold", info.classe)}>
                         {info.label}
                       </span>

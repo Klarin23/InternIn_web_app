@@ -74,3 +74,11 @@ export function ajouterNoteRequest(idCandidature, contenu, token) {
     token,
   });
 }
+
+export function retirerCandidatureRequest(idCandidature, payload, token) {
+  return apiFetch(`/candidatures/${idCandidature}/retirer`, {
+    method: "POST",
+    body: payload,
+    token,
+  });
+}

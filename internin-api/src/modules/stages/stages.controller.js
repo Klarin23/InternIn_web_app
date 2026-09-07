@@ -4,10 +4,13 @@ import {
   terminerStage,
   getCertificatForStage,
   verifierCertificat,
+  listMesCertificats,
+  getCertificatFilePath,
   listMonJournal,
   ajouterEntreeJournal,
   updateEntreeJournal,
   supprimerEntreeJournal,
+  corrigerDatesStageEntreprise,
 } from "./stages.service.js";
 
 export async function monStage(req, res, next) {
@@ -41,6 +44,31 @@ export async function certificat(req, res, next) {
       await getCertificatForStage(req.user.idUtilisateur, req.params.idStage),
     );
   } catch (err) {
+    next(err);
+  }
+}
+
+export async function mesCertificats(req, res, next) {
+  try {
+    res.json(await listMesCertificats(req.user.idUtilisateur));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function downloadCertificat(req, res, next) {
+  try {
+    const { filePath, filename } = await getCertificatFilePath(
+      req.user.idUtilisateur,
+      req.params.idStage,
+    );
+    res.download(filePath, filename, (err) => {
+      if (err) next(err);
+    });
+  } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ error: err.message });
+    }
     next(err);
   }
 }
@@ -101,6 +129,19 @@ export async function deleteJournal(req, res, next) {
         req.params.idEntree,
       ),
     );
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function corrigerDates(req, res, next) {
+  try {
+    const result = await corrigerDatesStageEntreprise(
+      req.user.idUtilisateur,
+      req.params.idStage,
+      req.body.dateDebut,
+    );
+    res.json(result);
   } catch (err) {
     next(err);
   }

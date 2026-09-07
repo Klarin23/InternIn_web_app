@@ -3,15 +3,38 @@ import {
   getStagiaireProfileRequest,
   updateStagiaireProfileRequest,
   uploadPhotoProfilRequest,
+  updateStagiairePrivacyRequest,
 } from "@/lib/api/stagiaires";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 
 export function useStagiaireProfile() {
   const token = useAuthStore((state) => state.token);
+  const currentUser = useAuthStore((state) => state.user);
+  const setSession = useAuthStore((state) => state.setSession);
+
   return useQuery({
     queryKey: ["stagiaireProfile"],
     queryFn: () => getStagiaireProfileRequest(token),
     enabled: !!token,
+    // Quand le GET répare le statut en base (profil 100 % mais encore inactif),
+    // on synchronise le store auth pour débloquer immédiatement le layout.
+    select: (profile) => {
+      if (
+        profile?.statutCompte &&
+        currentUser &&
+        token &&
+        profile.statutCompte !== currentUser.statutCompte
+      ) {
+        // setSession hors rendu : microtask pour éviter setState pendant render
+        queueMicrotask(() => {
+          setSession(
+            { ...currentUser, statutCompte: profile.statutCompte },
+            token,
+          );
+        });
+      }
+      return profile;
+    },
   });
 }
 
@@ -77,6 +100,27 @@ export function useUploadPhotoProfil() {
           token,
         );
       }
+    },
+  });
+}
+
+export function useUpdateStagiairePrivacy() {
+  const token = useAuthStore((state) => state.token);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload) => updateStagiairePrivacyRequest(payload, token),
+    onSuccess: (data) => {
+      // Met à jour le cache profil sans attendre un refetch complet
+      queryClient.setQueryData(["stagiaireProfile"], (old) =>
+        old
+          ? {
+              ...old,
+              profilVisibleEntreprises: data.profilVisibleEntreprises,
+            }
+          : old,
+      );
+      queryClient.invalidateQueries({ queryKey: ["stagiaireProfile"] });
     },
   });
 }

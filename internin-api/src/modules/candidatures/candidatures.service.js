@@ -2,7 +2,7 @@
 // doublons au niveau SQL — on l'anticipe ici pour renvoyer un message
 // clair plutôt qu'une erreur PostgreSQL brute au frontend.
 
-import { eq, and, inArray, ne, desc } from "drizzle-orm";
+import { eq, and, inArray, ne, desc, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
   candidatures,
@@ -22,6 +22,11 @@ import {
   notesCandidature,
 } from "../../db/schema.js";
 import { creerNotification } from "../notifications/notifications.service.js";
+import {
+  resolveEntrepriseContextOrThrow,
+  getUtilisateursAvecPermission,
+} from "../../utils/entrepriseContext.js";
+import { publishRealtime } from "../../utils/realtime.js";
 
 export async function createCandidature(
   idUtilisateur,
@@ -78,8 +83,32 @@ export async function createCandidature(
           }
         }
 
-  const [candidature] = await db
-    .insert(candidatures)
+  // Le quota est consommé dès qu'une candidature active est soumise.
+  // Verrouiller l'offre pendant le contrôle empêche deux candidatures
+  // simultanées de dépasser le nombre de postes disponibles.
+  const candidature = await db.transaction(async (tx) => {
+    const offreResult = await tx.execute(
+      sql`SELECT nombre_postes FROM offres_stage WHERE id_offre = ${idOffre} FOR UPDATE`,
+    );
+    const offreVerrouillee = offreResult.rows?.[0];
+    if (!offreVerrouillee) {
+      const err = new Error("Cette offre n'est plus disponible");
+      err.status = 404;
+      throw err;
+    }
+    const nombrePostes = Number(offreVerrouillee.nombre_postes ?? 1);
+    const countResult = await tx.execute(
+      sql`SELECT COUNT(*)::int AS nombre_actives FROM candidatures WHERE id_offre = ${idOffre} AND statut NOT IN ('rejetee', 'retiree')`,
+    );
+    if (Number(countResult.rows?.[0]?.nombre_actives ?? 0) >= nombrePostes) {
+      const err = new Error("Cette offre a atteint son nombre maximal de postes disponibles.");
+      err.status = 409;
+      err.code = "OFFRE_POSTES_COMPLETS";
+      throw err;
+    }
+
+    const [created] = await tx
+      .insert(candidatures)
     .values({
       idStagiaire: stagiaire.idStagiaire,
       idOffre,
@@ -87,7 +116,9 @@ export async function createCandidature(
       statut: "soumise",
       lettreMotivation: lettreMotivation || null,
     })
-    .returning();
+      .returning();
+    return created;
+  });
 
   const [offreInfo] = await db
     .select({
@@ -107,16 +138,41 @@ export async function createCandidature(
       offreInfo.idEntreprise,
       null, // action initiée par le stagiaire, pas un membre de l'équipe
       candidature.idCandidature,
-      "Candidature envoyée",
+      "candidature_envoyee",
     );
 
-    await creerNotification({
-      idUtilisateur: offreInfo.idUtilisateurEntreprise,
-      type: "candidature_recue",
-      titre: "Nouvelle candidature reçue",
-      message: `${stagiaire.prenom} ${stagiaire.nom} a postulé pour l'offre « ${offreInfo.titreOffre} ».`,
-      lien: "/candidats",
-    });
+    // Notifier uniquement les membres autorisés (candidats.gerer) — source unique
+    const destinataires = await getUtilisateursAvecPermission(
+      offreInfo.idEntreprise,
+      "candidats.gerer",
+    );
+    const messageCandidature = `${stagiaire.prenom} ${stagiaire.nom} a postulé pour l'offre « ${offreInfo.titreOffre} ».`;
+    await Promise.all(
+      destinataires.map((idDest) =>
+        creerNotification({
+          idUtilisateur: idDest,
+          type: "candidature_recue",
+          titre: "Nouvelle candidature reçue",
+          message: messageCandidature,
+          lien: "/candidats",
+          idEntreprise: offreInfo.idEntreprise,
+          categoriePreference: "candidatures",
+        }),
+      ),
+    );
+
+    // Événement temps réel candidature reçue
+    for (const idDest of destinataires) {
+      publishRealtime(idDest, {
+        type: "candidature.recue",
+        payload: {
+          idCandidature: candidature.idCandidature,
+          idEntreprise: offreInfo.idEntreprise,
+          idOffre,
+          titreOffre: offreInfo.titreOffre,
+        },
+      });
+    }
   }
 
   return candidature;
@@ -135,6 +191,10 @@ export async function listMesCandidatures(idUtilisateur) {
       statut: candidatures.statut,
       messageRejet: candidatures.messageRejet,
       dateCandidature: candidatures.dateCandidature,
+      dateMajStatut: candidatures.dateMajStatut,
+      motifRetraitCode: candidatures.motifRetraitCode,
+      motifRetraitCommentaire: candidatures.motifRetraitCommentaire,
+      dateRetrait: candidatures.dateRetrait,
       idOffre: offresStage.idOffre,
       titre: offresStage.titre,
       modeTravail: offresStage.modeTravail,
@@ -178,15 +238,9 @@ export async function listCandidaturesForEntreprise(
   idUtilisateurEntreprise,
   { idOffre } = {},
 ) {
-  const [entreprise] = await db
-    .select()
-    .from(entreprises)
-    .where(eq(entreprises.idUtilisateur, idUtilisateurEntreprise));
-  if (!entreprise) {
-    const err = new Error("Profil entreprise introuvable");
-    err.status = 404;
-    throw err;
-  }
+  // Propriétaire OU membre d'équipe actif (anti-IDOR via contexte entreprise)
+  const ctx = await resolveEntrepriseContextOrThrow(idUtilisateurEntreprise);
+  const entreprise = ctx.entreprise;
 
   const conditions = [eq(offresStage.idEntreprise, entreprise.idEntreprise)];
   if (idOffre) conditions.push(eq(candidatures.idOffre, idOffre));
@@ -197,6 +251,9 @@ export async function listCandidaturesForEntreprise(
       statut: candidatures.statut,
       dateCandidature: candidatures.dateCandidature,
       lettreMotivation: candidatures.lettreMotivation,
+      motifRetraitCode: candidatures.motifRetraitCode,
+      motifRetraitCommentaire: candidatures.motifRetraitCommentaire,
+      dateRetrait: candidatures.dateRetrait,
       idOffre: offresStage.idOffre,
       titreOffre: offresStage.titre,
       idStagiaire: stagiaires.idStagiaire,
@@ -317,9 +374,22 @@ export async function listCandidaturesForEntreprise(
   });
 }
 
-// Change le statut d'une candidature, en vérifiant d'abord que l'offre
-// concernée appartient bien à l'entreprise qui fait la demande — sans ça,
-// une entreprise pourrait modifier les candidatures d'une autre.
+// Machine d'état métier des candidatures.
+// Les transitions sont volontairement monotones : une candidature ne peut
+// pas revenir en arrière et l'état "acceptee" est réservé au flux d'offre
+// finale (il ne peut donc pas être forcé via PATCH /statut).
+const TRANSITIONS_CANDIDATURE = {
+  soumise: new Set(["consultee", "preselectionnee", "rejetee"]),
+  consultee: new Set(["preselectionnee", "rejetee"]),
+  preselectionnee: new Set(["rejetee"]),
+  rejetee: new Set(),
+  acceptee: new Set(),
+  retiree: new Set(),
+};
+
+// Change le statut d'une candidature en appliquant la machine d'état métier.
+// L'UPDATE reprend aussi l'ancien statut dans son WHERE : en cas de deux
+// requêtes concurrentes, une seule peut consommer l'ancien état.
 export async function updateCandidatureStatut(
   idUtilisateurEntreprise,
   idCandidature,
@@ -340,6 +410,7 @@ export async function updateCandidatureStatut(
       idOffreEntreprise: offresStage.idEntreprise,
       titreOffre: offresStage.titre,
       idUtilisateurStagiaire: stagiaires.idUtilisateur,
+      statutActuel: candidatures.statut,
     })
     .from(candidatures)
     .innerJoin(offresStage, eq(candidatures.idOffre, offresStage.idOffre))
@@ -354,25 +425,50 @@ export async function updateCandidatureStatut(
     throw err;
   }
 
+  const transitionsAutorisees = TRANSITIONS_CANDIDATURE[row.statutActuel];
+  if (!transitionsAutorisees || !transitionsAutorisees.has(nouveauStatut)) {
+    const err = new Error(
+      `Transition de candidature interdite : ${row.statutActuel} → ${nouveauStatut}`,
+    );
+    err.status = 409;
+    throw err;
+  }
+
+  // Le statut "acceptee" est produit par le flux d'offre finale, jamais par
+  // cette route générique. La condition sur l'ancien statut rend également
+  // la transition atomique face aux requêtes concurrentes.
   const [updated] = await db
     .update(candidatures)
     .set({ statut: nouveauStatut, dateMajStatut: new Date() })
-    .where(eq(candidatures.idCandidature, idCandidature))
+    .where(
+      and(
+        eq(candidatures.idCandidature, idCandidature),
+        eq(candidatures.statut, row.statutActuel),
+      ),
+    )
     .returning();
 
+  if (!updated) {
+    const err = new Error(
+      "La candidature a été modifiée entre-temps. Veuillez actualiser puis réessayer.",
+    );
+    err.status = 409;
+    throw err;
+  }
+
   const membre = await getMembreOptionnel(idUtilisateurEntreprise);
-  const LABELS_STATUT = {
-    consultee: "Profil consulté",
-    preselectionnee: "Candidat présélectionné",
-    rejetee: "Candidature refusée",
-    acceptee: "Candidature acceptée",
-    soumise: "Candidature remise en attente",
+  const ACTION_STATUT = {
+    consultee: "profil_consulte",
+    preselectionnee: "candidat_preselectionne",
+    rejetee: "candidature_refusee",
+    acceptee: "candidature_acceptee",
+    soumise: "candidature_remise_attente",
   };
   await enregistrerActiviteCandidature(
     entreprise.idEntreprise,
     membre?.idMembre,
     idCandidature,
-    LABELS_STATUT[nouveauStatut] || `Statut changé : ${nouveauStatut}`,
+    ACTION_STATUT[nouveauStatut] || `statut_change:${nouveauStatut}`,
   );
 
   // On ne notifie l'étudiant que sur les changements de statut réellement
@@ -609,6 +705,25 @@ export async function getCandidatsRecommandes(
 // créée automatiquement à l'inscription). Retourne null si introuvable —
 // ça ne doit jamais bloquer une action métier, juste priver le journal
 // d'un nom d'auteur.
+// Vérifie que la candidature ciblée appartient bien à une offre de CETTE
+// entreprise. Sans ce contrôle, une entreprise authentifiée pourrait lire
+// ou modifier les notes/évaluations internes d'une entreprise concurrente
+// en changeant simplement l'id dans l'URL (IDOR) — voir le même schéma déjà
+// appliqué correctement dans updateCandidatureStatut() ci-dessus.
+async function verifierAppartenanceCandidature(idEntreprise, idCandidature) {
+  const [row] = await db
+    .select({ idOffreEntreprise: offresStage.idEntreprise })
+    .from(candidatures)
+    .innerJoin(offresStage, eq(candidatures.idOffre, offresStage.idOffre))
+    .where(eq(candidatures.idCandidature, idCandidature));
+
+  if (!row || row.idOffreEntreprise !== idEntreprise) {
+    const err = new Error("Vous n'êtes pas autorisé à accéder à cette candidature");
+    err.status = 403;
+    throw err;
+  }
+}
+
 export async function getMembreOptionnel(idUtilisateur) {
   const [membre] = await db
     .select({ idMembre: membresEquipe.idMembre, nom: membresEquipe.nom })
@@ -685,12 +800,14 @@ export async function enregistrerConsultationCv(
     err.status = 404;
     throw err;
   }
+  await verifierAppartenanceCandidature(entreprise.idEntreprise, idCandidature);
+
   const membre = await getMembreOptionnel(idUtilisateurEntreprise);
   await enregistrerActiviteCandidature(
     entreprise.idEntreprise,
     membre?.idMembre,
     idCandidature,
-    "CV téléchargé",
+    "cv_telecharge",
   );
 }
 
@@ -707,6 +824,7 @@ export async function getEvaluationCandidature(
     err.status = 404;
     throw err;
   }
+  await verifierAppartenanceCandidature(entreprise.idEntreprise, idCandidature);
 
   const [evaluation] = await db
     .select()
@@ -733,6 +851,7 @@ export async function upsertEvaluationCandidature(
     err.status = 404;
     throw err;
   }
+  await verifierAppartenanceCandidature(entreprise.idEntreprise, idCandidature);
 
   const membre = await getMembreOptionnel(idUtilisateurEntreprise);
 
@@ -766,7 +885,7 @@ export async function upsertEvaluationCandidature(
     entreprise.idEntreprise,
     membre?.idMembre,
     idCandidature,
-    "Évaluation mise à jour",
+    "evaluation_maj",
   );
 
   return evaluation;
@@ -785,6 +904,7 @@ export async function listNotesCandidature(
     err.status = 404;
     throw err;
   }
+  await verifierAppartenanceCandidature(entreprise.idEntreprise, idCandidature);
 
   return db
     .select({
@@ -816,6 +936,7 @@ export async function ajouterNoteCandidature(
     err.status = 404;
     throw err;
   }
+  await verifierAppartenanceCandidature(entreprise.idEntreprise, idCandidature);
 
   const membre = await getMembreOptionnel(idUtilisateurEntreprise);
 
@@ -828,8 +949,294 @@ export async function ajouterNoteCandidature(
     entreprise.idEntreprise,
     membre?.idMembre,
     idCandidature,
-    "A laissé une note",
+    "note_ajoutee",
   );
 
   return { ...note, nomMembre: membre?.nom };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Destinataires entreprise pour une notif candidature.
+ * Délègue à la source de vérité unique (getUtilisateursAvecPermission).
+ */
+async function getDestinatairesNotifCandidats(idEntreprise) {
+  return getUtilisateursAvecPermission(idEntreprise, "candidats.gerer");
+}
+
+// Retrait de candidature par le stagiaire (soft — statut "retiree", pas de DELETE)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const MOTIFS_RETRAIT = [
+  {
+    code: "ACCEPTED_OTHER_OPPORTUNITY",
+    label: "J'ai accepté une autre opportunité.",
+  },
+  {
+    code: "NO_LONGER_AVAILABLE",
+    label: "Je ne suis plus disponible.",
+  },
+  {
+    code: "OFFER_NO_LONGER_FITS",
+    label: "L'offre ne correspond plus à mon projet.",
+  },
+  {
+    code: "FOUND_INTERNSHIP_ELSEWHERE",
+    label: "J'ai trouvé un stage ailleurs.",
+  },
+  {
+    code: "AVAILABILITY_CHANGED",
+    label: "Mes disponibilités ont changé.",
+  },
+  {
+    code: "PERSONAL_REASONS",
+    label: "Raisons personnelles.",
+  },
+  {
+    code: "OTHER",
+    label: "Autre.",
+  },
+];
+
+const STATUTS_RETRAIT_AUTORISES = new Set([
+  "soumise",
+  "consultee",
+  "preselectionnee",
+]);
+
+/**
+ * Retire une candidature appartenant au stagiaire authentifié.
+ * Anti-IDOR : résolution via idUtilisateur → stagiaire → candidature.
+ * Idempotent si déjà retiree.
+ */
+export async function retirerMaCandidature(
+  idUtilisateur,
+  idCandidature,
+  { motifCode, commentaire } = {},
+) {
+  const motif = MOTIFS_RETRAIT.find((m) => m.code === motifCode);
+  if (!motif) {
+    const err = new Error("Motif de retrait invalide");
+    err.status = 400;
+    throw err;
+  }
+  if (motif.code === "OTHER") {
+    const c = (commentaire || "").trim();
+    if (!c) {
+      const err = new Error(
+        "Veuillez préciser le motif lorsque vous sélectionnez « Autre ».",
+      );
+      err.status = 400;
+      throw err;
+    }
+    if (c.length > 500) {
+      const err = new Error("Le commentaire ne peut pas dépasser 500 caractères");
+      err.status = 400;
+      throw err;
+    }
+  } else if (commentaire && String(commentaire).length > 500) {
+    const err = new Error("Le commentaire ne peut pas dépasser 500 caractères");
+    err.status = 400;
+    throw err;
+  }
+
+  const [stagiaire] = await db
+    .select()
+    .from(stagiaires)
+    .where(eq(stagiaires.idUtilisateur, idUtilisateur));
+  if (!stagiaire) {
+    const err = new Error("Profil stagiaire introuvable");
+    err.status = 404;
+    throw err;
+  }
+
+  const [row] = await db
+    .select({
+      candidature: candidatures,
+      titreOffre: offresStage.titre,
+      idEntreprise: offresStage.idEntreprise,
+      idUtilisateurEntreprise: entreprises.idUtilisateur,
+      nomEntreprise: entreprises.nomEntreprise,
+    })
+    .from(candidatures)
+    .innerJoin(offresStage, eq(candidatures.idOffre, offresStage.idOffre))
+    .innerJoin(
+      entreprises,
+      eq(offresStage.idEntreprise, entreprises.idEntreprise),
+    )
+    .where(eq(candidatures.idCandidature, idCandidature))
+    .limit(1);
+
+  if (!row) {
+    const err = new Error("Candidature introuvable");
+    err.status = 404;
+    throw err;
+  }
+
+  // Propriété réelle — jamais se fier uniquement à l'id fourni
+  if (row.candidature.idStagiaire !== stagiaire.idStagiaire) {
+    const err = new Error("Vous n'êtes pas autorisé à modifier cette candidature");
+    err.status = 403;
+    throw err;
+  }
+
+  // Idempotence
+  if (row.candidature.statut === "retiree") {
+    return {
+      candidature: row.candidature,
+      dejaRetiree: true,
+    };
+  }
+
+  if (!STATUTS_RETRAIT_AUTORISES.has(row.candidature.statut)) {
+    const err = new Error(
+      row.candidature.statut === "acceptee"
+        ? "Cette candidature a déjà été acceptée et ne peut plus être retirée."
+        : row.candidature.statut === "rejetee"
+          ? "Cette candidature a déjà été clôturée."
+          : "Le retrait n'est plus possible pour cette candidature.",
+    );
+    err.status = 403;
+    throw err;
+  }
+
+  // Bloquer si un stage existe déjà pour ce stagiaire lié à une convention
+  // issue d'une offre finale de cette candidature (processus trop avancé)
+  const entretiensRows = await db
+    .select({ idEntretien: entretiens.idEntretien, statut: entretiens.statut })
+    .from(entretiens)
+    .where(eq(entretiens.idCandidature, idCandidature));
+
+  for (const ent of entretiensRows) {
+    const [of] = await db
+      .select({
+        idOffreFinale: offresFinales.idOffreFinale,
+        statutReponse: offresFinales.statutReponseStagiaire,
+      })
+      .from(offresFinales)
+      .where(eq(offresFinales.idEntretien, ent.idEntretien))
+      .limit(1);
+    if (of && of.statutReponse === "acceptee") {
+      const err = new Error(
+        "Un stage a déjà été engagé pour cette candidature. Le retrait n'est plus possible.",
+      );
+      err.status = 403;
+      throw err;
+    }
+  }
+
+  const now = new Date();
+  const commentaireFinal =
+    motif.code === "OTHER"
+      ? String(commentaire).trim()
+      : commentaire
+        ? String(commentaire).trim().slice(0, 500)
+        : null;
+
+  const [updated] = await db
+    .update(candidatures)
+    .set({
+      statut: "retiree",
+      dateMajStatut: now,
+      motifRetraitCode: motif.code,
+      motifRetraitCommentaire: commentaireFinal,
+      dateRetrait: now,
+    })
+    .where(
+      and(
+        eq(candidatures.idCandidature, idCandidature),
+        eq(candidatures.idStagiaire, stagiaire.idStagiaire),
+        inArray(candidatures.statut, [...STATUTS_RETRAIT_AUTORISES]),
+      ),
+    )
+    .returning();
+
+  // Re-check if concurrent update won
+  if (!updated || updated.statut !== "retiree") {
+    const [fresh] = await db
+      .select()
+      .from(candidatures)
+      .where(eq(candidatures.idCandidature, idCandidature))
+      .limit(1);
+    if (fresh?.statut === "retiree") {
+      return { candidature: fresh, dejaRetiree: true };
+    }
+    const err = new Error("Impossible de retirer la candidature");
+    err.status = 409;
+    throw err;
+  }
+
+  // Annuler les entretiens encore actifs (planifiés / confirmés…)
+  const STATUTS_ENT_ACTIFS = [
+    "planifie",
+    "valide",
+    "confirme",
+    "reprogramme",
+  ];
+  for (const ent of entretiensRows) {
+    if (STATUTS_ENT_ACTIFS.includes(ent.statut)) {
+      await db
+        .update(entretiens)
+        .set({ statut: "annule" })
+        .where(eq(entretiens.idEntretien, ent.idEntretien));
+    }
+  }
+
+  const detailsMotif = commentaireFinal
+    ? `${motif.label} — ${commentaireFinal}`
+    : motif.label;
+
+  await enregistrerActiviteCandidature(
+    row.idEntreprise,
+    null,
+    idCandidature,
+    "candidature_retiree",
+    detailsMotif,
+  );
+
+  // Notifications entreprise : source de vérité unique (candidats.gerer)
+  const destinataires = await getDestinatairesNotifCandidats(row.idEntreprise);
+  const messageEntreprise = `${stagiaire.prenom} ${stagiaire.nom} a retiré sa candidature pour l'offre « ${row.titreOffre} ». Motif : ${motif.label}`;
+  await Promise.all(
+    destinataires.map((idDest) =>
+      creerNotification({
+        idUtilisateur: idDest,
+        type: "candidature_retiree",
+        titre: "Candidature retirée",
+        message: messageEntreprise,
+        lien: `/candidats?id=${idCandidature}`,
+        idEntreprise: row.idEntreprise,
+        categoriePreference: "candidatures",
+      }),
+    ),
+  );
+
+  // Événement temps réel (candidature retirée) — destinataires autorisés uniquement
+  for (const idDest of destinataires) {
+    publishRealtime(idDest, {
+      type: "candidature.retiree",
+      payload: {
+        idCandidature,
+        idEntreprise: row.idEntreprise,
+        statut: "retiree",
+        titreOffre: row.titreOffre,
+      },
+    });
+  }
+
+  // Confirmation stagiaire (uniquement en cas de succès)
+  await creerNotification({
+    idUtilisateur,
+    type: "candidature_retiree_confirmation",
+    titre: "Candidature retirée",
+    message: `Votre candidature pour « ${row.titreOffre} » (${row.nomEntreprise}) a bien été retirée.`,
+    lien: "/candidatures",
+  });
+
+  return {
+    candidature: updated,
+    motif: { code: motif.code, label: motif.label },
+    dejaRetiree: false,
+  };
 }

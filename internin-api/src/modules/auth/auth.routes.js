@@ -19,6 +19,7 @@ import { requireAuth } from "../../middlewares/auth.middleware.js";
 
 import {
   authLimiter,
+  loginLimiter,
   refreshLimiter,
 } from "../../middlewares/rateLimit.middleware.js";
 
@@ -34,7 +35,7 @@ const router = Router();
 
 router.post("/register", authLimiter, validate(registerSchema), register);
 
-router.post("/login", authLimiter, validate(loginSchema), login);
+router.post("/login", loginLimiter, validate(loginSchema), login);
 
 /**
  * Vérification publique du lien reçu par e-mail.
@@ -42,7 +43,7 @@ router.post("/login", authLimiter, validate(loginSchema), login);
  * Exemple :
  * GET /auth/verifier-email?token=abc123
  */
-router.get("/verifier-email", verifyEmailController);
+router.get("/verifier-email", authLimiter, verifyEmailController);
 
 /**
  * Renvoi d'un nouvel e-mail.

@@ -25,12 +25,13 @@ import AffectationsPanel from "@/components/features/equipe/AffectationsPanel";
 import ActivitePanel from "@/components/features/equipe/ActivitePanel";
 import ParametresEquipePanel from "@/components/features/equipe/ParametresEquipePanel";
 import { useMembresEquipe } from "@/lib/queries/useEquipe";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const ONGLETS = [
-  { value: "membres", label: "Membres" },
-  { value: "affectations", label: "Affectations" },
-  { value: "activite", label: "Activité" },
-  { value: "parametres", label: "Paramètres" },
+  { value: "membres", labelKey: "equipe.tabs.membres" },
+  { value: "affectations", labelKey: "equipe.tabs.affectations" },
+  { value: "activite", labelKey: "equipe.tabs.activite" },
+  { value: "parametres", labelKey: "equipe.tabs.parametres" },
 ];
 
 function MembreSkeletonGrid() {
@@ -81,6 +82,7 @@ function MembreSkeletonList() {
 }
 
 export default function EquipePage() {
+  const { t } = useTranslation();
   const [onglet, setOnglet] = useState("membres");
   const [recherche, setRecherche] = useState("");
   const [role, setRole] = useState("tous");
@@ -111,8 +113,8 @@ export default function EquipePage() {
   return (
     <>
       <AppHeader
-        breadcrumb={[{ label: "Équipe" }]}
-        subtitle="Membres et rôles de votre équipe de recrutement"
+        breadcrumb={[{ label: t("equipe.title") }]}
+        subtitle={t("equipe.subtitle")}
         refreshKeys={["membresEquipe", "activitesEquipe"]}
       />
 
@@ -127,10 +129,10 @@ export default function EquipePage() {
           <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Équipe
+                {t("equipe.title")}
               </h1>
               <p className="mt-1 max-w-lg text-sm text-muted-foreground">
-                Gérez les membres qui collaborent avec votre entreprise.
+                {t("equipe.description")}
               </p>
             </div>
             <InviterMembreDialog />
@@ -155,7 +157,7 @@ export default function EquipePage() {
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              {o.label}
+              {t(o.labelKey)}
             </button>
           ))}
         </div>
@@ -172,18 +174,18 @@ export default function EquipePage() {
               <div className="relative max-w-md flex-1">
                 <FiSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Rechercher un membre..."
+                  placeholder={t("equipe.searchPlaceholder")}
                   className="h-10 rounded-md pl-10 pr-9 transition focus:ring-2 focus:ring-primary/20"
                   value={recherche}
                   onChange={(e) => setRecherche(e.target.value)}
-                  aria-label="Rechercher un membre"
+                  aria-label={t("equipe.searchAria")}
                 />
                 {recherche && (
                   <button
                     type="button"
                     onClick={() => setRecherche("")}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                    aria-label="Effacer la recherche"
+                    aria-label={t("equipe.clearSearchAria")}
                   >
                     <FiX className="h-3.5 w-3.5" />
                   </button>
@@ -203,7 +205,7 @@ export default function EquipePage() {
                   <button
                     type="button"
                     onClick={() => setVue("grille")}
-                    aria-label="Vue grille"
+                    aria-label={t("equipe.viewGridAria")}
                     aria-pressed={vue === "grille"}
                     className={`flex h-8 w-8 items-center justify-center rounded-sm transition ${
                       vue === "grille"
@@ -216,7 +218,7 @@ export default function EquipePage() {
                   <button
                     type="button"
                     onClick={() => setVue("liste")}
-                    aria-label="Vue liste"
+                    aria-label={t("equipe.viewListAria")}
                     aria-pressed={vue === "liste"}
                     className={`flex h-8 w-8 items-center justify-center rounded-sm transition ${
                       vue === "liste"
@@ -253,10 +255,10 @@ export default function EquipePage() {
                 {hasFiltres ? (
                   <>
                     <h3 className="text-sm font-bold text-foreground">
-                      Aucun membre trouvé
+                      {t("equipe.empty.filteredTitle")}
                     </h3>
                     <p className="mt-1 max-w-xs text-sm text-muted-foreground">
-                      Essayez avec un autre nom, email ou filtre.
+                      {t("equipe.empty.filteredHint")}
                     </p>
                     <Button
                       type="button"
@@ -264,17 +266,16 @@ export default function EquipePage() {
                       className="mt-4 rounded-md"
                       onClick={reinitialiserFiltres}
                     >
-                      Effacer les filtres
+                      {t("equipe.empty.clearFilters")}
                     </Button>
                   </>
                 ) : (
                   <>
                     <h3 className="text-sm font-bold text-foreground">
-                      Votre équipe est encore vide
+                      {t("equipe.empty.emptyTitle")}
                     </h3>
                     <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                      Invitez vos collaborateurs pour commencer à travailler
-                      ensemble sur InternIn.
+                      {t("equipe.empty.emptyHint")}
                     </p>
                     <div className="mt-4">
                       <InviterMembreDialog />
@@ -314,10 +315,10 @@ export default function EquipePage() {
                     className="overflow-hidden rounded-md border border-border bg-card"
                   >
                     <div className="grid grid-cols-[1.6fr_1.1fr_1fr_1.2fr] gap-3 border-b border-border bg-muted/40 px-3 py-3 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                      <span>Membre</span>
-                      <span>Rôle</span>
-                      <span>Statut</span>
-                      <span className="text-right">Actions</span>
+                      <span>{t("equipe.colMember")}</span>
+                      <span>{t("equipe.colRole")}</span>
+                      <span>{t("equipe.colStatus")}</span>
+                      <span className="text-right">{t("equipe.colActions")}</span>
                     </div>
                     {liste.map((m, i) => (
                       <MembreRow

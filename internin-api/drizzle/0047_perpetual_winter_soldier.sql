@@ -1,0 +1,5 @@
+-- Migration 0047 conservée pour préserver l'historique Drizzle.
+-- La table preferences_notifications_entreprise et sa FK sont déjà gérées par
+-- 0046_preferences_notifications_entreprise.
+-- Migration volontairement no-op pour éviter une double création de table/contrainte.
+-- Ne pas supprimer cette migration si elle peut déjà être référencée par une base existante.

@@ -86,7 +86,9 @@ export async function googleAuthRequest({
   accessToken,
   typeUtilisateur,
 }) {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  // Étape 2/4 : passe par le proxy Next.js ("/api/...") comme apiFetch,
+  // au lieu de l'URL Railway en direct — voir lib/api/client.js.
+  const API_URL = "/api";
 
   const response = await fetch(`${API_URL}/auth/google`, {
     method: "POST",

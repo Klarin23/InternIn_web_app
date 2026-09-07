@@ -2,8 +2,7 @@
 // Carte d'offre — refonte visuelle uniquement (aucune logique métier modifiée).
 // Écarts assumés, inchangés depuis la version précédente :
 // - Pas de champ "durée" sur une offre publiée (seulement sur l'offre finale).
-// - Le cœur "favori" reste désactivé : aucune fonctionnalité de stages
-//   sauvés n'existe encore côté backend. L'UI est prête pour l'activer.
+// - Le cœur favori est connecté au backend (table favoris_offres).
 // - "Compétences" vient d'un champ texte libre (pas une liste structurée).
 // - Le score de compatibilité (`offre.matchScore`) n'existe pas encore côté
 //   API : la structure est prête, mais rien n'est inventé/affiché tant que
@@ -11,7 +10,13 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { FiMapPin, FiHeart, FiArrowRight, FiCheckCircle } from "react-icons/fi";
+import {
+  FiMapPin,
+  FiHeart,
+  FiArrowRight,
+  FiCheckCircle,
+  FiTrendingUp,
+} from "react-icons/fi";
 import {
   modeBadge as getModeBadge,
   statutCandidature as getStatutCandidature,
@@ -22,6 +27,8 @@ import {
   estOffreExpiree,
 } from "@/lib/constants/offres";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import FavoriteButton from "@/components/features/offres/FavoriteButton";
+import OffrePostesIndicator from "@/components/features/offres/OffrePostesIndicator";
 
 const cardMotion = {
   initial: { opacity: 0, y: 18, scale: 0.98 },
@@ -92,15 +99,15 @@ export default function OffreCard({
         </motion.span>
       )}
 
-      <button
-        type="button"
-        disabled
-        title={t("offersPage.card.saveComingSoon")}
-        className={`absolute right-4 top-4 z-10 text-muted-foreground/50 transition-colors cursor-not-allowed ${estListe ? "sm:static sm:order-3" : ""}`}
-        aria-label={t("offersPage.card.saveAria")}
+      <div
+        className={`absolute right-4 top-4 z-10 ${estListe ? "sm:static sm:order-3" : ""}`}
+        onClick={(e) => e.stopPropagation()}
       >
-        <FiHeart className="h-5 w-5" />
-      </button>
+        <FavoriteButton
+          idOffre={offre.idOffre}
+          isFavorite={Boolean(offre.isFavorite)}
+        />
+      </div>
 
       <Link
         href={`/offres/${offre.idOffre}`}
@@ -155,8 +162,9 @@ export default function OffreCard({
           </div>
 
           {matchScore !== null && !estListe && (
-            <span className="flex-shrink-0 rounded-full bg-accent px-2 py-1 text-[11px] font-bold text-accent-foreground">
-              ✨ {matchScore}%
+            <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-[11px] font-bold text-emerald-700">
+              <FiTrendingUp className="h-3 w-3 text-emerald-600" aria-hidden />
+              {matchScore}%
             </span>
           )}
         </div>
@@ -191,6 +199,8 @@ export default function OffreCard({
             )}
           </div>
         )}
+
+        {!estListe && <div className="mb-4"><OffrePostesIndicator offre={offre} compact /></div>}
 
         {competences.length > 0 && !estListe && (
           <div className="mb-4 flex flex-wrap gap-1.5">
@@ -229,6 +239,7 @@ export default function OffreCard({
 
       {estListe && (
         <div className="flex flex-shrink-0 items-center gap-4 sm:order-2">
+          <OffrePostesIndicator offre={offre} compact />
           <span className="hidden text-sm font-bold text-foreground md:block">
             {formatRemuneration(t, offre)}
           </span>

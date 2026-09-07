@@ -2,6 +2,10 @@
 // l'onboarding entreprise, reçues en un seul payload à l'étape 5.
 
 import { z } from "zod";
+import { checkExternalUrl, checkLinkedInUrl, zUrlField } from "../../utils/urlValidation.js";
+
+const urlSite = zUrlField(checkExternalUrl)(z.string().optional());
+const urlLinkedin = zUrlField(checkLinkedInUrl)(z.string().optional());
 
 export const completeOnboardingEntrepriseSchema = z.object({
   // Étape 1
@@ -11,8 +15,8 @@ export const completeOnboardingEntrepriseSchema = z.object({
   pays: z.string().min(1),
   ville: z.string().min(1),
   // Étape 2
-  siteWeb: z.string().optional(),
-  linkedinUrl: z.string().optional(),
+  siteWeb: urlSite,
+  linkedinUrl: urlLinkedin,
   logoUrl: z.string().optional(),
   // Étape 3
   aPropos: z.string().min(20),
@@ -24,7 +28,7 @@ export const completeOnboardingEntrepriseSchema = z.object({
   contactEmail: z.string().email(),
   contactTelephone: z.string().min(6),
   peutEtreSuperviseur: z.boolean().optional(),
-});
+}).strict(); // rejette typeUtilisateur et tout champ arbitraire
 
 export const updateProfileEntrepriseSchema = z.object({
   nomEntreprise: z.string().min(1).optional(),
@@ -35,8 +39,8 @@ export const updateProfileEntrepriseSchema = z.object({
   pays: z.string().optional(),
   ville: z.string().optional(),
   adresse: z.string().optional(),
-  siteWeb: z.string().optional(),
-  linkedinUrl: z.string().optional(),
+  siteWeb: urlSite,
+  linkedinUrl: urlLinkedin,
   aPropos: z.string().optional(),
   mission: z.string().optional(),
   cultureEntreprise: z.string().optional(),

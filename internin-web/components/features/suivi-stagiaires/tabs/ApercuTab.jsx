@@ -1,92 +1,97 @@
-import { FiPhone, FiMail } from "react-icons/fi";
+"use client";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { useEvaluations } from "@/lib/queries/useEvaluations";
-import { getAvancement, getMoyenneDerniereEvaluation } from "../stageUtils";
-
-const CRITERES = [
-  ["noteAssiduite", "Ponctualité"],
-  ["noteCommunication", "Communication"],
-  ["noteInitiative", "Initiative"],
-  ["noteProfessionnalisme", "Qualité du travail"],
-  ["noteTravailEquipe", "Intégration équipe"],
-  ["notePerformanceTechnique", "Autonomie"],
-];
-
-function Etoiles({ note }) {
-  return (
-    <span className="text-accent">
-      {"★".repeat(Math.round(note))}
-      <span className="text-muted-foreground">
-        {"★".repeat(5 - Math.round(note))}
-      </span>
-    </span>
-  );
-}
+import { Button } from "@/components/ui/button";
+import OverviewHeader from "./apercu/OverviewHeader";
+import OverviewStats from "./apercu/OverviewStats";
+import OverviewProgress from "./apercu/OverviewProgress";
+import OverviewPerformance from "./apercu/OverviewPerformance";
+import OverviewInfo from "./apercu/OverviewInfo";
+import OverviewHighlights from "./apercu/OverviewHighlights";
+import OverviewActivity from "./apercu/OverviewActivity";
+import OverviewSkeleton from "./apercu/OverviewSkeleton";
+import {
+  getAvancement,
+  getJoursRestants,
+  getMoyenneDerniereEvaluation,
+  buildHighlights,
+  buildRecentActivity,
+} from "./apercu/apercuUtils";
 
 export default function ApercuTab({ stage }) {
-  const { data: evaluations } = useEvaluations(stage.idStage);
-  const avancement = getAvancement(stage);
-  const moyenne = getMoyenneDerniereEvaluation(evaluations);
-  const derniere = evaluations?.[evaluations.length - 1];
+  const { t, locale } = useTranslation();
+  const {
+    data: evaluations,
+    isLoading,
+    isError,
+    refetch,
+    isFetching,
+  } = useEvaluations(stage?.idStage);
 
+  const list = Array.isArray(evaluations) ? evaluations : [];
+  const avancement = stage ? getAvancement(stage) : 0;
+  const moyenne = getMoyenneDerniereEvaluation(list);
+  const joursRestants = stage ? getJoursRestants(stage) : null;
+  const stageTermine = stage?.statut === "termine";
+  const highlights = stage
+    ? buildHighlights(stage, list, avancement, moyenne)
+    : [];
+  const activity = buildRecentActivity(list);
+
+  if (isLoading) {
+    return <OverviewSkeleton />;
+  }
+
+  // Erreur évaluations : on affiche quand même le stage (données parent)
+  // avec une alerte non bloquante pour la partie performance.
   return (
-    <div className="space-y-6">
-      {/* Coordonnées — visibles ici uniquement car le stage est actif,
-          conforme à la règle de confidentialité du Schéma BDD (§12) */}
-      <div className="flex flex-wrap gap-2 text-xs">
-        <span className="flex items-center gap-1.5 rounded-full bg-primary/5 px-3 py-1.5 text-primary">
-          <FiPhone className="h-3.5 w-3.5" />
-          {stage.telephone}
-        </span>
-        <span className="flex items-center gap-1.5 rounded-full bg-primary/5 px-3 py-1.5 text-primary">
-          <FiMail className="h-3.5 w-3.5" />
-          {stage.email}
-        </span>
-      </div>
+    <div className="space-y-5">
+      <OverviewHeader stage={stage} moyenne={moyenne} />
 
-      <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-md bg-muted/50 p-4 text-center">
-          <div className="text-xl font-bold text-foreground">{avancement}%</div>
-          <div className="text-xs text-muted-foreground">Avancement</div>
-        </div>
-        <div className="rounded-md bg-muted/50 p-4 text-center">
-          <div className="text-xl font-bold text-foreground">
-            {evaluations?.length ?? 0}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            Évaluations soumises
-          </div>
-        </div>
-        <div className="rounded-md bg-muted/50 p-4 text-center">
-          <div className="text-xl font-bold text-foreground">
-            {moyenne ? moyenne.toFixed(1) : "—"}/5
-          </div>
-          <div className="text-xs text-muted-foreground">Note moy.</div>
-        </div>
-      </div>
+      <OverviewStats
+        avancement={avancement}
+        moyenne={isError ? null : moyenne}
+        evalCount={isError ? 0 : list.length}
+        joursRestants={joursRestants}
+        stageTermine={stageTermine}
+      />
 
-      <div>
-        <h6 className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-          Compétences évaluées{" "}
-          {derniere ? `(semaine ${derniere.numeroSemaine})` : ""}
-        </h6>
-        {!derniere ? (
-          <p className="text-sm text-muted-foreground">
-            Aucune évaluation soumise pour l&apos;instant.
-          </p>
+      <OverviewProgress
+        stage={stage}
+        avancement={avancement}
+        moyenne={moyenne}
+      />
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {isError ? (
+          <div className="rounded-2xl border border-destructive/25 bg-destructive/5 px-5 py-6 text-center lg:col-span-1">
+            <p className="text-sm font-semibold text-foreground">
+              {t("suivi.eval.loadErrorShort")}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("suivi.overview.otherInfoAvailable")}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-3 rounded-lg"
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              {isFetching ? t("suivi.common.loading") : t("suivi.common.retry")}
+            </Button>
+          </div>
         ) : (
-          <div className="space-y-2">
-            {CRITERES.map(([key, label]) => (
-              <div
-                key={key}
-                className="flex items-center justify-between text-sm"
-              >
-                <span className="text-foreground">{label}</span>
-                <Etoiles note={derniere[key]} />
-              </div>
-            ))}
-          </div>
+          <OverviewPerformance moyenne={moyenne} evaluations={list} />
         )}
+        <OverviewInfo stage={stage} />
       </div>
+
+      <OverviewHighlights items={highlights} />
+
+      {!isError && <OverviewActivity events={activity} />}
     </div>
   );
 }

@@ -1,10 +1,14 @@
+"use client";
+
 import { FiZap, FiTrendingUp, FiTarget, FiCompass } from "react-icons/fi";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function CoachIACard({ sessions }) {
+  const { t } = useTranslation();
   if (!sessions || sessions.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Le Coach IA analysera votre progression dès la première évaluation
+        {t("stagiaireSpace.stage.coachWaiting")}
         soumise.
       </p>
     );
@@ -32,14 +36,14 @@ export default function CoachIACard({ sessions }) {
         <div className="flex gap-2.5">
           <FiTarget className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
           <p className="text-muted-foreground">
-            <b className="text-foreground">Axe d&apos;amélioration : </b>
+            <b className="text-foreground">{t("stagiaireSpace.stage.coachImprovement")} </b>
             {derniere.axesAmelioration}
           </p>
         </div>
         <div className="flex gap-2.5">
           <FiCompass className="mt-0.5 h-4 w-4 shrink-0 text-secondary" />
           <p className="text-muted-foreground">
-            <b className="text-foreground">Action recommandée : </b>
+            <b className="text-foreground">{t("stagiaireSpace.stage.coachAction")} </b>
             {derniere.actionsRecommandees}
           </p>
         </div>

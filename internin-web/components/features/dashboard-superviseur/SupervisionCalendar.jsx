@@ -14,43 +14,121 @@ import {
 } from "react-icons/fi";
 import { useCalendrierSupervision } from "@/lib/queries/useSuperviseur";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
-const FILTRES = [
-  { id: "tous", label: "Tous" },
-  { id: "evaluation", label: "Évaluations" },
-  { id: "journal", label: "Journal" },
-  { id: "fin_stage", label: "Fin de stage" },
-  { id: "debut_stage", label: "Début de stage" },
+const FILTRE_DEFS = [
+  { id: "tous", labelKey: "calendar.filterAll" },
+  { id: "evaluation", labelKey: "calendar.filterEvaluations" },
+  { id: "journal", labelKey: "calendar.filterJournal" },
+  { id: "fin_stage", labelKey: "calendar.filterEnd" },
+  { id: "debut_stage", labelKey: "calendar.filterStart" },
 ];
 
-const TYPE_META = {
+const TYPE_META_BASE = {
   evaluation: {
-    label: "Évaluation",
+    labelKey: "calendar.typeEvaluation",
     color: "bg-primary text-primary-foreground",
     dot: "bg-primary",
     icon: FiClipboard,
   },
   journal: {
-    label: "Journal",
+    labelKey: "calendar.typeJournal",
     color: "bg-amber-500 text-white",
     dot: "bg-amber-500",
     icon: FiBookOpen,
   },
   fin_stage: {
-    label: "Fin de stage",
+    labelKey: "calendar.typeEnd",
     color: "bg-emerald-600 text-white",
     dot: "bg-emerald-500",
     icon: FiFlag,
   },
   debut_stage: {
-    label: "Début de stage",
+    labelKey: "calendar.typeStart",
     color: "bg-sky-600 text-white",
     dot: "bg-sky-500",
     icon: FiFlag,
   },
 };
 
-const JOURS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+function getLocaleTag(locale) {
+  return locale === "en" ? "en-GB" : "fr-FR";
+}
+
+function buildWeekdayLabels(locale) {
+  // Monday-first short weekday labels
+  const tag = getLocaleTag(locale);
+  // 2024-01-01 is Monday
+  const base = new Date(Date.UTC(2024, 0, 1));
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(base);
+    d.setUTCDate(base.getUTCDate() + i);
+    return d.toLocaleDateString(tag, { weekday: "short", timeZone: "UTC" });
+  });
+}
+
+/** Traduit titre/description d'événement connus (backend FR) sans toucher aux données dynamiques. */
+function localizeEvent(e, t) {
+  if (!e) return { titre: "", description: "" };
+  let titre = e.titre || "";
+  let description = e.description || "";
+
+  // Titres exacts
+  const titleMap = {
+    "Évaluation à effectuer": () => t("calendar.event.evalTodo"),
+    "Évaluation en retard": () => t("calendar.event.evalOverdue"),
+    "Journal à vérifier": () => t("calendar.event.journalReview"),
+    "Entrée de journal": () => t("calendar.event.journalEntry"),
+    "Stage bientôt terminé": () => t("calendar.event.stageEndingSoon"),
+    "Fin de stage prévue": () => t("calendar.event.stageEndPlanned"),
+    "Début de stage": () => t("calendar.event.stageStart"),
+  };
+  if (titleMap[titre]) {
+    titre = titleMap[titre]();
+  } else {
+    const weekMatch = /^Évaluation semaine\s+(\d+)$/i.exec(titre);
+    if (weekMatch) {
+      titre = t("calendar.event.evalWeek", { n: weekMatch[1] });
+    } else if (e.type === "evaluation" && !titre) {
+      titre = t("calendar.typeEvaluation");
+    } else if (e.type === "journal" && !titre) {
+      titre = t("calendar.typeJournal");
+    } else if (e.type === "fin_stage") {
+      // fallback type label if unknown title
+      if (!titleMap[e.titre]) {
+        // keep custom titre, else type
+        if (!titre) titre = t("calendar.typeEnd");
+      }
+    } else if (e.type === "debut_stage" && !titre) {
+      titre = t("calendar.typeStart");
+    }
+  }
+
+  // Descriptions avec patterns FR
+  // "{name} — aucune évaluation soumise récemment"
+  let m = /^(.+?)\s*—\s*aucune évaluation soumise récemment$/i.exec(description);
+  if (m) {
+    description = t("calendar.event.descNoRecentEval", { name: m[1].trim() });
+  } else if ((m = /^(.+?)\s*—\s*plus de\s+(\d+)\s+jours sans évaluation soumise$/i.exec(description))) {
+    description = t("calendar.event.descOverdueDays", { name: m[1].trim(), days: m[2] });
+  } else if ((m = /^(.+?)\s*—\s*fin dans\s+(\d+)\s+jours?$/i.exec(description))) {
+    const days = Number(m[2]);
+    description = t(
+      days > 1 ? "calendar.event.descEndsInPlural" : "calendar.event.descEndsIn",
+      { name: m[1].trim(), days: m[2] },
+    );
+  } else if ((m = /^(.+?)\s*—\s*(\d+)\s+entrée[s]?\s+en attente$/i.exec(description))) {
+    const count = Number(m[2]);
+    description = t(
+      count > 1 ? "calendar.event.descPendingEntriesPlural" : "calendar.event.descPendingEntries",
+      { name: m[1].trim(), count: m[2] },
+    );
+  }
+  // pure name descriptions stay as-is (intern name)
+
+  return { titre, description };
+}
+
 
 function startOfMonthGrid(year, month) {
   // month 1-12, Monday-first grid
@@ -82,14 +160,28 @@ function dayKey(input) {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
-function formatMonthTitle(year, month) {
-  return new Date(year, month - 1, 1).toLocaleDateString("fr-FR", {
+function formatMonthTitle(year, month, localeTag = "fr-FR") {
+  return new Date(year, month - 1, 1).toLocaleDateString(localeTag, {
     month: "long",
     year: "numeric",
   });
 }
 
 export default function SupervisionCalendar({ embedded = false }) {
+  const { t, locale } = useTranslation();
+  const localeTag = getLocaleTag(locale);
+  const JOURS = useMemo(() => buildWeekdayLabels(locale), [locale]);
+  const FILTRES = useMemo(
+    () => FILTRE_DEFS.map((f) => ({ id: f.id, label: t(f.labelKey) })),
+    [t],
+  );
+  const TYPE_META = useMemo(() => {
+    const out = {};
+    for (const [k, v] of Object.entries(TYPE_META_BASE)) {
+      out[k] = { ...v, label: t(v.labelKey) };
+    }
+    return out;
+  }, [t]);
   const now = new Date();
   const [annee, setAnnee] = useState(now.getFullYear());
   const [mois, setMois] = useState(now.getMonth() + 1);
@@ -98,7 +190,10 @@ export default function SupervisionCalendar({ embedded = false }) {
   const reduceMotion = useReducedMotion();
 
   const { data, isLoading, isError } = useCalendrierSupervision({ annee, mois });
-  const evenements = data?.evenements || [];
+  const evenements = useMemo(
+    () => data?.evenements || [],
+    [data?.evenements],
+  );
 
   const filtered = useMemo(() => {
     if (filtre === "tous") return evenements;
@@ -161,10 +256,10 @@ export default function SupervisionCalendar({ embedded = false }) {
           </span>
           <div>
             <h3 className="text-sm font-bold capitalize text-foreground">
-              {formatMonthTitle(annee, mois)}
+              {formatMonthTitle(annee, mois, localeTag)}
             </h3>
             <p className="text-xs text-muted-foreground">
-              Calendrier de supervision
+              {t("calendar.heading")}
             </p>
           </div>
         </div>
@@ -174,13 +269,13 @@ export default function SupervisionCalendar({ embedded = false }) {
             onClick={goToday}
             className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-foreground transition hover:bg-muted"
           >
-            Aujourd&apos;hui
+            {t("calendar.today")}
           </button>
           <button
             type="button"
             onClick={prevMonth}
             className="rounded-lg border border-border p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            aria-label="Mois précédent"
+            aria-label={t("calendar.prevMonth")}
           >
             <FiChevronLeft className="h-4 w-4" />
           </button>
@@ -188,7 +283,7 @@ export default function SupervisionCalendar({ embedded = false }) {
             type="button"
             onClick={nextMonth}
             className="rounded-lg border border-border p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            aria-label="Mois suivant"
+            aria-label={t("calendar.nextMonth")}
           >
             <FiChevronRight className="h-4 w-4" />
           </button>
@@ -200,7 +295,7 @@ export default function SupervisionCalendar({ embedded = false }) {
         <div
           className="inline-flex min-w-min gap-1 rounded-xl border border-border bg-muted/40 p-1"
           role="tablist"
-          aria-label="Filtrer le calendrier"
+          aria-label={t("calendar.filterAria")}
         >
           {FILTRES.map((f) => {
             const actif = filtre === f.id;
@@ -235,11 +330,11 @@ export default function SupervisionCalendar({ embedded = false }) {
       {isLoading ? (
         <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
           <FiLoader className="h-5 w-5 animate-spin" />
-          Chargement…
+          {t("calendar.loading")}
         </div>
       ) : isError ? (
         <div className="px-5 py-10 text-center text-sm text-destructive">
-          Impossible de charger le calendrier.
+          {t("calendar.loadError")}
         </div>
       ) : (
         <>
@@ -295,7 +390,7 @@ export default function SupervisionCalendar({ embedded = false }) {
                             TYPE_META[e.type]?.dot || "bg-muted-foreground",
                             e.gravite === "urgent" && "bg-destructive",
                           )}
-                          title={e.titre}
+                          title={localizeEvent(e, t).titre}
                         />
                       ))}
                     </div>
@@ -309,7 +404,7 @@ export default function SupervisionCalendar({ embedded = false }) {
           <div className="space-y-2 p-4 sm:hidden">
             {agendaMobile.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                Aucun événement ce mois-ci
+                {t("calendar.emptyMonth")}
               </p>
             ) : (
               agendaMobile.map((e, idx) => {
@@ -337,17 +432,17 @@ export default function SupervisionCalendar({ embedded = false }) {
                       </div>
                       <div className="min-w-0">
                         <p className="text-[11px] font-medium uppercase text-muted-foreground">
-                          {d.toLocaleDateString("fr-FR", {
+                          {d.toLocaleDateString(localeTag, {
                             weekday: "short",
                             day: "numeric",
                             month: "short",
                           })}
                         </p>
                         <p className="truncate text-sm font-semibold text-foreground">
-                          {e.titre}
+                          {localizeEvent(e, t).titre}
                         </p>
                         <p className="truncate text-xs text-muted-foreground">
-                          {e.description}
+                          {localizeEvent(e, t).description}
                         </p>
                       </div>
                     </Link>
@@ -361,7 +456,7 @@ export default function SupervisionCalendar({ embedded = false }) {
           {selected && (
             <div className="hidden border-t border-border/60 px-4 py-4 sm:block">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {selected.date.toLocaleDateString("fr-FR", {
+                {selected.date.toLocaleDateString(localeTag, {
                   weekday: "long",
                   day: "numeric",
                   month: "long",
@@ -378,14 +473,14 @@ export default function SupervisionCalendar({ embedded = false }) {
                       >
                         <div>
                           <p className="text-sm font-semibold text-foreground">
-                            {e.titre}
+                            {localizeEvent(e, t).titre}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {e.description}
+                            {localizeEvent(e, t).description}
                           </p>
                         </div>
                         <span className="text-xs font-semibold text-primary">
-                          Ouvrir →
+                          {t("calendar.open")}
                         </span>
                       </Link>
                     </li>
@@ -402,6 +497,15 @@ export default function SupervisionCalendar({ embedded = false }) {
 
 /** Aperçu compact pour le dashboard */
 export function CalendarPreview({ limit = 4 }) {
+  const { t, locale } = useTranslation();
+  const localeTag = getLocaleTag(locale);
+  const TYPE_META = useMemo(() => {
+    const out = {};
+    for (const [k, v] of Object.entries(TYPE_META_BASE)) {
+      out[k] = { ...v, label: t(v.labelKey) };
+    }
+    return out;
+  }, [t]);
   const now = new Date();
   const { data, isLoading } = useCalendrierSupervision({
     annee: now.getFullYear(),
@@ -427,14 +531,14 @@ export function CalendarPreview({ limit = 4 }) {
             <FiCalendar className="h-4 w-4" />
           </span>
           <h3 className="text-sm font-bold text-foreground">
-            Prochains événements
+            {t("calendar.upcoming")}
           </h3>
         </div>
         <Link
           href="/calendrier-supervision"
           className="text-xs font-semibold text-primary hover:underline"
         >
-          Voir le calendrier
+          {t("calendar.viewCalendar")}
         </Link>
       </div>
       {isLoading ? (
@@ -443,7 +547,7 @@ export function CalendarPreview({ limit = 4 }) {
         </div>
       ) : upcoming.length === 0 ? (
         <p className="px-5 py-10 text-center text-sm text-muted-foreground">
-          Aucun événement à venir ce mois-ci
+          {t("calendar.emptyUpcoming")}
         </p>
       ) : (
         <ul className="divide-y divide-border/50">
@@ -457,7 +561,7 @@ export function CalendarPreview({ limit = 4 }) {
                 >
                   <div className="w-12 shrink-0 text-center">
                     <p className="text-[10px] font-semibold uppercase text-muted-foreground">
-                      {d.toLocaleDateString("fr-FR", { month: "short" })}
+                      {d.toLocaleDateString(localeTag, { month: "short" })}
                     </p>
                     <p className="text-lg font-bold tabular-nums text-foreground">
                       {d.getDate()}
@@ -465,10 +569,10 @@ export function CalendarPreview({ limit = 4 }) {
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">
-                      {e.titre}
+                      {localizeEvent(e, t).titre}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {e.description}
+                      {localizeEvent(e, t).description}
                     </p>
                   </div>
                 </Link>

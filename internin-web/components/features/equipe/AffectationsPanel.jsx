@@ -28,6 +28,7 @@ import {
   useRetirerAffectation,
   useMembresEquipe,
 } from "@/lib/queries/useEquipe";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const cardVariants = {
   hidden: { opacity: 0, y: 12 },
@@ -78,6 +79,7 @@ function AffectationSkeleton() {
 }
 
 export default function AffectationsPanel() {
+  const { t } = useTranslation();
   const { data: affectations, isLoading } = useAffectations();
   const { data: membresActifs } = useMembresEquipe({ statut: "actif" });
   const affecter = useAffecterSuperviseur();
@@ -135,12 +137,9 @@ export default function AffectationsPanel() {
         <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
           <FiBriefcase className="h-6 w-6 text-muted-foreground" />
         </div>
-        <h3 className="text-sm font-bold text-foreground">
-          Aucune affectation
-        </h3>
+        <h3 className="text-sm font-bold text-foreground">{t("equipe.affectations.empty.title")}</h3>
         <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-          Les affectations de votre équipe apparaîtront ici lorsqu&apos;il y
-          aura des stagiaires en poste.
+          {t("equipe.affectations.empty.hint")}
         </p>
       </motion.div>
     );
@@ -154,9 +153,9 @@ export default function AffectationsPanel() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <h2 className="text-lg font-semibold text-foreground">Affectations</h2>
+        <h2 className="text-lg font-semibold text-foreground">{t("equipe.affectations.title")}</h2>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          Gérez les superviseurs affectés à vos stagiaires en poste.
+          {t("equipe.affectations.description")}
         </p>
       </motion.div>
 
@@ -166,21 +165,21 @@ export default function AffectationsPanel() {
           index={0}
           icon={FiUsers}
           value={stats.total}
-          label="Stagiaires en poste"
+          label={t("equipe.affectations.stats.activeInterns")}
           iconBg="bg-[#14b8a6] text-white"
         />
         <StatMini
           index={1}
           icon={FiUserCheck}
           value={stats.affectes}
-          label="Affectés"
+          label={t("equipe.affectations.stats.assigned")}
           iconBg="bg-emerald-500 text-white"
         />
         <StatMini
           index={2}
           icon={FiUserX}
           value={stats.nonAffectes}
-          label="Non affectés"
+          label={t("equipe.affectations.stats.unassigned")}
           iconBg="bg-amber-500 text-white"
         />
       </div>
@@ -195,18 +194,18 @@ export default function AffectationsPanel() {
         <div className="relative max-w-md flex-1">
           <FiSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Rechercher un stagiaire ou un poste..."
+            placeholder={t("equipe.affectations.searchPlaceholder")}
             className="h-10 rounded-md pl-10 pr-9"
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
-            aria-label="Rechercher une affectation"
+            aria-label={t("equipe.affectations.searchAria")}
           />
           {recherche && (
             <button
               type="button"
               onClick={() => setRecherche("")}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-              aria-label="Effacer la recherche"
+              aria-label={t("equipe.affectations.clearSearchAria")}
             >
               <FiX className="h-3.5 w-3.5" />
             </button>
@@ -217,9 +216,9 @@ export default function AffectationsPanel() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="tous">Tous</SelectItem>
-            <SelectItem value="affecte">Affectés</SelectItem>
-            <SelectItem value="non_affecte">Non affectés</SelectItem>
+            <SelectItem value="tous">{t("equipe.affectations.filters.all")}</SelectItem>
+            <SelectItem value="affecte">{t("equipe.affectations.filters.assigned")}</SelectItem>
+            <SelectItem value="non_affecte">{t("equipe.affectations.filters.unassigned")}</SelectItem>
           </SelectContent>
         </Select>
       </motion.div>
@@ -232,11 +231,9 @@ export default function AffectationsPanel() {
           className="flex flex-col items-center justify-center rounded-md border border-dashed border-border py-12 text-center"
         >
           <FiSearch className="mb-3 h-6 w-6 text-muted-foreground" />
-          <h3 className="text-sm font-bold text-foreground">
-            Aucune affectation trouvée
-          </h3>
+          <h3 className="text-sm font-bold text-foreground">{t("equipe.affectations.noResults.title")}</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Essayez de modifier votre recherche ou vos filtres.
+            {t("equipe.affectations.noResults.hint")}
           </p>
           <Button
             type="button"
@@ -247,7 +244,7 @@ export default function AffectationsPanel() {
               setFiltre("tous");
             }}
           >
-            Effacer les filtres
+            {t("equipe.affectations.noResults.clearFilters")}
           </Button>
         </motion.div>
       ) : (
@@ -255,10 +252,10 @@ export default function AffectationsPanel() {
           {/* Desktop table */}
           <div className="hidden overflow-hidden rounded-md border border-border bg-card md:block">
             <div className="grid grid-cols-[1.6fr_1.4fr_1.4fr_0.6fr] gap-3 border-b border-border bg-muted/40 px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-              <span>Stagiaire</span>
-              <span>Poste</span>
-              <span>Superviseur affecté</span>
-              <span className="text-right">Actions</span>
+              <span>{t("equipe.affectations.colIntern")}</span>
+              <span>{t("equipe.affectations.colPosition")}</span>
+              <span>{t("equipe.affectations.colSupervisor")}</span>
+              <span className="text-right">{t("equipe.affectations.colActions")}</span>
             </div>
             {liste.map((a, i) => (
               <motion.div
@@ -283,7 +280,7 @@ export default function AffectationsPanel() {
                   disabled={affecter.isPending}
                 >
                   <SelectTrigger className="h-9 w-full rounded-md text-xs">
-                    <SelectValue placeholder="Non affecté" />
+                    <SelectValue placeholder={t("equipe.affectations.unassignedPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     {(membresActifs || []).map((m) => (
@@ -302,8 +299,8 @@ export default function AffectationsPanel() {
                       className="h-8 rounded-md px-2 text-xs text-destructive hover:text-destructive"
                       disabled={retirer.isPending}
                       onClick={() => retirer.mutate(a.idStage)}
-                      title="Retirer l'affectation"
-                      aria-label="Retirer l'affectation"
+                      title={t("equipe.affectations.removeAssignment")}
+                      aria-label={t("equipe.affectations.removeAssignment")}
                     >
                       <FiX className="h-3.5 w-3.5" />
                     </Button>
@@ -330,7 +327,7 @@ export default function AffectationsPanel() {
                       {a.prenomStagiaire} {a.nomStagiaire}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {a.titrePoste || "Poste non renseigné"}
+                      {a.titrePoste || t("equipe.affectations.positionFallback")}
                     </p>
                   </div>
                   {a.idMembre && (
@@ -341,13 +338,13 @@ export default function AffectationsPanel() {
                       className="h-8 shrink-0 rounded-md px-2 text-destructive"
                       disabled={retirer.isPending}
                       onClick={() => retirer.mutate(a.idStage)}
-                      aria-label="Retirer l'affectation"
+                      aria-label={t("equipe.affectations.removeAssignment")}
                     >
                       <FiX className="h-3.5 w-3.5" />
                     </Button>
                   )}
                 </div>
-                <LabelLike>Superviseur</LabelLike>
+                <LabelLike>{t("equipe.affectations.supervisor")}</LabelLike>
                 <Select
                   value={a.idMembre || ""}
                   onValueChange={(idMembre) =>
@@ -356,7 +353,7 @@ export default function AffectationsPanel() {
                   disabled={affecter.isPending}
                 >
                   <SelectTrigger className="mt-1 h-10 w-full rounded-md text-sm">
-                    <SelectValue placeholder="Non affecté" />
+                    <SelectValue placeholder={t("equipe.affectations.unassignedPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     {(membresActifs || []).map((m) => (

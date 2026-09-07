@@ -1,56 +1,54 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { FiPlus } from "react-icons/fi";
 
 export default function CreerOffreCard({ onClick, disabled = false }) {
+  const { t } = useTranslation();
+
   return (
-    <motion.button
+    <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      transition={{ duration: 0.18, ease: "easeOut" }}
       title={
-        disabled
-          ? "Disponible après vérification de votre entreprise par l'administration"
-          : undefined
+        disabled ? t("entrepriseSpace.offers.publishDisabledHint") : undefined
       }
-      className={
+      className={`group relative flex min-h-[280px] flex-col items-center justify-center gap-4 overflow-hidden rounded-xl border-2 border-dashed p-6 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
         disabled
-          ? "group relative flex min-h-[220px] cursor-not-allowed flex-col items-center justify-center gap-4 overflow-hidden rounded-md border-2 border-dashed border-border bg-card p-5 text-center opacity-60"
-          : "group relative flex min-h-[220px] flex-col items-center justify-center gap-4 overflow-hidden rounded-md border-2 border-dashed border-border bg-card p-5 text-center transition-colors hover:border-blue-500"
-      }
+          ? "cursor-not-allowed border-border bg-muted/20 opacity-60"
+          : "border-border bg-card hover:border-primary/40 hover:bg-primary/[0.03]"
+      }`}
     >
-      {!disabled && (
-        <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/[0.06] via-transparent to-secondary/[0.08] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-      )}
-
       <div
-        className={
+        className={`flex h-12 w-12 items-center justify-center rounded-xl transition-colors ${
           disabled
-            ? "relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-300 text-white"
-            : "relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-300 text-white shadow-lg shadow-secondary/25 transition duration-300 ease-in-out group-hover:bg-blue-500"
-        }
+            ? "bg-muted text-muted-foreground"
+            : "bg-primary/10 text-primary group-hover:bg-primary/15"
+        }`}
       >
-        <FiPlus className="h-6 w-6" />
+        <FiPlus className="h-5 w-5" />
       </div>
 
-      <div className="relative">
-        <span
-          className={
-            disabled
-              ? "block text-sm font-semibold text-foreground"
-              : "block text-sm font-semibold text-foreground transition-colors group-hover:text-blue-500"
-          }
-        >
-          Créer une offre
+      <div className="max-w-[220px]">
+        <span className="block text-sm font-semibold text-foreground">
+          {t("entrepriseSpace.offers.createNewOfferTitle") ||
+            "Créer une nouvelle offre"}
         </span>
-        <span className="mt-1 block text-xs text-muted-foreground">
+        <span className="mt-1.5 block text-xs leading-relaxed text-muted-foreground">
           {disabled
-            ? "Vérification admin requise"
-            : "Publiez un poste et recevez des candidatures"}
+            ? t("entrepriseSpace.offers.adminVerificationRequired")
+            : t("entrepriseSpace.offers.createNewOfferHint") ||
+              "Publiez une opportunité et commencez à recevoir des candidatures qualifiées."}
         </span>
       </div>
-    </motion.button>
+
+      {!disabled && (
+        <span className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground transition-opacity group-hover:opacity-90">
+          <FiPlus className="h-3.5 w-3.5" />
+          {t("entrepriseSpace.offers.newOfferCta") || "Nouvelle offre"}
+        </span>
+      )}
+    </button>
   );
 }

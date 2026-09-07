@@ -10,6 +10,7 @@ import AppHeader from "@/components/layout/AppHeader";
 import CandidaturesStatsRow from "@/components/features/candidatures/CandidaturesStatsRow";
 import CandidaturesFiltersBar from "@/components/features/candidatures/CandidaturesFiltersBar";
 import CandidatureCard from "@/components/features/candidatures/CandidatureCard";
+import RetirerCandidatureModal from "@/components/features/candidatures/RetirerCandidatureModal";
 import CandidatureSuiviDrawer from "@/components/features/candidatures/CandidatureSuiviDrawer";
 import CandidaturesSkeleton from "@/components/features/candidatures/CandidaturesSkeleton";
 import CandidaturesEmptyState from "@/components/features/candidatures/CandidaturesEmptyState";
@@ -42,6 +43,7 @@ export default function CandidaturesPage() {
   const [filtre, setFiltre] = useState("toutes");
   const [tri, setTri] = useState("recentes");
   const [candidatureOuverte, setCandidatureOuverte] = useState(null);
+  const [candidatureARetirer, setCandidatureARetirer] = useState(null);
   // Figé au montage (initialiseur paresseux) : Date.now() n'est appelé
   // qu'une seule fois, pas à chaque rendu.
   const [maintenant] = useState(() => Date.now());
@@ -172,6 +174,7 @@ export default function CandidaturesPage() {
                       maintenant={maintenant}
                       index={i}
                       onVoirSuivi={setCandidatureOuverte}
+                      onRetirer={setCandidatureARetirer}
                     />
                   ))}
                 </AnimatePresence>
@@ -188,6 +191,12 @@ export default function CandidaturesPage() {
           candidatureOuverte ? offreFinalePour(candidatureOuverte) : null
         }
         onClose={() => setCandidatureOuverte(null)}
+      />
+
+      <RetirerCandidatureModal
+        open={!!candidatureARetirer}
+        candidature={candidatureARetirer}
+        onClose={() => setCandidatureARetirer(null)}
       />
     </>
   );

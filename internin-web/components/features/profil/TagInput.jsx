@@ -1,9 +1,12 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
 
 export default function TagInput({ value = [], onChange, placeholder }) {
+  const { t } = useTranslation();
   const [input, setInput] = useState("");
 
   function addTag() {
@@ -37,7 +40,7 @@ export default function TagInput({ value = [], onChange, placeholder }) {
           onClick={addTag}
           className="rounded-sm border border-border px-3 text-sm font-medium text-foreground hover:bg-muted"
         >
-          Ajouter
+          {t("stagiaireSpace.profile.skillsSection.add")}
         </button>
       </div>
       {value.length > 0 && (

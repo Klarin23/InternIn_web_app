@@ -2,11 +2,10 @@
 
 import { motion } from "framer-motion";
 import { FormTextareaField } from "../OffreFormFields";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
-// Étape 2 — "Missions & profil recherché" (point 3 du cahier des charges).
-// Les trois champs restent facultatifs, exactement comme dans le schéma Zod
-// actuel (offreFormSchema) — on ne les rend pas obligatoires côté UI.
 export default function StepMissionsProfil({ register, errors }) {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, x: 12 }}
@@ -16,19 +15,19 @@ export default function StepMissionsProfil({ register, errors }) {
     >
       <div>
         <h3 className="text-sm font-semibold text-foreground">
-          Missions & profil recherché
+          {t("entrepriseSpace.offers.missionsTitle")}
         </h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          Aidez les candidats à se projeter dans le rôle.
+          {t("entrepriseSpace.offers.missionsHint")}
         </p>
       </div>
 
       <div className="rounded-md border border-border bg-card/50 p-4">
         <FormTextareaField
           id="responsabilites"
-          label="Responsabilités"
+          label={t("entrepriseSpace.offers.responsibilities")}
           optional
-          placeholder="Quelles seront les principales missions du stagiaire ?"
+          placeholder={t("entrepriseSpace.offers.responsibilitiesPlaceholder")}
           rows={4}
           registration={register("responsabilites")}
           error={errors.responsabilites?.message}
@@ -38,9 +37,9 @@ export default function StepMissionsProfil({ register, errors }) {
       <div className="rounded-md border border-border bg-card/50 p-4">
         <FormTextareaField
           id="competencesRequises"
-          label="Compétences requises"
+          label={t("entrepriseSpace.offers.requiredSkills")}
           optional
-          placeholder="Quelles compétences sont nécessaires pour réussir ce stage ?"
+          placeholder={t("entrepriseSpace.offers.requiredSkillsPlaceholder")}
           rows={4}
           registration={register("competencesRequises")}
           error={errors.competencesRequises?.message}
@@ -50,9 +49,9 @@ export default function StepMissionsProfil({ register, errors }) {
       <div className="rounded-md border border-border bg-card/50 p-4">
         <FormTextareaField
           id="opportunitesApprentissage"
-          label="Opportunités d'apprentissage"
+          label={t("entrepriseSpace.offers.opportunities")}
           optional
-          placeholder="Que pourra apprendre le stagiaire pendant cette expérience ?"
+          placeholder={t("entrepriseSpace.offers.opportunitiesPlaceholder")}
           rows={4}
           registration={register("opportunitesApprentissage")}
           error={errors.opportunitesApprentissage?.message}

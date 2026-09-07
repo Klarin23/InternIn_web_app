@@ -26,6 +26,7 @@ import {
   FiXCircle,
   FiUser,
   FiSave,
+  FiAlertCircle,
 } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,12 @@ import {
 } from "@/lib/queries/useEntretiens";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { formatAnnonceEntretien, buildLienGoogleCalendar } from "@/lib/entretiens/statut";
+import {
+  normaliserDateHeurePourApi,
+  localeBcp47,
+  parseDateHeureRobuste,
+  formatDateHeureLocale,
+} from "@/lib/entretiens/planification";
 
 const STATUT_LABEL_KEYS = {
   planifie: "interviews.status.pendingResponse",
@@ -87,7 +94,7 @@ function couleurAvatar(nom) {
 }
 
 function formatDateJour(date, locale = "fr") {
-  const resultat = date.toLocaleDateString(locale, {
+  const resultat = date.toLocaleDateString(localeBcp47(locale), { timeZone: "Africa/Douala",
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -97,7 +104,7 @@ function formatDateJour(date, locale = "fr") {
 }
 
 function formatHeure(date, locale = "fr") {
-  return date.toLocaleTimeString(locale, {
+  return date.toLocaleTimeString(localeBcp47(locale), { timeZone: "Africa/Douala",
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -400,9 +407,8 @@ export default function EntretienCardStagiaire({
       {entretien.statut === "reprogramme" && (
         <p className="mb-3 rounded-sm bg-accent/10 p-3 text-xs text-amber-800">
           {t("interviews.card.rescheduleProposal", {
-            date: new Date(entretien.dateHeureProposee).toLocaleString(locale, {
-              dateStyle: "medium",
-              timeStyle: "short",
+            date: formatDateHeureLocale(entretien.dateHeureProposee, locale, {
+              withTime: true,
             }),
           })}
         </p>
@@ -477,6 +483,31 @@ export default function EntretienCardStagiaire({
 
       {entretien.statut === "planifie" && (
         <>
+          {/* Bannière action requise — nouvelle date / date à confirmer */}
+          <div className="mb-3 overflow-hidden rounded-lg border border-amber-200/80 bg-amber-50/70 dark:border-amber-900/40 dark:bg-amber-950/30">
+            <div className="flex items-start gap-2.5 px-3.5 py-3">
+              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300">
+                <FiAlertCircle className="h-3.5 w-3.5" aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                  {t("interviews.card.newDateProposed")}
+                </p>
+                <p className="mt-0.5 text-xs text-amber-800/90 dark:text-amber-200/80">
+                  {t("interviews.card.newDateProposedInfo")}
+                </p>
+                <p className="mt-2 text-sm font-semibold text-foreground">
+                  {formatDateHeureLocale(entretien.dateHeure, locale, {
+                    withTime: true,
+                  })}
+                </p>
+              </div>
+              <span className="shrink-0 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                {t("interviews.card.actionRequired")}
+              </span>
+            </div>
+          </div>
+
           {!showForm ? (
             <div className="flex flex-wrap gap-2">
               <Button
@@ -491,7 +522,7 @@ export default function EntretienCardStagiaire({
                 ) : (
                   <FiCheck className="h-4 w-4" />
                 )}
-                {t("interviews.card.validateInterview")}
+                {t("interviews.card.confirmDate")}
               </Button>
               <Button
                 type="button"
@@ -500,7 +531,7 @@ export default function EntretienCardStagiaire({
                 className="rounded-sm"
                 onClick={() => setShowForm(true)}
               >
-                {t("interviews.card.reschedule")}
+                {t("interviews.card.requestOtherDate")}
               </Button>
             </div>
           ) : (
@@ -529,7 +560,7 @@ export default function EntretienCardStagiaire({
                     reprogrammerMutation.mutate(
                       {
                         id: entretien.idEntretien,
-                        dateHeureProposee: nouvelleDate,
+                        dateHeureProposee: normaliserDateHeurePourApi(nouvelleDate),
                         retourEntretien: message,
                       },
                       { onSuccess: () => setShowForm(false) },

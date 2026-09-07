@@ -1,13 +1,15 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { FiCheck, FiUserPlus, FiBriefcase, FiCalendar } from "react-icons/fi";
 
 function estAujourdhui(date) {
   return new Date(date).toDateString() === new Date().toDateString();
 }
 
-function formatHeure(date) {
-  return new Date(date).toLocaleTimeString("fr-FR", {
+function formatHeure(date, loc) {
+  return new Date(date).toLocaleTimeString(loc, {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -20,13 +22,15 @@ const TYPE_CONFIG = {
 };
 
 export default function TimelineWidget({ candidatures, offres, entretiens }) {
+  const { t, locale } = useTranslation();
+  const loc = locale === "fr" ? "fr-FR" : "en-GB";
   const evenements = [
     ...(candidatures || [])
       .filter((c) => c.dateCandidature && estAujourdhui(c.dateCandidature))
       .map((c) => ({
         date: c.dateCandidature,
         type: "candidature",
-        texte: `${c.prenom} ${c.nom} a postulé`,
+        texte: t("entrepriseSpace.dashboard.appliedText", { name: `${c.prenom} ${c.nom}` }),
         sousTexte: c.titreOffre,
       })),
     ...(offres || [])
@@ -34,7 +38,7 @@ export default function TimelineWidget({ candidatures, offres, entretiens }) {
       .map((o) => ({
         date: o.datePublication,
         type: "offre",
-        texte: "Offre publiée",
+        texte: t("entrepriseSpace.dashboard.offerPublished"),
         sousTexte: o.titre,
       })),
     ...(entretiens || [])
@@ -47,20 +51,20 @@ export default function TimelineWidget({ candidatures, offres, entretiens }) {
       .map((e) => ({
         date: e.dateCreation,
         type: "entretien",
-        texte: "Entretien confirmé",
+        texte: t("entrepriseSpace.dashboard.interviewConfirmed"),
         sousTexte: `${e.prenom} ${e.nom}`,
       })),
   ].sort((a, b) => new Date(a.date) - new Date(b.date));
 
   return (
-    <div className="rounded-md border border-border bg-card p-5">
+    <div className="rounded-2xl border border-border bg-card shadow-sm p-5">
       <h5 className="mb-4 text-sm font-semibold text-foreground">
-        Activité du jour
+        {t("entrepriseSpace.dashboard.activityToday")}
       </h5>
 
       {evenements.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
-          Aucune activité aujourd&apos;hui
+          {t("entrepriseSpace.dashboard.noActivityToday")}
         </p>
       ) : (
         <div className="relative space-y-5 pl-1">
@@ -72,7 +76,7 @@ export default function TimelineWidget({ candidatures, offres, entretiens }) {
             return (
               <div key={i} className="relative flex items-start gap-3">
                 <span className="w-11 flex-shrink-0 pt-1.5 text-right text-xs font-medium tabular-nums text-muted-foreground">
-                  {formatHeure(e.date)}
+                  {formatHeure(e.date, loc)}
                 </span>
                 <span
                   className={`relative z-10 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-white ${color}`}

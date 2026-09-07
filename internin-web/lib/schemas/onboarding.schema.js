@@ -40,16 +40,20 @@ export const step3Schema = z.object({
 
 // Tous les champs sont facultatifs (cf. stagiaires.linkedin_url etc., NULL autorisé),
 // mais s'ils sont renseignés, ils doivent être une URL valide.
-const optionalUrl = z
-  .string()
-  .optional()
-  .refine((val) => !val || /^https?:\/\/.+/.test(val), {
-    message: "L'URL doit commencer par http:// ou https://",
-  });
+import {
+  checkExternalUrl,
+  checkLinkedInUrl,
+  checkGitHubUrl,
+  zUrlField,
+} from "@/lib/utils/urlValidation";
+
+const optionalUrl = zUrlField(checkExternalUrl)(z.string().optional());
+const optionalLinkedinUrl = zUrlField(checkLinkedInUrl)(z.string().optional());
+const optionalGithubUrl = zUrlField(checkGitHubUrl)(z.string().optional());
 
 export const step5Schema = z.object({
-  linkedinUrl: optionalUrl,
-  githubUrl: optionalUrl,
+  linkedinUrl: optionalLinkedinUrl,
+  githubUrl: optionalGithubUrl,
   behanceUrl: optionalUrl,
   portfolioUrl: optionalUrl,
   siteWebUrl: optionalUrl,

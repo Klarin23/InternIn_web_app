@@ -22,14 +22,16 @@ import {
   notesPreparationSchema,
 } from "./entretiens.schema.js";
 import { requireActiveAccount } from "../../middlewares/activeAccount.middleware.js";
+import { requireEquipePermission } from "../equipe/equipe.permissions.js";
 
 const router = Router();
 
-// Planifier un entretien = action entreprise → entreprise vérifiée obligatoire
+// Planifier un entretien = action entreprise → entreprise vérifiée + permission
 router.post(
   "/",
   requireAuth,
   requireEntrepriseVerifiee,
+  requireEquipePermission("entretiens.gerer"),
   validate(createEntretienSchema),
   planifier,
 );
@@ -42,18 +44,21 @@ router.get(
   "/entreprise",
   requireAuth,
   requireEntrepriseVerifiee,
+  requireEquipePermission("entretiens.gerer"),
   listEntreprise,
 );
 router.get(
   "/entreprise/en-attente",
   requireAuth,
   requireEntrepriseVerifiee,
+  requireEquipePermission("entretiens.gerer"),
   attenteEntreprise,
 );
 router.patch(
   "/entreprise/:id",
   requireAuth,
   requireEntrepriseVerifiee,
+  requireEquipePermission("entretiens.gerer"),
   validate(updateEntretienEntrepriseSchema),
   updateEntreprise,
 );

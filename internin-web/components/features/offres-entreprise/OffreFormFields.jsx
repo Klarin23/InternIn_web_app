@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -18,12 +20,13 @@ export function FormTextField({
   type = "text",
   ...rest
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id}>
         {label}{" "}
         {optional && (
-          <span className="text-muted-foreground">(facultatif)</span>
+          <span className="text-muted-foreground">{typeof t === "function" ? t("entrepriseSpace.offers.optional") : "(optional)"}</span>
         )}
       </Label>
       <Input
@@ -58,12 +61,13 @@ export function FormTextareaField({
   error,
   registration,
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id}>
         {label}{" "}
         {optional && (
-          <span className="text-muted-foreground">(facultatif)</span>
+          <span className="text-muted-foreground">{typeof t === "function" ? t("entrepriseSpace.offers.optional") : "(optional)"}</span>
         )}
       </Label>
       <textarea

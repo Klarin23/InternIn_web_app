@@ -1,9 +1,14 @@
 "use client";
 // Barre de recherche + filtres par statut pour les entretiens, avec
 // animation de focus sur la recherche et mise en évidence du filtre actif.
+// Compteurs entre parenthèses uniquement pour : À venir, Aujourd'hui,
+// Terminés, Annulés (pas pour "Tous").
 
 import { FiSearch } from "react-icons/fi";
-import { FILTRES_ENTRETIEN } from "@/lib/entretiens/statut";
+import {
+  FILTRES_ENTRETIEN,
+  FILTRES_AVEC_COMPTEUR,
+} from "@/lib/entretiens/statut";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function EntretiensFiltersBar({
@@ -11,6 +16,7 @@ export default function EntretiensFiltersBar({
   onRechercheChange,
   filtreActif,
   onFiltreChange,
+  compteurs = null,
 }) {
   const { t } = useTranslation();
   return (
@@ -21,15 +27,26 @@ export default function EntretiensFiltersBar({
           type="search"
           value={recherche}
           onChange={(e) => onRechercheChange(e.target.value)}
-          placeholder={t("interviews.filters.searchPlaceholder") || "Rechercher un candidat..."}
-          aria-label={t("interviews.filters.searchPlaceholder") || "Rechercher un candidat"}
+          placeholder={t("interviews.filters.searchPlaceholderEnterprise") || t("interviews.filters.searchPlaceholder")}
+          aria-label={t("interviews.filters.searchPlaceholderEnterprise") || t("interviews.filters.searchPlaceholder")}
           className="w-full rounded-xl border border-border bg-background py-2.5 pl-9 pr-3 text-sm text-foreground outline-none transition-all duration-200 placeholder:text-muted-foreground focus:border-primary focus:shadow-[0_0_0_3px_rgba(20,184,166,0.15)]"
         />
       </div>
 
-      <div className="flex gap-1.5 overflow-x-auto pb-0.5 sm:flex-wrap sm:overflow-visible" role="group" aria-label="Filtres">
+      <div
+        className="flex gap-1.5 overflow-x-auto pb-0.5 sm:flex-wrap sm:overflow-visible"
+        role="group"
+        aria-label={t("interviews.entreprise.filtersAria")}
+      >
         {FILTRES_ENTRETIEN.map((f) => {
           const actif = filtreActif === f.valeur;
+          const afficherCompteur =
+            compteurs != null && FILTRES_AVEC_COMPTEUR.includes(f.valeur);
+          const count =
+            afficherCompteur && typeof compteurs[f.valeur] === "number"
+              ? compteurs[f.valeur]
+              : null;
+
           return (
             <button
               key={f.valeur}
@@ -43,6 +60,7 @@ export default function EntretiensFiltersBar({
               }`}
             >
               {t(f.labelKey)}
+              {count != null ? ` (${count})` : ""}
             </button>
           );
         })}

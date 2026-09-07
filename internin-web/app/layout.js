@@ -1,6 +1,7 @@
 import { Poppins, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "@/lib/providers/QueryProvider";
+import RealtimeProvider from "@/components/providers/RealtimeProvider";
 import Toaster from "@/components/motion/Toaster";
 import ConnectionStatus from "@/components/ui/ConnectionStatus";
 
@@ -74,9 +75,11 @@ export default function RootLayout({ children }) {
       </head>
       <body className="min-h-full flex flex-col font-sans">
         <QueryProvider>
-          {children}
-          <Toaster />
-          <ConnectionStatus />
+          <RealtimeProvider>
+            {children}
+            <Toaster />
+            <ConnectionStatus />
+          </RealtimeProvider>
         </QueryProvider>
       </body>
     </html>

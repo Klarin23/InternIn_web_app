@@ -24,6 +24,11 @@ import {
   CheckCircle2,
   XCircle,
   KeyRound,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  Building2,
+  Loader2,
 } from "lucide-react";
 
 import AppHeader from "@/components/layout/AppHeader";
@@ -40,7 +45,10 @@ import {
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { useThemeStore } from "@/lib/store/useThemeStore";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-import { useStagiaireProfile } from "@/lib/queries/useStagiaireProfile";
+import {
+  useStagiaireProfile,
+  useUpdateStagiairePrivacy,
+} from "@/lib/queries/useStagiaireProfile";
 import { calculerCompletionProfil } from "@/lib/utils/profilCompletion";
 import { resendEmailVerificationRequest, logoutRequest } from "@/lib/api/auth";
 import { toast } from "@/lib/store/useToastStore";
@@ -243,12 +251,11 @@ function AccountStatusCard({ profil, user }) {
 }
 
 function SettingsNav({ activeId, onSelect }) {
-  let lastGroup = null;
   return (
     <nav className="space-y-1" aria-label="Sections des paramètres">
-      {SECTIONS.map((section) => {
-        const showGroup = section.group !== lastGroup;
-        lastGroup = section.group;
+      {SECTIONS.map((section, index) => {
+        const showGroup =
+          index === 0 || section.group !== SECTIONS[index - 1].group;
         const Icon = section.icon;
         const active = activeId === section.id;
         return (
@@ -291,7 +298,7 @@ function ProfilSection({ profil, user }) {
   const router = useRouter();
   return (
     <SectionCard
-      title="Profil et compte"
+      title={t("stagiaireSpace.settings.profileAccount")}
       description="Vos informations personnelles et l'accès à votre profil public."
     >
       <div className="flex items-start gap-4">
@@ -351,9 +358,9 @@ function SecuriteSection({ user, profil }) {
     setResending(true);
     try {
       await resendEmailVerificationRequest(token);
-      toast.success("Email de vérification renvoyé.");
+      toast.success(t("stagiaireSpace.settings.resendSuccess"));
     } catch (err) {
-      toast.error(err?.message || "Impossible de renvoyer l'email.");
+      toast.error(err?.message || t("stagiaireSpace.settings.resendError"));
     } finally {
       setResending(false);
     }
@@ -362,12 +369,12 @@ function SecuriteSection({ user, profil }) {
   return (
     <div className="space-y-4">
       <SectionCard
-        title="Mot de passe"
-        description="Votre mot de passe protège l'accès à votre compte."
+        title={t("stagiaireSpace.settings.password")}
+        description={t("stagiaireSpace.settings.passwordDesc")}
       >
         <SettingRow
-          title="Modifier le mot de passe"
-          description="Utilisez la réinitialisation par email pour définir un nouveau mot de passe."
+          title={t("stagiaireSpace.settings.changePassword")}
+          description={t("stagiaireSpace.settings.changePasswordDesc")}
         >
           <Button
             variant="outline"
@@ -383,13 +390,13 @@ function SecuriteSection({ user, profil }) {
         </SettingRow>
       </SectionCard>
 
-      <SectionCard title="Vérification email">
+      <SectionCard title={t("stagiaireSpace.settings.emailVerification")}>
         <SettingRow
-          title={emailVerifie ? "Email vérifié" : "Email non vérifié"}
+          title={emailVerifie ? t("stagiaireSpace.settings.emailVerified") : t("stagiaireSpace.settings.emailNotVerified")}
           description={
             emailVerifie
-              ? "Votre adresse email est confirmée."
-              : "Confirmez votre email pour sécuriser votre compte."
+              ? t("stagiaireSpace.settings.emailVerifiedDesc")
+              : t("stagiaireSpace.settings.emailNotVerifiedDesc")
           }
         >
           {emailVerifie ? (
@@ -404,15 +411,15 @@ function SecuriteSection({ user, profil }) {
               disabled={resending}
               onClick={handleResend}
             >
-              {resending ? "Envoi..." : "Renvoyer l'email"}
+              {resending ? t("stagiaireSpace.settings.sending") : t("stagiaireSpace.settings.resendEmail")}
             </Button>
           )}
         </SettingRow>
       </SectionCard>
 
       <SectionCard
-        title="Sessions actives"
-        description="La gestion détaillée des sessions n'est pas encore disponible."
+        title={t("stagiaireSpace.settings.activeSessions")}
+        description={t("stagiaireSpace.settings.sessionsDesc")}
       >
         <div className="rounded-md border border-dashed border-border bg-muted/30 px-4 py-6 text-center">
           <Monitor className="mx-auto h-7 w-7 text-muted-foreground/60" />
@@ -445,28 +452,28 @@ function NotificationsSection() {
   const items = [
     {
       key: "candidatures",
-      title: "Candidatures",
-      description: "Être informé lorsqu'une candidature évolue.",
+      titleKey: "notifCandidatures",
+      descriptionKey: "notifCandidaturesDesc",
     },
     {
       key: "entretiens",
-      title: "Entretiens",
-      description: "Rappels et mises à jour concernant vos entretiens.",
+      titleKey: "notifEntretiens",
+      descriptionKey: "notifEntretiensDesc",
     },
     {
       key: "evaluations",
-      title: "Évaluations",
-      description: "Notification lorsqu'une nouvelle évaluation est disponible.",
+      titleKey: "notifEvaluations",
+      descriptionKey: "notifEvaluationsDesc",
     },
     {
       key: "opportunites",
-      title: "Opportunités",
-      description: "Suggestions d'offres pertinentes.",
+      titleKey: "notifOpportunites",
+      descriptionKey: "notifOpportunitesDesc",
     },
     {
       key: "emails",
-      title: "Emails",
-      description: "Recevoir les communications importantes par email.",
+      titleKey: "notifEmails",
+      descriptionKey: "notifEmailsDesc",
     },
   ];
 
@@ -500,7 +507,7 @@ function NotificationsSection() {
 
   return (
     <SectionCard
-      title="Notifications"
+      title={t("stagiaireSpace.settings.notifications")}
       description="Choisissez les alertes que vous souhaitez recevoir."
       actions={
         dirty ? (
@@ -519,8 +526,8 @@ function NotificationsSection() {
         {items.map((item) => (
           <SettingRow
             key={item.key}
-            title={item.title}
-            description={item.description}
+            title={t(`stagiaireSpace.settings.${item.titleKey}`)}
+            description={t(`stagiaireSpace.settings.${item.descriptionKey}`)}
           >
             <Switch
               id={`notif-${item.key}`}
@@ -555,7 +562,7 @@ function ApparenceSection() {
 
   return (
     <SectionCard
-      title="Apparence"
+      title={t("stagiaireSpace.settings.appearance")}
       description="Personnalisez l'apparence de l'interface."
     >
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -618,7 +625,7 @@ function LangueSection() {
 
   return (
     <SectionCard
-      title="Langue"
+      title={t("stagiaireSpace.settings.language")}
       description="Choisissez la langue de l'interface."
     >
       <div className="space-y-2">
@@ -657,24 +664,138 @@ function LangueSection() {
   );
 }
 
-function ConfidentialiteSection() {
+function ConfidentialiteSection({ profil }) {
+  const shouldReduceMotion = useReducedMotion();
+  const updatePrivacy = useUpdateStagiairePrivacy();
+  const visible = Boolean(profil?.profilVisibleEntreprises);
+  const saving = updatePrivacy.isPending;
+
+  async function handleToggle(next) {
+    if (saving) return;
+    try {
+      await updatePrivacy.mutateAsync({ profilVisibleEntreprises: next });
+      if (next) {
+        toast.success(
+          "Profil visible — votre profil peut apparaître dans les recherches des entreprises.",
+        );
+      } else {
+        toast.success(
+          "Profil masqué — votre profil n'apparaît plus dans les recherches des entreprises.",
+        );
+      }
+    } catch (err) {
+      toast.error(
+        err?.message || "Impossible de mettre à jour la visibilité du profil.",
+      );
+    }
+  }
+
   return (
-    <SectionCard
-      title="Confidentialité"
-      description="Contrôlez la visibilité de vos informations."
-    >
-      <div className="rounded-md border border-dashed border-border bg-muted/30 px-4 py-8 text-center">
-        <Lock className="mx-auto h-7 w-7 text-muted-foreground/60" />
-        <p className="mt-2 text-sm font-medium text-foreground">
-          Réglages de confidentialité
-        </p>
-        <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
-          Les options de visibilité du profil et des compétences seront
-          disponibles dès que le backend les exposera. Aucun réglage n&apos;est
-          simulé pour le moment.
-        </p>
-      </div>
-    </SectionCard>
+    <div className="space-y-4">
+      <SectionCard
+        title={t("stagiaireSpace.settings.visibility")}
+        description="Contrôlez si les entreprises peuvent découvrir votre profil dans Talents."
+      >
+        <div
+          className={cn(
+            "rounded-xl border p-4 sm:p-5 transition-colors",
+            visible
+              ? "border-primary/25 bg-primary/[0.04]"
+              : "border-border bg-muted/20",
+          )}
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 flex-1 gap-3">
+              <div
+                className={cn(
+                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-full",
+                  visible
+                    ? "bg-primary/15 text-primary"
+                    : "bg-muted text-muted-foreground",
+                )}
+              >
+                <motion.div
+                  key={visible ? "eye" : "eye-off"}
+                  initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {visible ? (
+                    <Eye className="h-5 w-5" aria-hidden />
+                  ) : (
+                    <EyeOff className="h-5 w-5" aria-hidden />
+                  )}
+                </motion.div>
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold text-foreground">
+                    Profil visible auprès des entreprises
+                  </p>
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                      visible
+                        ? "bg-primary/15 text-primary"
+                        : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    <Building2 className="h-3 w-3" aria-hidden />
+                    {visible ? "Visible" : "Masqué"}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  Lorsque cette option est activée, votre profil peut apparaître
+                  dans les recherches de talents effectuées par les entreprises.
+                  Vous pouvez modifier ce choix à tout moment.
+                </p>
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={visible ? "on" : "off"}
+                    initial={shouldReduceMotion ? false : { opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={shouldReduceMotion ? undefined : { opacity: 0, y: -4 }}
+                    transition={{ duration: 0.18 }}
+                    className="mt-2 text-xs font-medium text-foreground/80"
+                  >
+                    {visible
+                      ? "Votre profil peut apparaître dans Talents."
+                      : "Votre profil n'apparaît pas dans les recherches des entreprises."}
+                  </motion.p>
+                </AnimatePresence>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2 self-end sm:self-center">
+              {saving && (
+                <Loader2
+                  className="h-4 w-4 animate-spin text-muted-foreground"
+                  aria-hidden
+                />
+              )}
+              <Switch
+                id="profil-visible-entreprises"
+                checked={visible}
+                disabled={saving || !profil}
+                onCheckedChange={handleToggle}
+              />
+              <label htmlFor="profil-visible-entreprises" className="sr-only">
+                Profil visible auprès des entreprises
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-2.5 rounded-lg border border-border/70 bg-card px-3.5 py-3">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Même masqué, votre profil reste accessible aux entreprises avec
+            lesquelles vous avez déjà une candidature ou un stage en cours.
+            Seule la découverte dans le module Talents est concernée.
+          </p>
+        </div>
+      </SectionCard>
+    </div>
   );
 }
 
@@ -701,11 +822,11 @@ function DangerSection({ onLogout }) {
   return (
     <div className="space-y-4">
       <SectionCard
-        title="Déconnexion"
+        title={t("stagiaireSpace.settings.logout")}
         description="Déconnecter votre session actuelle sur cet appareil."
       >
         <SettingRow
-          title="Se déconnecter"
+          title={t("stagiaireSpace.settings.logoutAction")}
           description="Vous pourrez vous reconnecter à tout moment."
         >
           <Button
@@ -787,6 +908,7 @@ function DangerSection({ onLogout }) {
 // ---------------------------------------------------------------------------
 
 export default function ParametresStagiairePage() {
+  const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState("profil");
   const shouldReduceMotion = useReducedMotion();
   const user = useAuthStore((s) => s.user);
@@ -863,7 +985,7 @@ export default function ParametresStagiairePage() {
                 {activeSection === "apparence" && <ApparenceSection />}
                 {activeSection === "langue" && <LangueSection />}
                 {activeSection === "confidentialite" && (
-                  <ConfidentialiteSection />
+                  <ConfidentialiteSection profil={profil} />
                 )}
                 {activeSection === "danger" && <DangerSection />}
               </motion.div>

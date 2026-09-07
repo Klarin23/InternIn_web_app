@@ -113,32 +113,23 @@ export default function CandidatureSuiviDrawer({
                 />
               </div>
 
-              <div>
+              <div className="rounded-xl border border-border/60 bg-muted/20 px-3.5 py-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {t("candidatures.drawer.applicationDate")}
                 </p>
-                <p className="mt-1 text-sm text-foreground">
+                <p className="mt-1.5 text-sm font-medium text-foreground">
                   {formatDate(candidature.dateCandidature, false, locale)}
                 </p>
               </div>
+
+              {candidature.statut === "rejetee" && candidature.messageRejet && (
+                <div className="whitespace-pre-line rounded-xl bg-muted/40 p-3.5 text-sm text-muted-foreground">
+                  {candidature.messageRejet}
+                </div>
+              )}
             </div>
 
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Date de candidature
-              </p>
-              <p className="mt-1 text-sm text-foreground">
-                {formatDate(candidature.dateCandidature)}
-              </p>
-            </div>
-
-            {candidature.statut === "rejetee" && candidature.messageRejet && (
-              <div className="whitespace-pre-line rounded-sm bg-muted/40 p-3.5 text-sm text-muted-foreground">
-                {candidature.messageRejet}
-              </div>
-            )}
-
-            <div className="border-t border-border px-5 py-4">
+            <div className="mt-auto border-t border-border px-5 py-4">
               <Link
                 href={`/offres/${candidature.idOffre}`}
                 className="block w-full rounded-sm bg-[#14b8a6] px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-[#0d9488]"

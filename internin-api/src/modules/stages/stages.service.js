@@ -1,5 +1,9 @@
-import { eq, and, desc } from "drizzle-orm";
+import path from "node:path";
+import fs from "node:fs";
+import { eq, and, desc, gte } from "drizzle-orm";
+import { resolveEntrepriseContextOrThrow, hasEntreprisePermission } from "../../utils/entrepriseContext.js";
 import { db } from "../../db/index.js";
+import { reconcileControleCentre } from "../administrateurs/controleCentre.service.js";
 import {
   stages,
   stagiaires,
@@ -19,10 +23,29 @@ import {
   tachesStage,
   competencesAcquisesStage,
   competences,
+  journalActionsAdmin,
+  affectationsSuperviseurStage,
+  membresEquipe,
 } from "../../db/schema.js";
 import { genererCertificatPdf } from "../../utils/certificatPdf.js";
 import { randomBytes } from "node:crypto";
-import { creerNotification } from "../notifications/notifications.service.js";
+import { creerNotification, emitNotificationCreated } from "../notifications/notifications.service.js";
+import {
+  getStageLifecycleStatus,
+  isStageActivelyRunning,
+  assertStageIsActive,
+  daysUntilStart,
+  stageStatusLabel,
+  toYmd,
+  calculerDateFinPrevueYmd,
+  assertValidStageDates,
+  computeInitialStageStatus,
+} from "../../utils/stageLifecycle.js";
+import { computeStageProgression } from "../../utils/stageProgression.js";
+import {
+  resolveSupervisionAccess,
+  assertStageAccess,
+} from "../superviseur/superviseur.service.js";
 
 export async function getMonStage(idUtilisateurStagiaire) {
   const [stagiaire] = await db
@@ -56,6 +79,9 @@ export async function getMonStage(idUtilisateurStagiaire) {
 
   if (!stageRow) return null;
 
+  // Superviseur : 1) contact entreprise (offre/convention)
+  // 2) sinon affectation équipe (affectations_superviseur_stage) — source
+  //    utilisée quand l'entreprise assigne un superviseur dans Mes stagiaires.
   let superviseur = null;
   if (stageRow.idContactSuperviseur) {
     const [contact] = await db
@@ -66,7 +92,34 @@ export async function getMonStage(idUtilisateurStagiaire) {
       })
       .from(contactsEntreprise)
       .where(eq(contactsEntreprise.idContact, stageRow.idContactSuperviseur));
-    superviseur = contact || null;
+    if (contact) {
+      superviseur = { ...contact, source: "contact" };
+    }
+  }
+  if (!superviseur) {
+    const [aff] = await db
+      .select({
+        nom: membresEquipe.nom,
+        email: membresEquipe.email,
+        roleEquipe: membresEquipe.roleEquipe,
+        idMembre: membresEquipe.idMembre,
+      })
+      .from(affectationsSuperviseurStage)
+      .innerJoin(
+        membresEquipe,
+        eq(membresEquipe.idMembre, affectationsSuperviseurStage.idMembre),
+      )
+      .where(eq(affectationsSuperviseurStage.idStage, stageRow.idStage))
+      .limit(1);
+    if (aff) {
+      superviseur = {
+        nom: aff.nom,
+        fonction: aff.roleEquipe || "Superviseur",
+        email: aff.email,
+        idMembre: aff.idMembre,
+        source: "affectation",
+      };
+    }
   }
 
   let titrePoste = null;
@@ -117,35 +170,57 @@ export async function getMonStage(idUtilisateurStagiaire) {
       .orderBy(desc(competencesAcquisesStage.dateAcquisition)),
   ]);
 
-  const debut = new Date(stageRow.dateDebut);
-  const fin = new Date(stageRow.dateFinPrevue);
-  const now = new Date();
-  let progressionCalculee = 0;
-  if (stageRow.statut === "termine") {
-    progressionCalculee = 100;
-  } else if (now < debut) {
-    progressionCalculee = 0;
-  } else {
-    const dureeMs = fin - debut;
-    if (dureeMs > 0) {
-      progressionCalculee = Math.min(
-        100,
-        Math.max(0, Math.round(((now - debut) / dureeMs) * 100)),
-      );
-    }
+  // Statut temporel = source de vérité (dates + interrompu)
+  const statutEffectif = getStageLifecycleStatus(stageRow);
+  // Persistance éventuelle si le stocké est obsolète (idempotent)
+  if (
+    stageRow.statut !== statutEffectif &&
+    stageRow.statut !== "interrompu"
+  ) {
+    await db
+      .update(stages)
+      .set({
+        statut: statutEffectif,
+        ...(statutEffectif === "termine" && !stageRow.dateFinReelle
+          ? { dateFinReelle: stageRow.dateFinPrevue }
+          : {}),
+      })
+      .where(eq(stages.idStage, stageRow.idStage));
+    stageRow.statut = statutEffectif;
   }
 
+  const debutYmd = toYmd(stageRow.dateDebut);
+  const finYmd = toYmd(stageRow.dateFinPrevue);
+  const debut = debutYmd ? new Date(`${debutYmd}T12:00:00Z`) : new Date();
+  const fin = finYmd ? new Date(`${finYmd}T12:00:00Z`) : debut;
+  const now = new Date();
+
+  // Progression unifiée (manuel → objectifs → tâches → temps)
+  const progressionInfo = computeStageProgression(objectifs, taches, {
+    progressionPourcentage: stageRow.progressionPourcentage,
+    statutStocke: stageRow.statut,
+    statutLifecycle: statutEffectif,
+    dateDebut: stageRow.dateDebut,
+    dateFinPrevue: stageRow.dateFinPrevue,
+    dateFinReelle: stageRow.dateFinReelle,
+  });
+  const progressionCalculee =
+    progressionInfo.percent != null ? progressionInfo.percent : 0;
+
+  const joursAvantDebut = daysUntilStart(stageRow);
   const joursEcoules =
-    now < debut
+    statutEffectif === "a_venir"
       ? 0
       : Math.max(
           0,
           Math.floor((Math.min(now, fin) - debut) / (1000 * 60 * 60 * 24)),
         );
   const joursRestants =
-    now > fin || stageRow.statut === "termine"
+    statutEffectif === "termine" || statutEffectif === "interrompu"
       ? 0
-      : Math.max(0, Math.ceil((fin - now) / (1000 * 60 * 60 * 24)));
+      : statutEffectif === "a_venir"
+        ? joursAvantDebut
+        : Math.max(0, Math.ceil((fin - now) / (1000 * 60 * 60 * 24)));
   const dureeTotaleJours = Math.max(
     1,
     Math.ceil((fin - debut) / (1000 * 60 * 60 * 24)),
@@ -157,14 +232,33 @@ export async function getMonStage(idUtilisateurStagiaire) {
     dateDebut: stageRow.dateDebut,
     dateFinPrevue: stageRow.dateFinPrevue,
     dateFinReelle: stageRow.dateFinReelle,
-    statut: stageRow.statut,
+    // statut stocké synchronisé + alias explicites pour le frontend
+    statut: statutEffectif,
+    statutLabel: stageStatusLabel(statutEffectif),
+    estAVenir: statutEffectif === "a_venir",
+    estActif: statutEffectif === "actif",
+    joursAvantDebut,
+    // brut (saisie superviseur, peut être null)
     progressionPourcentage: stageRow.progressionPourcentage,
+    // valeur d'affichage unifiée (manuel → objectifs → tâches → temps)
     progressionCalculee,
+    progressionAffichee: progressionCalculee,
+    progressionSource: progressionInfo?.source ?? null,
+    progression: {
+      percent: progressionInfo?.percent ?? progressionCalculee,
+      source: progressionInfo?.source ?? null,
+      done: progressionInfo?.done ?? null,
+      total: progressionInfo?.total ?? null,
+    },
     joursEcoules,
     joursRestants,
     dureeTotaleJours,
     titrePoste: titrePoste || "Stage",
     modeTravail: modeTravail || null,
+    // Fonctionnalités de suivi réservées au stage actif
+    suiviDisponible: statutEffectif === "actif",
+    messagerieDisponible: statutEffectif === "actif",
+    journalDisponible: statutEffectif === "actif",
     entreprise: {
       nomEntreprise: stageRow.nomEntreprise,
       logoUrl: stageRow.logoUrl,
@@ -242,13 +336,19 @@ export async function listMesStages(idUtilisateurEntreprise) {
 // Clôture le stage, et génère automatiquement certificat + badge dans la
 // même transaction — un stage terminé sans certificat n'a pas de sens.
 export async function terminerStage(idUtilisateurEntreprise, idStage) {
-  const [entreprise] = await db
-    .select()
-    .from(entreprises)
-    .where(eq(entreprises.idUtilisateur, idUtilisateurEntreprise));
-  if (!entreprise) {
-    const err = new Error("Profil entreprise introuvable");
-    err.status = 404;
+  const ctx = await resolveEntrepriseContextOrThrow(idUtilisateurEntreprise);
+  const entreprise = ctx.entreprise;
+
+  // Permission métier : clôture réservée aux profils autorisés
+  if (
+    !ctx.isProprietaire &&
+    !ctx.isAdminPrincipal &&
+    !hasEntreprisePermission(ctx, "stagiaires.terminer")
+  ) {
+    const err = new Error(
+      "Vous n'avez pas la permission de clôturer un stage.",
+    );
+    err.status = 403;
     throw err;
   }
 
@@ -269,8 +369,13 @@ export async function terminerStage(idUtilisateurEntreprise, idStage) {
     err.status = 403;
     throw err;
   }
-  if (stage.statut !== "actif") {
-    const err = new Error("Ce stage n'est pas actif");
+  const statutEffectif = getStageLifecycleStatus(stage);
+  if (statutEffectif !== "actif") {
+    const err = new Error(
+      statutEffectif === "a_venir"
+        ? "Ce stage n'a pas encore commencé et ne peut pas être clôturé."
+        : "Ce stage n'est pas actif",
+    );
     err.status = 400;
     throw err;
   }
@@ -295,7 +400,7 @@ export async function terminerStage(idUtilisateurEntreprise, idStage) {
 
     const codeVerification = randomBytes(6).toString("hex").toUpperCase();
 
-    const cheminRelatif = genererCertificatPdf({
+    const cheminRelatif = await genererCertificatPdf({
       idStage,
       prenom: stagiaire.prenom,
       nom: stagiaire.nom,
@@ -319,21 +424,29 @@ export async function terminerStage(idUtilisateurEntreprise, idStage) {
       typeBadge: "stage_verifie",
     });
 
+    const notif = await creerNotification(
+      {
+        idUtilisateur: stagiaire.idUtilisateur,
+        type: "stage_termine",
+        titre: "Stage terminé — certificat disponible",
+        message: `Votre stage chez ${entreprise.nomEntreprise} est terminé. Votre certificat de réussite est disponible.`,
+        lien: "/certificats",
+      },
+      tx,
+    );
+
     return {
       stage: { ...stage, statut: "termine", dateFinReelle },
       certificat,
+      _notif: notif,
     };
   });
 
-  // Notification envoyée hors transaction : creerNotification utilise le
-  // client db global, pas le client de transaction (tx).
-  await creerNotification({
-    idUtilisateur: stagiaire.idUtilisateur,
-    type: "stage_termine",
-    titre: "Stage terminé — certificat disponible",
-    message: `Votre stage chez ${entreprise.nomEntreprise} est terminé. Votre certificat de réussite est disponible.`,
-    lien: "/certificats",
-  });
+  // Realtime après COMMIT uniquement
+  if (resultat?._notif) {
+    emitNotificationCreated(resultat._notif);
+    delete resultat._notif;
+  }
 
   return resultat;
 }
@@ -383,12 +496,148 @@ export async function getCertificatForStage(idUtilisateur, idStage) {
 }
 
 export async function verifierCertificat(codeVerification) {
-  const [certificat] = await db
-    .select()
+  if (!codeVerification || String(codeVerification).trim().length < 4) {
+    return null;
+  }
+  const code = String(codeVerification).trim().toUpperCase();
+
+  const [row] = await db
+    .select({
+      codeVerification: certificats.codeVerification,
+      dateEmission: certificats.dateEmission,
+      idStage: certificats.idStage,
+      prenom: stagiaires.prenom,
+      nom: stagiaires.nom,
+      nomEntreprise: entreprises.nomEntreprise,
+      dateDebut: stages.dateDebut,
+      dateFinReelle: stages.dateFinReelle,
+      statutStage: stages.statut,
+    })
     .from(certificats)
-    .where(eq(certificats.codeVerification, codeVerification));
-  return certificat || null;
+    .innerJoin(stages, eq(certificats.idStage, stages.idStage))
+    .innerJoin(stagiaires, eq(stages.idStagiaire, stagiaires.idStagiaire))
+    .innerJoin(entreprises, eq(stages.idEntreprise, entreprises.idEntreprise))
+    .where(eq(certificats.codeVerification, code))
+    .limit(1);
+
+  if (!row) return null;
+
+  // Données publiques minimales (pas d'email, téléphone, url fichier)
+  return {
+    authentique: true,
+    codeVerification: row.codeVerification,
+    dateEmission: row.dateEmission,
+    stagiaire: `${row.prenom || ""} ${row.nom || ""}`.trim(),
+    entreprise: row.nomEntreprise,
+    periode: {
+      debut: row.dateDebut,
+      fin: row.dateFinReelle,
+    },
+    statutStage: row.statutStage,
+  };
 }
+
+/** Liste des certificats du stagiaire connecté (données enrichies). */
+export async function listMesCertificats(idUtilisateur) {
+  const [stagiaire] = await db
+    .select({ idStagiaire: stagiaires.idStagiaire })
+    .from(stagiaires)
+    .where(eq(stagiaires.idUtilisateur, idUtilisateur))
+    .limit(1);
+
+  if (!stagiaire) return [];
+
+  const rows = await db
+    .select({
+      idCertificat: certificats.idCertificat,
+      idStage: certificats.idStage,
+      urlFichier: certificats.urlFichier,
+      codeVerification: certificats.codeVerification,
+      dateEmission: certificats.dateEmission,
+      dateDebut: stages.dateDebut,
+      dateFinReelle: stages.dateFinReelle,
+      dateFinPrevue: stages.dateFinPrevue,
+      statutStage: stages.statut,
+      nomEntreprise: entreprises.nomEntreprise,
+      logoUrl: entreprises.logoUrl,
+      villeEntreprise: entreprises.ville,
+      paysEntreprise: entreprises.pays,
+    })
+    .from(certificats)
+    .innerJoin(stages, eq(certificats.idStage, stages.idStage))
+    .innerJoin(entreprises, eq(stages.idEntreprise, entreprises.idEntreprise))
+    .where(eq(stages.idStagiaire, stagiaire.idStagiaire))
+    .orderBy(desc(certificats.dateEmission));
+
+  // Enrichir titre poste si convention présente
+  const result = [];
+  for (const r of rows) {
+    let titrePoste = null;
+    const [stageFull] = await db
+      .select({ idConvention: stages.idConvention })
+      .from(stages)
+      .where(eq(stages.idStage, r.idStage))
+      .limit(1);
+    if (stageFull?.idConvention) {
+      const [offreInfo] = await db
+        .select({ intitulePoste: offresFinales.intitulePoste })
+        .from(conventionsStage)
+        .innerJoin(
+          offresFinales,
+          eq(conventionsStage.idOffreFinale, offresFinales.idOffreFinale),
+        )
+        .where(eq(conventionsStage.idConvention, stageFull.idConvention))
+        .limit(1);
+      titrePoste = offreInfo?.intitulePoste || null;
+    }
+    result.push({
+      ...r,
+      titrePoste,
+      type: "certificat_stage",
+      statut: "verifie",
+    });
+  }
+  return result;
+}
+
+/** Chemin disque absolu du PDF certificat, après contrôle d'accès. */
+export async function getCertificatFilePath(idUtilisateur, idStage) {
+  const cert = await getCertificatForStage(idUtilisateur, idStage);
+  if (!cert) {
+    const err = new Error("Certificat introuvable");
+    err.status = 404;
+    throw err;
+  }
+
+  // urlFichier peut être absolue (http://.../uploads/certificats/x.pdf) ou relative
+  let filename = null;
+  if (cert.urlFichier) {
+    const m = String(cert.urlFichier).match(/certificats\/([^/?#]+)/i);
+    if (m) filename = m[1];
+    else {
+      const base = path.basename(String(cert.urlFichier).split("?")[0]);
+      if (base && base.includes(".")) filename = base;
+    }
+  }
+
+  if (!filename) {
+    const err = new Error("Fichier certificat indisponible");
+    err.status = 404;
+    throw err;
+  }
+
+  const safe = path.basename(filename);
+  const filePath = path.resolve("uploads", "certificats", safe);
+  const root = path.resolve("uploads", "certificats");
+  if (!filePath.startsWith(root) || !fs.existsSync(filePath)) {
+    const err = new Error("Fichier certificat introuvable sur le serveur");
+    err.status = 404;
+    throw err;
+  }
+
+  return { filePath, filename: safe, certificat: cert };
+}
+
 
 // -----------------------------------------------------------------------
 // Journal de stage / activités — le stagiaire enregistre ses propres
@@ -438,7 +687,8 @@ export async function ajouterEntreeJournal(
   idStage,
   payload,
 ) {
-  await getStageStagiaireOrThrow(idUtilisateurStagiaire, idStage);
+  const stage = await getStageStagiaireOrThrow(idUtilisateurStagiaire, idStage);
+  assertStageIsActive(stage);
   const [entree] = await db
     .insert(journalStage)
     .values({
@@ -457,7 +707,8 @@ export async function updateEntreeJournal(
   idEntree,
   payload,
 ) {
-  await getStageStagiaireOrThrow(idUtilisateurStagiaire, idStage);
+  const stage = await getStageStagiaireOrThrow(idUtilisateurStagiaire, idStage);
+  assertStageIsActive(stage);
 
   const [existante] = await db
     .select()
@@ -515,4 +766,176 @@ export async function supprimerEntreeJournal(
       ),
     );
   return { deleted: true };
+}
+
+
+/**
+ * Correction des dates d'un stage par l'entreprise suite à une anomalie critique.
+ * - Authentifié + compte actif (middlewares)
+ * - Stage appartient à l'entreprise connectée
+ * - Demande de correction active (alerter_entreprise_correction / en_cours)
+ * - Stage non terminé / non interrompu
+ * - dateFin recalculée serveur depuis dureeStage contractuelle
+ */
+export async function corrigerDatesStageEntreprise(idUtilisateur, idStage, dateDebutInput) {
+  const access = await resolveSupervisionAccess(idUtilisateur);
+  if (access.mode !== "entreprise" && access.mode !== "admin_entreprise") {
+    const err = new Error(
+      "Seuls les comptes entreprise autorisés peuvent corriger les dates d'un stage",
+    );
+    err.status = 403;
+    throw err;
+  }
+  await assertStageAccess(access, idStage);
+
+  const debutYmd = toYmd(dateDebutInput);
+  if (!debutYmd || !/^\d{4}-\d{2}-\d{2}$/.test(debutYmd)) {
+    const err = new Error("Date de début invalide (format attendu : AAAA-MM-JJ)");
+    err.status = 400;
+    throw err;
+  }
+
+  // Charger stage + offre finale (durée contractuelle)
+  const [row] = await db
+    .select({
+      idStage: stages.idStage,
+      idEntreprise: stages.idEntreprise,
+      statut: stages.statut,
+      dateDebut: stages.dateDebut,
+      dateFinPrevue: stages.dateFinPrevue,
+      dateFinReelle: stages.dateFinReelle,
+      idConvention: stages.idConvention,
+      idOffreFinale: conventionsStage.idOffreFinale,
+      dureeStage: offresFinales.dureeStage,
+      offreDateDebut: offresFinales.dateDebut,
+    })
+    .from(stages)
+    .innerJoin(
+      conventionsStage,
+      eq(stages.idConvention, conventionsStage.idConvention),
+    )
+    .innerJoin(
+      offresFinales,
+      eq(conventionsStage.idOffreFinale, offresFinales.idOffreFinale),
+    )
+    .where(eq(stages.idStage, idStage));
+
+  if (!row) {
+    const err = new Error("Stage introuvable");
+    err.status = 404;
+    throw err;
+  }
+
+  if (row.idEntreprise !== access.idEntreprise) {
+    const err = new Error("Ce stage n'appartient pas à votre entreprise");
+    err.status = 403;
+    throw err;
+  }
+
+  const lifecycle = getStageLifecycleStatus({
+    statut: row.statut,
+    dateDebut: row.dateDebut,
+    dateFinPrevue: row.dateFinPrevue,
+    dateFinReelle: row.dateFinReelle,
+  });
+  if (lifecycle === "termine" || lifecycle === "interrompu" || row.statut === "termine" || row.statut === "interrompu") {
+    const err = new Error(
+      "Impossible de modifier les dates d'un stage terminé ou interrompu",
+    );
+    err.status = 400;
+    err.code = "STAGE_CLOTURE";
+    throw err;
+  }
+
+  // Vérifier qu'une demande de correction est active (dernière action journal)
+  const fp = `dates_incoherentes::${idStage}`;
+  const since = new Date(Date.now() - 30 * 86_400_000);
+  const journalRows = await db
+    .select({
+      action: journalActionsAdmin.action,
+      nouveauStatut: journalActionsAdmin.nouveauStatut,
+      motif: journalActionsAdmin.motif,
+      dateCreation: journalActionsAdmin.dateCreation,
+    })
+    .from(journalActionsAdmin)
+    .where(
+      and(
+        eq(journalActionsAdmin.typeEntite, "anomalie_controle"),
+        gte(journalActionsAdmin.dateCreation, since),
+      ),
+    )
+    .orderBy(desc(journalActionsAdmin.dateCreation));
+
+  let demandeActive = null;
+  for (const r of journalRows) {
+    const motifFp = (r.motif || "").split("\n")[0]?.trim();
+    if (motifFp !== fp) continue;
+    const statut =
+      r.nouveauStatut ||
+      (r.action === "alerter_entreprise_correction"
+        ? "en_cours"
+        : r.action === "ignorer_anomalie"
+          ? "ignoree"
+          : "resolue");
+    if (statut === "en_cours" && r.action === "alerter_entreprise_correction") {
+      demandeActive = r;
+    }
+    // Première (plus récente) entrée pour ce fingerprint décide
+    break;
+  }
+
+  if (!demandeActive) {
+    const err = new Error(
+      "Aucune demande de correction active pour ce stage. Contactez le support si le problème persiste.",
+    );
+    err.status = 403;
+    err.code = "PAS_DE_DEMANDE_CORRECTION";
+    throw err;
+  }
+
+  if (!row.dureeStage) {
+    const err = new Error(
+      "Durée contractuelle introuvable : impossible de recalculer la date de fin",
+    );
+    err.status = 400;
+    throw err;
+  }
+
+  const finYmd = calculerDateFinPrevueYmd(debutYmd, row.dureeStage);
+  assertValidStageDates(debutYmd, finYmd);
+
+  const nouveauStatut = computeInitialStageStatus(debutYmd, finYmd);
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(offresFinales)
+      .set({ dateDebut: debutYmd })
+      .where(eq(offresFinales.idOffreFinale, row.idOffreFinale));
+
+    await tx
+      .update(stages)
+      .set({
+        dateDebut: debutYmd,
+        dateFinPrevue: finYmd,
+        // Ne pas écraser interrompu ; sinon aligner le statut temporel
+        ...(row.statut !== "interrompu" ? { statut: nouveauStatut } : {}),
+      })
+      .where(eq(stages.idStage, idStage));
+  });
+
+  // Réconciliation explicite (pas via GET) : clôture l'anomalie si les dates sont cohérentes
+  try {
+    await reconcileControleCentre();
+  } catch (e) {
+    console.warn("reconcileControleCentre après correction dates:", e?.message || e);
+  }
+
+  return {
+    ok: true,
+    idStage,
+    dateDebut: debutYmd,
+    dateFinPrevue: finYmd,
+    dureeStage: row.dureeStage,
+    statut: row.statut === "interrompu" ? "interrompu" : nouveauStatut,
+  };
 }

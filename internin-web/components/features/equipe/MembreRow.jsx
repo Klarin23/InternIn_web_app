@@ -10,7 +10,8 @@ import {
   STATUT_MEMBRE_COLORS,
   STATUT_DOT_COLORS,
   AVATAR_COLORS,
-} from "./equipeConstants";
+ roleLabel, statutLabel } from "./equipeConstants";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import {
   useRenvoyerInvitation,
   useAnnulerInvitation,
@@ -18,6 +19,7 @@ import {
 } from "@/lib/queries/useEquipe";
 
 export default function MembreRow({ membre, index, onOuvrirDetail }) {
+  const { t } = useTranslation();
   const couleur = AVATAR_COLORS[index % AVATAR_COLORS.length];
   const renvoyer = useRenvoyerInvitation();
   const annuler = useAnnulerInvitation();
@@ -58,7 +60,7 @@ export default function MembreRow({ membre, index, onOuvrirDetail }) {
             {membre.nom}
             {membre.estAdminPrincipal && (
               <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                (vous)
+                {t("equipe.you")}
               </span>
             )}
           </span>
@@ -72,7 +74,7 @@ export default function MembreRow({ membre, index, onOuvrirDetail }) {
         <span
           className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${ROLE_BADGE_COLORS[membre.roleEquipe] || "bg-muted text-muted-foreground border-border"}`}
         >
-          {ROLE_LABELS[membre.roleEquipe]}
+          {roleLabel(t, membre.roleEquipe)}
         </span>
       </span>
 
@@ -83,7 +85,7 @@ export default function MembreRow({ membre, index, onOuvrirDetail }) {
           <span
             className={`h-1.5 w-1.5 rounded-full ${STATUT_DOT_COLORS[membre.statutMembre]}`}
           />
-          {STATUT_MEMBRE_LABELS[membre.statutMembre]}
+          {statutLabel(t, membre.statutMembre)}
         </span>
       </span>
 
@@ -99,7 +101,7 @@ export default function MembreRow({ membre, index, onOuvrirDetail }) {
               onClick={() => renvoyer.mutate(membre.idMembre)}
             >
               <FiRefreshCw className="h-3.5 w-3.5" />
-              Renvoyer
+              {t("equipe.actions.resendShort")}
             </Button>
             <Button
               type="button"
@@ -110,7 +112,7 @@ export default function MembreRow({ membre, index, onOuvrirDetail }) {
               onClick={() => annuler.mutate(membre.idMembre)}
             >
               <FiX className="h-3.5 w-3.5" />
-              Annuler
+              {t("equipe.actions.cancelShort")}
             </Button>
           </>
         )}
@@ -133,12 +135,12 @@ export default function MembreRow({ membre, index, onOuvrirDetail }) {
             {membre.statutMembre === "actif" ? (
               <>
                 <FiPause className="h-3.5 w-3.5" />
-                Désactiver
+                {t("equipe.actions.deactivate")}
               </>
             ) : (
               <>
                 <FiPlay className="h-3.5 w-3.5" />
-                Activer
+                {t("equipe.actions.activate")}
               </>
             )}
           </Button>
@@ -151,7 +153,7 @@ export default function MembreRow({ membre, index, onOuvrirDetail }) {
             variant="ghost"
             className="h-8 rounded-md px-2 text-xs"
             onClick={() => onOuvrirDetail(membre)}
-            aria-label="Modifier le membre"
+            aria-label={t("equipe.actions.editMemberAria")}
           >
             <FiSettings className="h-3.5 w-3.5" />
           </Button>

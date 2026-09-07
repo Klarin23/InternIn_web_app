@@ -1,9 +1,9 @@
 "use client";
 
 import { SupervisionProvider } from "@/lib/supervision/SupervisionContext";
-import ProgressionPage from "@/app/(superviseur)/mes-stagiaires/[idStage]/progression/page";
+import Page from "@/app/(superviseur)/mes-stagiaires/[idStage]/progression/page";
 
-export default function EntrepriseProgressionPage({ params, searchParams } = {}) {
+export default function EntrepriseProgressionPage() {
   return (
     <SupervisionProvider
       basePath="/supervision/mes-stagiaires"
@@ -12,7 +12,7 @@ export default function EntrepriseProgressionPage({ params, searchParams } = {})
       roleLabel="Entreprise"
       isEntreprise
     >
-      <ProgressionPage params={params} searchParams={searchParams} />
+      <Page />
     </SupervisionProvider>
   );
 }

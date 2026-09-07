@@ -16,8 +16,10 @@ import {
   ArrowRight,
   Circle,
   CircleDot,
+  ListChecks,
 } from "lucide-react";
 
+import Link from "next/link";
 import AppHeader from "@/components/layout/AppHeader";
 import EvaluationTimeline from "@/components/features/stage/EvaluationTimeline";
 import CoachIACard from "@/components/features/stage/CoachIACard";
@@ -30,6 +32,7 @@ import { useEvaluations, useCoaching } from "@/lib/queries/useEvaluations";
 import { useCertificat } from "@/lib/queries/useStages";
 import { useRecommandation } from "@/lib/queries/useRecommandations";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 function formatDateShort(dateStr) {
   if (!dateStr) return "—";
@@ -59,11 +62,33 @@ function formatDate(dateStr) {
 
 function getStageStatus(stage) {
   if (!stage) return "none";
-  if (stage.statut === "termine") return "termine";
+  // Priorité au statut backend (source de vérité cycle de vie)
+  if (stage.statut === "termine" || stage.statut === "interrompu") return "termine";
+  if (stage.statut === "a_venir" || stage.estAVenir) return "a_venir";
+  if (stage.statut === "actif" || stage.estActif) return "en_cours";
+  // Fallback dates (legacy)
   const now = new Date();
   const debut = new Date(stage.dateDebut);
   if (now < debut) return "a_venir";
   return "en_cours";
+}
+
+
+/** Pourcentage affiché : API unifiée puis repli legacy */
+function resolveStageProgressPercent(stage) {
+  if (!stage) return 0;
+  const candidates = [
+    stage.progressionAffichee,
+    stage.progression?.percent,
+    stage.progressionCalculee,
+    stage.progressionPourcentage,
+  ];
+  for (const c of candidates) {
+    if (c == null || c === "") continue;
+    const n = Number(c);
+    if (Number.isFinite(n)) return Math.min(100, Math.max(0, Math.round(n)));
+  }
+  return 0;
 }
 
 function AnimatedProgressBar({ value, className }) {
@@ -81,22 +106,24 @@ function AnimatedProgressBar({ value, className }) {
 }
 
 function StatusBadge({ status }) {
+  const { t } = useTranslation();
   const config = {
-    en_cours: { label: "Stage en cours", className: "bg-primary/10 text-primary border-primary/20" },
-    a_venir: { label: "Stage à venir", className: "bg-warning/10 text-warning border-warning/20" },
-    termine: { label: "Stage terminé", className: "bg-success/10 text-success border-success/20" },
-    none: { label: "Aucun stage", className: "bg-muted text-muted-foreground border-border" },
+    en_cours: { labelKey: "statusInProgress", className: "bg-primary/10 text-primary border-primary/20" },
+    a_venir: { labelKey: "statusUpcoming", className: "bg-warning/10 text-warning border-warning/20" },
+    termine: { labelKey: "statusFinished", className: "bg-success/10 text-success border-success/20" },
+    none: { labelKey: "statusNone", className: "bg-muted text-muted-foreground border-border" },
   };
   const c = config[status] || config.none;
   return (
     <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium", c.className)}>
-      {c.label}
+      {t(`stagiaireSpace.stage.${c.labelKey}`)}
     </span>
   );
 }
 
 function StageSummaryCard({ stage, status }) {
-  const progression = stage.progressionPourcentage ?? stage.progressionCalculee ?? 0;
+  const { t } = useTranslation();
+  const progression = resolveStageProgressPercent(stage);
   const entreprise = stage.entreprise || { nomEntreprise: stage.nomEntreprise };
 
   return (
@@ -120,7 +147,7 @@ function StageSummaryCard({ stage, status }) {
             <div className="min-w-0 space-y-1">
               <StatusBadge status={status} />
               <h2 className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-                {stage.titrePoste || "Stage"}
+                {stage.titrePoste || t("stagiaireSpace.stage.stageFallback")}
               </h2>
               <p className="text-sm font-medium text-muted-foreground">{entreprise.nomEntreprise}</p>
               <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -146,13 +173,13 @@ function StageSummaryCard({ stage, status }) {
 
           <div className="w-full shrink-0 space-y-2 sm:w-48">
             <div className="flex items-baseline justify-between">
-              <span className="text-xs font-medium text-muted-foreground">Progression</span>
+              <span className="text-xs font-medium text-muted-foreground">{t("stagiaireSpace.stage.progression")}</span>
               <span className="text-2xl font-bold tabular-nums text-primary">{progression} %</span>
             </div>
             <AnimatedProgressBar value={progression} />
             <div className="flex justify-between text-[11px] text-muted-foreground">
-              <span>{stage.joursEcoules ?? 0} j écoulés</span>
-              <span>{stage.joursRestants ?? 0} j restants</span>
+              <span>{t("stagiaireSpace.stage.daysElapsedShort", { n: stage.joursEcoules ?? 0 })}</span>
+              <span>{t("stagiaireSpace.stage.daysLeftShort", { n: stage.joursRestants ?? 0 })}</span>
             </div>
           </div>
         </div>
@@ -162,27 +189,40 @@ function StageSummaryCard({ stage, status }) {
 }
 
 function NextStepCard({ stage, status, evaluations }) {
-  let title = "Aucune action requise";
-  let description = "Votre stage est actuellement à jour.";
+  const { t } = useTranslation();
+  let title = t("stagiaireSpace.stage.nextNone");
+  let description = t("stagiaireSpace.stage.nextDescUpToDate");
   let tone = "neutral";
 
   if (status === "a_venir") {
-    title = "Préparation du stage";
-    description = `Votre stage commence le ${formatDate(stage.dateDebut)}. Préparez vos documents et familiarisez-vous avec l'entreprise.`;
+    title = t("stagiaireSpace.stage.nextUpcoming");
+    const j = stage.joursAvantDebut;
+    const countdown =
+      j == null
+        ? ""
+        : j === 0
+          ? t("stagiaireSpace.stage.startsToday")
+          : j === 1
+            ? t("stagiaireSpace.stage.startsTomorrow")
+            : t("stagiaireSpace.stage.startsInDays", { n: j });
+    description = t("stagiaireSpace.stage.nextDescUpcoming", {
+      date: formatDate(stage.dateDebut),
+      countdown,
+    });
     tone = "warning";
   } else if (status === "termine") {
-    title = "Stage terminé";
-    description = "Consultez votre certificat et demandez une recommandation si besoin.";
+    title = t("stagiaireSpace.stage.nextFinished");
+    description = t("stagiaireSpace.stage.nextDescFinished");
     tone = "success";
   } else if (status === "en_cours") {
     const hasEval = evaluations && evaluations.length > 0;
     if (!hasEval) {
-      title = "Première évaluation";
-      description = "Aucune évaluation n'a encore été soumise. Votre superviseur pourra bientôt évaluer votre progression.";
+      title = t("stagiaireSpace.stage.nextFirstEval");
+      description = t("stagiaireSpace.stage.nextDescFirstEval");
       tone = "warning";
     } else {
-      title = "Continuer le suivi";
-      description = "Poursuivez vos objectifs et tenez à jour votre journal de stage.";
+      title = t("stagiaireSpace.stage.nextContinue");
+      description = t("stagiaireSpace.stage.nextDescContinue");
       tone = "primary";
     }
   }
@@ -206,7 +246,7 @@ function NextStepCard({ stage, status, evaluations }) {
           <ArrowRight className="h-4 w-4 text-primary" />
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Prochaine étape</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("stagiaireSpace.stage.nextStep")}</p>
           <h3 className="mt-0.5 text-sm font-semibold text-foreground">{title}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         </div>
@@ -216,37 +256,38 @@ function NextStepCard({ stage, status, evaluations }) {
 }
 
 function TimelineStage({ stage, status, evaluations }) {
+  const { t } = useTranslation();
   const steps = useMemo(() => {
     const items = [
       {
         id: "debut",
-        title: "Stage commencé",
+        title: t("stagiaireSpace.stage.timelineStart"),
         date: stage.dateDebut,
-        description: "Début de votre expérience professionnelle",
+        description: t("stagiaireSpace.stage.timelineStartDesc"),
         done: status !== "a_venir",
         current: status === "en_cours" && (!evaluations || evaluations.length === 0),
       },
       {
         id: "intermediaire",
-        title: "Évaluation intermédiaire",
+        title: t("stagiaireSpace.stage.timelineMid"),
         date: null,
-        description: "Bilan à mi-parcours",
+        description: t("stagiaireSpace.stage.timelineMidDesc"),
         done: evaluations && evaluations.length >= 1,
         current: status === "en_cours" && evaluations && evaluations.length >= 1 && evaluations.length < 2,
       },
       {
         id: "finale",
-        title: "Évaluation finale",
+        title: t("stagiaireSpace.stage.timelineFinal"),
         date: null,
-        description: "Bilan de fin de stage",
+        description: t("stagiaireSpace.stage.timelineFinalDesc"),
         done: evaluations && evaluations.length >= 2,
         current: status === "en_cours" && evaluations && evaluations.length >= 2,
       },
       {
         id: "fin",
-        title: "Stage terminé",
+        title: t("stagiaireSpace.stage.timelineEnd"),
         date: stage.dateFinReelle || stage.dateFinPrevue,
-        description: "Clôture et certificat",
+        description: t("stagiaireSpace.stage.timelineEndDesc"),
         done: status === "termine",
         current: false,
       },
@@ -256,7 +297,7 @@ function TimelineStage({ stage, status, evaluations }) {
       items[0].done = false;
     }
     return items;
-  }, [stage, status, evaluations]);
+  }, [stage, status, evaluations, t]);
 
   return (
     <motion.div
@@ -265,7 +306,7 @@ function TimelineStage({ stage, status, evaluations }) {
       transition={{ duration: 0.4, delay: 0.12 }}
       className="rounded-md border border-border bg-card p-5"
     >
-      <h3 className="mb-4 text-sm font-semibold text-foreground">Timeline du stage</h3>
+      <h3 className="mb-4 text-sm font-semibold text-foreground">{t("stagiaireSpace.stage.timelineTitle")}</h3>
       <ol className="relative space-y-0">
         {steps.map((step, index) => (
           <motion.li
@@ -302,18 +343,34 @@ function TimelineStage({ stage, status, evaluations }) {
 }
 
 function ProgressStats({ stage }) {
+  const { t } = useTranslation();
   const objectifs = stage.objectifs || [];
   const realises = objectifs.filter((o) => o.statut === "realise").length;
   const competences = stage.competencesAcquises || [];
   const taches = stage.taches || [];
   const tachesFaites = taches.filter((t) => t.statut === "terminee" || t.statut === "faite").length;
-  const progression = stage.progressionPourcentage ?? stage.progressionCalculee ?? 0;
+  const progression = resolveStageProgressPercent(stage);
 
   const stats = [
-    { label: "Progression générale", value: `${progression} %`, bar: progression },
-    { label: "Objectifs", value: `${realises} / ${objectifs.length || "—"}`, bar: objectifs.length ? (realises / objectifs.length) * 100 : 0, sub: objectifs.length ? null : "Aucun objectif défini" },
-    { label: "Compétences", value: `${competences.length}`, sub: "acquises", bar: null },
-    { label: "Tâches", value: `${tachesFaites} / ${taches.length || "—"}`, bar: taches.length ? (tachesFaites / taches.length) * 100 : 0, sub: taches.length ? null : "Aucune tâche" },
+    { label: t("stagiaireSpace.stage.progress"), value: `${progression} %`, bar: progression },
+    {
+      label: t("stagiaireSpace.stage.progressObjectives"),
+      value: `${realises} / ${objectifs.length || "—"}`,
+      bar: objectifs.length ? (realises / objectifs.length) * 100 : 0,
+      sub: objectifs.length ? null : t("stagiaireSpace.stage.noObjectivesShort"),
+    },
+    {
+      label: t("stagiaireSpace.stage.skills"),
+      value: `${competences.length}`,
+      sub: null,
+      bar: null,
+    },
+    {
+      label: t("stagiaireSpace.stage.progressTasks"),
+      value: `${tachesFaites} / ${taches.length || "—"}`,
+      bar: taches.length ? (tachesFaites / taches.length) * 100 : 0,
+      sub: taches.length ? null : t("stagiaireSpace.stage.noTasksShort"),
+    },
   ];
 
   return (
@@ -323,7 +380,7 @@ function ProgressStats({ stage }) {
       transition={{ duration: 0.4, delay: 0.16 }}
       className="rounded-md border border-border bg-card p-5"
     >
-      <h3 className="mb-4 text-sm font-semibold text-foreground">Ma progression</h3>
+      <h3 className="mb-4 text-sm font-semibold text-foreground">{t("stagiaireSpace.stage.progress")}</h3>
       <div className="grid gap-4 sm:grid-cols-2">
         {stats.map((s) => (
           <div key={s.label} className="space-y-1.5">
@@ -341,13 +398,14 @@ function ProgressStats({ stage }) {
 }
 
 function ObjectifsSection({ objectifs }) {
+  const { t } = useTranslation();
   if (!objectifs || objectifs.length === 0) {
     return (
       <div className="rounded-md border border-dashed border-border bg-muted/30 p-6 text-center">
         <Target className="mx-auto h-8 w-8 text-muted-foreground/60" />
-        <p className="mt-2 text-sm font-medium text-foreground">Aucun objectif défini</p>
+        <p className="mt-2 text-sm font-medium text-foreground">{t("stagiaireSpace.stage.noObjectives")}</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Les objectifs de votre stage apparaîtront ici une fois définis avec votre superviseur.
+          {t("stagiaireSpace.stage.noObjectivesHint")}
         </p>
       </div>
     );
@@ -373,7 +431,7 @@ function ObjectifsSection({ objectifs }) {
               )}
               <div className="min-w-0">
                 <p className="text-sm font-medium text-foreground">{obj.description}</p>
-                <p className="mt-1 text-xs capitalize text-muted-foreground">{done ? "Réalisé" : "En cours"}</p>
+                <p className="mt-1 text-xs capitalize text-muted-foreground">{done ? t("stagiaireSpace.stage.realized") : t("stagiaireSpace.stage.inProgressLabel")}</p>
               </div>
             </div>
           </motion.div>
@@ -383,14 +441,129 @@ function ObjectifsSection({ objectifs }) {
   );
 }
 
+
+function TachesSection({ taches, objectifs }) {
+  const { t: tr } = useTranslation();
+  const list = Array.isArray(taches) ? taches : [];
+  const objs = Array.isArray(objectifs) ? objectifs : [];
+
+  if (list.length === 0 && objs.length === 0) {
+    return (
+      <div className="rounded-md border border-dashed border-border bg-muted/30 p-6 text-center">
+        <ListChecks className="mx-auto h-8 w-8 text-muted-foreground/60" />
+        <p className="mt-2 text-sm font-medium text-foreground">{tr("stagiaireSpace.stage.noTasks")}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {tr("stagiaireSpace.stage.noTasksHint")}
+        </p>
+      </div>
+    );
+  }
+
+  const byObj = new Map();
+  for (const o of objs) {
+    byObj.set(o.idObjectif, { objectif: o, taches: [] });
+  }
+  const sans = [];
+  for (const t of list) {
+    if (t.idObjectif && byObj.has(t.idObjectif)) {
+      byObj.get(t.idObjectif).taches.push(t);
+    } else {
+      sans.push(t);
+    }
+  }
+
+  const terminees = list.filter(
+    (t) => t.statut === "terminee" || t.statut === "faite",
+  ).length;
+
+  function renderItem(t, i) {
+    const done = t.statut === "terminee" || t.statut === "faite";
+    return (
+      <motion.li
+        key={t.idTache || i}
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.03 * i, duration: 0.25 }}
+        className="flex items-start gap-3 rounded-md border border-border bg-card p-3"
+      >
+        {done ? (
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+        ) : (
+          <Circle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+        )}
+        <div className="min-w-0 flex-1">
+          <p
+            className={
+              done
+                ? "text-sm text-muted-foreground line-through"
+                : "text-sm font-medium text-foreground"
+            }
+          >
+            {t.description || tr("stagiaireSpace.stage.taskFallback")}
+          </p>
+          <p className="mt-0.5 text-xs capitalize text-muted-foreground">
+            {done ? tr("stagiaireSpace.stage.taskDone") : tr("stagiaireSpace.stage.taskTodo")}
+          </p>
+        </div>
+      </motion.li>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-muted-foreground">
+        {tr(terminees > 1 ? "stagiaireSpace.stage.tasksDoneCountPlural" : "stagiaireSpace.stage.tasksDoneCount", { done: terminees, total: list.length || 0 })}
+      </p>
+      {[...byObj.values()].map(({ objectif, taches: sub }) => (
+        <div key={objectif.idObjectif} className="space-y-2">
+          <div className="flex items-start gap-2">
+            {objectif.statut === "realise" ? (
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+            ) : (
+              <Target className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-foreground">
+                {objectif.description}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {sub.filter((t) => t.statut === "terminee" || t.statut === "faite").length}
+                {tr(sub.length > 1 ? "stagiaireSpace.stage.tasksCountPlural" : "stagiaireSpace.stage.tasksCount", { n: sub.length })}
+              </p>
+            </div>
+          </div>
+          {sub.length === 0 ? (
+            <p className="ml-6 text-xs text-muted-foreground">
+              {tr("stagiaireSpace.stage.noTaskForObjective")}
+            </p>
+          ) : (
+            <ul className="ml-2 space-y-2 border-l border-border pl-4">
+              {sub.map(renderItem)}
+            </ul>
+          )}
+        </div>
+      ))}
+      {sans.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {tr("stagiaireSpace.stage.otherTasks")}
+          </p>
+          <ul className="space-y-2">{sans.map(renderItem)}</ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CompetencesSection({ competences }) {
+  const { t } = useTranslation();
   if (!competences || competences.length === 0) {
     return (
       <div className="rounded-md border border-dashed border-border bg-muted/30 p-6 text-center">
         <Sparkles className="mx-auto h-8 w-8 text-muted-foreground/60" />
-        <p className="mt-2 text-sm font-medium text-foreground">Aucune compétence enregistrée</p>
+        <p className="mt-2 text-sm font-medium text-foreground">{t("stagiaireSpace.stage.noSkills")}</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Les compétences acquises pendant le stage seront listées ici.
+          {t("stagiaireSpace.stage.skillsHint")}
         </p>
       </div>
     );
@@ -415,13 +588,14 @@ function CompetencesSection({ competences }) {
 }
 
 function InfoCards({ stage }) {
+  const { t } = useTranslation();
   const entreprise = stage.entreprise || { nomEntreprise: stage.nomEntreprise };
   const superviseur = stage.superviseur;
 
   return (
     <div className="grid gap-4 sm:grid-cols-3">
       <div className="rounded-md border border-border bg-card p-4">
-        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Entreprise</p>
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("stagiaireSpace.stage.company")}</p>
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-md border bg-muted">
             {entreprise.logoUrl ? (
@@ -441,7 +615,7 @@ function InfoCards({ stage }) {
       </div>
 
       <div className="rounded-md border border-border bg-card p-4">
-        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Superviseur</p>
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("stagiaireSpace.stage.supervisor")}</p>
         {superviseur ? (
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
@@ -455,12 +629,12 @@ function InfoCards({ stage }) {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Non renseigné</p>
+          <p className="text-sm text-muted-foreground">{t("stagiaireSpace.stage.notProvided")}</p>
         )}
       </div>
 
       <div className="rounded-md border border-border bg-card p-4">
-        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Période</p>
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("stagiaireSpace.stage.period")}</p>
         <div className="space-y-1 text-sm">
           <p className="font-medium text-foreground">
             {formatDateShort(stage.dateDebut)} → {formatDateShort(stage.dateFinPrevue)}
@@ -493,6 +667,7 @@ function LoadingSkeleton() {
 }
 
 function EmptyState() {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -503,23 +678,24 @@ function EmptyState() {
         <Briefcase className="h-7 w-7 text-muted-foreground" />
       </div>
       <div>
-        <p className="text-sm font-semibold text-foreground">Aucun stage en cours</p>
+        <p className="text-sm font-semibold text-foreground">{t("stagiaireSpace.stage.emptyTitle")}</p>
         <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-          Vous n&apos;avez actuellement aucun stage actif. Explorez les offres pour démarrer votre expérience professionnelle.
+          {t("stagiaireSpace.stage.emptyDesc")}
         </p>
       </div>
-      <a
+      <Link
         href="/offres"
         className="mt-2 inline-flex items-center gap-1.5 rounded-sm bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
       >
-        Voir les offres
+        {t("stagiaireSpace.stage.viewOffers")}
         <ChevronRight className="h-4 w-4" />
-      </a>
+      </Link>
     </motion.div>
   );
 }
 
 export default function StagePage() {
+  const { t } = useTranslation();
   const { data: stage, isLoading: stageLoading } = useMonStage();
   const { data: evaluations } = useEvaluations(stage?.idStage);
   const { data: coaching } = useCoaching(stage?.idStage);
@@ -531,8 +707,8 @@ export default function StagePage() {
   return (
     <>
       <AppHeader
-        title="Mon stage"
-        subtitle="Suivez votre progression et les différentes étapes de votre expérience professionnelle."
+        title={t("stagiaireSpace.stage.title")}
+        subtitle={t("stagiaireSpace.stage.subtitle")}
         refreshKeys={["monStage", "evaluations", "coaching"]}
       />
 
@@ -562,26 +738,54 @@ export default function StagePage() {
             <InfoCards stage={stage} />
 
             <section>
-              <h3 className="mb-3 text-sm font-semibold text-foreground">Mes objectifs</h3>
+              <h3 className="mb-3 text-sm font-semibold text-foreground">{t("stagiaireSpace.stage.objectives")}</h3>
               <ObjectifsSection objectifs={stage.objectifs} />
             </section>
 
             <section>
-              <h3 className="mb-3 text-sm font-semibold text-foreground">Compétences développées</h3>
+              <h3 className="mb-3 text-sm font-semibold text-foreground">{t("stagiaireSpace.stage.tasks")}</h3>
+              <TachesSection taches={stage.taches} objectifs={stage.objectifs} />
+            </section>
+
+            <section>
+              <h3 className="mb-3 text-sm font-semibold text-foreground">{t("stagiaireSpace.stage.skills")}</h3>
               <CompetencesSection competences={stage.competencesAcquises} />
             </section>
 
             <section>
-              <h3 className="mb-3 text-sm font-semibold text-foreground">Mes évaluations</h3>
+              <h3 className="mb-3 text-sm font-semibold text-foreground">{t("stagiaireSpace.stage.evaluations")}</h3>
               <EvaluationTimeline evaluations={evaluations} />
             </section>
 
             <section>
-              <h3 className="mb-3 text-sm font-semibold text-foreground">Coach IA</h3>
+              <h3 className="mb-3 text-sm font-semibold text-foreground">{t("stagiaireSpace.stage.coach")}</h3>
               <CoachIACard sessions={coaching} />
             </section>
 
-            <JournalStageSection idStage={stage.idStage} />
+            {status === "en_cours" ? (
+              <JournalStageSection idStage={stage.idStage} />
+            ) : status === "a_venir" ? (
+              <div className="rounded-md border border-border bg-card p-5 text-sm text-muted-foreground">
+                <p className="font-medium text-foreground">{t("stagiaireSpace.stage.journal")}</p>
+                <p className="mt-1">
+                  {t("stagiaireSpace.stage.journalSoon")}
+                  {stage.dateDebut
+                    ? ` (${formatDateShort(stage.dateDebut)})`
+                    : ""}
+                  {stage.joursAvantDebut > 0
+                    ? t(
+                        stage.joursAvantDebut > 1
+                          ? "stagiaireSpace.stage.inDaysPlural"
+                          : "stagiaireSpace.stage.inDays",
+                        { n: stage.joursAvantDebut },
+                      )
+                    : ""}
+                  .
+                </p>
+              </div>
+            ) : (
+              <JournalStageSection idStage={stage.idStage} />
+            )}
 
             {status === "termine" && (
               <div className="space-y-4">

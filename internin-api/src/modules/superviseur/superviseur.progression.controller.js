@@ -83,6 +83,7 @@ export async function postTacheHandler(req, res, next) {
       req.user.idUtilisateur,
       req.params.idStage,
       req.body.description,
+      req.body.idObjectif ?? null,
     );
     res.status(201).json({ tache });
   } catch (err) {

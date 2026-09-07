@@ -4,6 +4,9 @@ import {
   listMesStagesRequest,
   terminerStageRequest,
   getCertificatRequest,
+  listMesCertificatsRequest,
+  downloadCertificatRequest,
+  verifierCertificatRequest,
   listMonJournalRequest,
   ajouterEntreeJournalRequest,
   updateEntreeJournalRequest,
@@ -96,5 +99,35 @@ export function useSupprimerEntreeJournal(idStage) {
     mutationFn: (idEntree) =>
       supprimerEntreeJournalRequest(idStage, idEntree, token),
     onSuccess: invalidate,
+  });
+}
+
+
+export function useMesCertificats() {
+  const token = useAuthStore((state) => state.token);
+  return useQuery({
+    queryKey: ["mes-certificats"],
+    queryFn: () => listMesCertificatsRequest(token),
+    enabled: !!token,
+  });
+}
+
+export function useVerifierCertificat(code) {
+  return useQuery({
+    queryKey: ["verifier-certificat", code],
+    queryFn: () => verifierCertificatRequest(code),
+    enabled: Boolean(code && String(code).length >= 4),
+    retry: false,
+  });
+}
+
+export function useDownloadCertificat() {
+  const token = useAuthStore((state) => state.token);
+  return useMutation({
+    mutationFn: (arg) => {
+      const idStage = typeof arg === "object" && arg != null ? arg.idStage : arg;
+      const lang = typeof arg === "object" && arg != null ? arg.lang : "fr";
+      return downloadCertificatRequest(idStage, token, lang || "fr");
+    },
   });
 }

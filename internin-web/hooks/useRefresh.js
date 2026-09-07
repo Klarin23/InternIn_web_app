@@ -25,42 +25,52 @@ export function useRefresh(queryKeys = [], { onSuccess, onError } = {}) {
   const [status, setStatus] = useState("idle");
   const [lastUpdated, setLastUpdated] = useState(null);
   const successTimerRef = useRef(null);
-  const isLoadingRef = useRef(false); // garde anti-requêtes-simultanées, insensible aux closures obsolètes
+  // Garde anti-requêtes simultanées + clés toujours à jour sans deps complexes
+  const isLoadingRef = useRef(false);
+  const queryKeysRef = useRef(queryKeys);
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+
+  // Mise à jour des refs après le rendu (pas pendant) pour respecter
+  // react-hooks/refs tout en gardant les valeurs à jour dans `refresh`.
+  useEffect(() => {
+    queryKeysRef.current = queryKeys;
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+  });
 
   useEffect(() => () => clearTimeout(successTimerRef.current), []);
 
   const refresh = useCallback(async () => {
-    if (isLoadingRef.current) return; // une actualisation est déjà en cours
+    if (isLoadingRef.current) return;
     isLoadingRef.current = true;
     clearTimeout(successTimerRef.current);
     setStatus("loading");
 
     try {
+      const keys = queryKeysRef.current || [];
       await Promise.all(
-        queryKeys.map((key) =>
+        keys.map((key) =>
           queryClient.refetchQueries({
             queryKey: toKeyArray(key),
-            // "active" : ne rafraîchit que les requêtes réellement montées,
-            // jamais tout le cache de l'application.
             type: "active",
           }),
         ),
       );
       setLastUpdated(Date.now());
       setStatus("success");
-      onSuccess?.();
+      onSuccessRef.current?.();
       successTimerRef.current = setTimeout(
         () => setStatus("idle"),
         SUCCESS_DISPLAY_MS,
       );
     } catch (err) {
       setStatus("error");
-      onError?.(err);
+      onErrorRef.current?.(err);
     } finally {
       isLoadingRef.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queryClient, JSON.stringify(queryKeys), onSuccess, onError]);
+  }, [queryClient]);
 
   return { refresh, status, lastUpdated };
 }

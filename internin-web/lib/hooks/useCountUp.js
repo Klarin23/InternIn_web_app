@@ -42,7 +42,7 @@ export function useCountUp(value, { duration = 1200, start = true } = {}) {
     return () => {
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [value, duration, start]);
 
   return displayValue;

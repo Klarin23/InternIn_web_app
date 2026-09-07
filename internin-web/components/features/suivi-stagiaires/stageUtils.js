@@ -50,23 +50,23 @@ export function getStatutAffichage(stage, moyenne) {
 
 export const STATUT_CONFIG = {
   en_cours: {
-    label: "En cours",
+    labelKey: "suivi.statusOngoing",
     color: "bg-primary/15 text-primary border border-primary/30 font-bold",
     bar: "bg-primary",
   },
   fin_proche: {
-    label: "Fin proche",
+    labelKey: "suivi.statusEndingSoon",
     color: "bg-accent/30 text-amber-800 border border-accent/50 font-bold",
     bar: "bg-accent",
   },
   alerte: {
-    label: "Alerte",
+    labelKey: "suivi.statusAlert",
     color:
       "bg-destructive/15 text-destructive border border-destructive/30 font-bold",
     bar: "bg-destructive",
   },
   termine: {
-    label: "Terminé",
+    labelKey: "suivi.statusCompleted",
     color: "bg-muted text-foreground border border-border font-bold",
     bar: "bg-muted-foreground",
   },

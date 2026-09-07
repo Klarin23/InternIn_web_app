@@ -1,5 +1,7 @@
 "use client";
-// Section "Actions rapides" : 4 raccourcis vers les tâches les plus fréquentes
+
+import { useTranslation } from "@/lib/i18n/useTranslation";
+// Section "{t("entrepriseSpace.dashboard.quickActions")}" : 4 raccourcis vers les tâches les plus fréquentes
 // de l'espace entreprise. RippleButton gère le ripple + press (95%) au clic ;
 // whileHover gère la légère élévation au survol.
 
@@ -8,44 +10,22 @@ import { FiPlusCircle, FiUserPlus, FiSearch, FiUsers } from "react-icons/fi";
 import { Stagger, StaggerItem } from "@/components/motion/Stagger";
 import RippleButton from "@/components/motion/RippleButton";
 
-const ACTIONS = [
-  {
-    key: "publier-offre",
-    icon: FiPlusCircle,
-    label: "Publier une offre",
-    href: "/offres-entreprise?nouvelle=1",
-    color: "bg-primary/10 text-primary",
-  },
-  {
-    key: "inviter-membre",
-    icon: FiUserPlus,
-    label: "Inviter un membre",
-    href: "/equipe?inviter=1",
-    color: "bg-orange-700/10 text-red-500",
-  },
-  {
-    key: "rechercher-stagiaire",
-    icon: FiSearch,
-    label: "Rechercher un stagiaire",
-    href: "/candidats",
-    color: "bg-accent/40 text-amber-700",
-  },
-  {
-    key: "voir-candidatures",
-    icon: FiUsers,
-    label: "Voir les candidatures",
-    href: "/candidats",
-    color: "bg-success/10 text-green-700",
-  },
-];
+// ACTIONS défini dans le composant (libellés traduits selon la langue).
 
 export default function QuickActionsPanel() {
+  const { t, locale } = useTranslation();
   const router = useRouter();
+  const ACTIONS = [
+    { key: "publier-offre", icon: FiPlusCircle, label: t("entrepriseSpace.dashboard.publishOffer"), href: "/offres-entreprise?nouvelle=1", color: "bg-primary/10 text-primary" },
+    { key: "inviter-membre", icon: FiUserPlus, label: t("entrepriseSpace.dashboard.quickActionInviteMember"), href: "/equipe?inviter=1", color: "bg-orange-700/10 text-red-500" },
+    { key: "rechercher-stagiaire", icon: FiSearch, label: t("entrepriseSpace.dashboard.quickActionSearchIntern"), href: "/candidats", color: "bg-accent/40 text-amber-700" },
+    { key: "voir-candidatures", icon: FiUsers, label: t("entrepriseSpace.dashboard.viewApplications"), href: "/candidats", color: "bg-success/10 text-green-700" },
+  ];
 
   return (
     <div className="rounded-md border border-border bg-card p-5">
       <h5 className="mb-4 text-sm font-semibold text-foreground">
-        Actions rapides
+        {t("entrepriseSpace.dashboard.quickActions")}
       </h5>
       <Stagger className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {ACTIONS.map(({ key, icon: Icon, label, href, color }) => (

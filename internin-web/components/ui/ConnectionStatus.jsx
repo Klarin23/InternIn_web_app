@@ -1,21 +1,36 @@
 "use client";
 
 // Toast global d'état de connexion — monté une seule fois dans app/layout.js.
-// Non bloquant : n'interrompt pas la saisie des formulaires.
+// Rendu uniquement après montage client pour éviter un mismatch d'hydratation
+// (navigator.onLine / styles Framer Motion différents serveur vs client).
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { WifiOff, Wifi, Loader2, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
+/** true uniquement côté client — évite setState dans un effect (react-hooks/set-state-in-effect). */
+function useIsClient() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
 
 export default function ConnectionStatus() {
+  const { t } = useTranslation();
   const { isOnline, justReconnected, checkConnection } = useNetworkStatus();
   const queryClient = useQueryClient();
   const wasOffline = useRef(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  // Shell identique SSR/client au premier rendu (server snapshot = false)
+  const mounted = useIsClient();
 
   useEffect(() => {
+    if (!mounted) return;
     if (!isOnline) {
       wasOffline.current = true;
       return;
@@ -24,7 +39,7 @@ export default function ConnectionStatus() {
       wasOffline.current = false;
       queryClient.refetchQueries({ type: "active" });
     }
-  }, [isOnline, queryClient]);
+  }, [isOnline, queryClient, mounted]);
 
   const handleRetry = useCallback(async () => {
     setIsRetrying(true);
@@ -35,13 +50,14 @@ export default function ConnectionStatus() {
     }
   }, [checkConnection]);
 
-  const showOffline = !isOnline;
-  const showReconnected = isOnline && justReconnected;
+  const showOffline = mounted && !isOnline;
+  const showReconnected = mounted && isOnline && justReconnected;
 
   return (
     <div
       className="pointer-events-none fixed bottom-4 right-4 z-[120] flex max-w-[calc(100vw-2rem)] flex-col items-end gap-2 sm:bottom-6 sm:right-6"
       aria-live="polite"
+      suppressHydrationWarning
     >
       <AnimatePresence mode="wait">
         {showOffline && (
@@ -60,14 +76,14 @@ export default function ConnectionStatus() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-foreground">
-                  Connexion interrompue
+                  {t("network.offlineTitle")}
                 </p>
                 <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                  Votre connexion Internet semble avoir été interrompue.
+                  {t("network.offlineDesc")}
                 </p>
                 <div className="mt-2.5 flex items-center gap-2 text-xs font-medium text-teal-700 dark:text-teal-400">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <span>Tentative de reconnexion…</span>
+                  <span>{t("network.reconnecting")}</span>
                 </div>
                 <button
                   type="button"
@@ -78,7 +94,7 @@ export default function ConnectionStatus() {
                   <RefreshCw
                     className={`h-3.5 w-3.5 ${isRetrying ? "animate-spin" : ""}`}
                   />
-                  Réessayer
+                  {t("network.retry")}
                 </button>
               </div>
             </div>
@@ -101,10 +117,10 @@ export default function ConnectionStatus() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-foreground">
-                  Connexion rétablie
+                  {t("network.onlineTitle")}
                 </p>
                 <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                  Vous êtes de nouveau en ligne.
+                  {t("network.onlineDesc")}
                 </p>
               </div>
             </div>

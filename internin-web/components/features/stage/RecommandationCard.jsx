@@ -1,10 +1,13 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { FiMessageSquare, FiLinkedin } from "react-icons/fi";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToggleVisibilite } from "@/lib/queries/useRecommandations";
 
 export default function RecommandationCard({ recommandation, idStage }) {
+  const { t } = useTranslation();
   const mutation = useToggleVisibilite();
 
   if (!recommandation) return null;
@@ -14,7 +17,7 @@ export default function RecommandationCard({ recommandation, idStage }) {
       <div className="mb-3 flex items-center gap-2">
         <FiMessageSquare className="h-5 w-5 text-secondary" />
         <h6 className="font-semibold text-foreground">
-          Recommandation de votre employeur
+          {t("stagiaireSpace.stage.employerRecommendation")}
         </h6>
       </div>
       <p className="mb-4 text-sm text-muted-foreground">

@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { useState, useRef } from "react";
 import { FiStar } from "react-icons/fi";
 import { Slider } from "@/components/ui/slider";
@@ -10,10 +12,10 @@ import {
 } from "@/lib/queries/useCandidaturesEntreprise";
 
 const CRITERES = [
-  { key: "motivation", label: "Motivation" },
-  { key: "communication", label: "Communication" },
-  { key: "technique", label: "Technique" },
-  { key: "presentation", label: "Présentation" },
+  { key: "motivation", labelKey: "entrepriseSpace.candidatures.evalMotivation" },
+  { key: "communication", labelKey: "entrepriseSpace.candidatures.evalCommunication" },
+  { key: "technique", labelKey: "entrepriseSpace.candidatures.evalTechnical" },
+  { key: "presentation", labelKey: "entrepriseSpace.candidatures.evalPresentation" },
 ];
 
 function valeursDepuisEvaluation(evaluation) {
@@ -27,6 +29,7 @@ function valeursDepuisEvaluation(evaluation) {
 }
 
 export default function EvaluationRapide({ idCandidature }) {
+  const { t } = useTranslation();
   const { data: evaluation } = useEvaluationCandidature(idCandidature);
   const updateEvaluation = useUpdateEvaluation(idCandidature);
 
@@ -45,7 +48,7 @@ export default function EvaluationRapide({ idCandidature }) {
     clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       updateEvaluation.mutate(nouvellesValeurs, {
-        onSuccess: () => toast.success("Évaluation enregistrée"),
+        onSuccess: () => toast.success(t("entrepriseSpace.candidatures.evalSaved")),
       });
     }, 500);
   }
@@ -88,7 +91,7 @@ export default function EvaluationRapide({ idCandidature }) {
         {CRITERES.map((c) => (
           <div key={c.key}>
             <div className="mb-1.5 flex items-center justify-between text-xs">
-              <span className="font-medium text-foreground">{c.label}</span>
+              <span className="font-medium text-foreground">{c.labelKey ? t(c.labelKey) : c.label}</span>
               <span className="font-semibold text-muted-foreground">
                 {valeurs[c.key]}/5
               </span>

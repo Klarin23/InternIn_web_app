@@ -7,12 +7,14 @@ import StagiaireFiltresTabs from "@/components/features/suivi-stagiaires/Stagiai
 import StagiaireListItem from "@/components/features/suivi-stagiaires/StagiaireListItem";
 import StagiaireDetailPanel from "@/components/features/suivi-stagiaires/StagiaireDetailPanel";
 import { useMesStages } from "@/lib/queries/useStages";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function SuiviStagiairesPage() {
   const { data: stages, isLoading } = useMesStages();
   const [filtre, setFiltre] = useState("tous");
   const [selectedId, setSelectedId] = useState(null);
   const [statutsCalcules, setStatutsCalcules] = useState({});
+  const { t } = useTranslation();
 
   const handleStatutCalcule = (idStage, statut) => {
     setStatutsCalcules((prev) =>
@@ -43,15 +45,15 @@ export default function SuiviStagiairesPage() {
   return (
     <>
       <AppHeader
-        breadcrumb={[{ label: "Suivi des stagiaires" }]}
-        subtitle="Progression et évaluations de vos stagiaires accueillis"
+        breadcrumb={[{ label: t("suivi.title") }]}
+        subtitle={t("suivi.subtitle")}
         refreshKeys={["mesStages"]}
       />
       <div className="px-6 py-6">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">
-              Suivi des stagiaires
+              {t("suivi.title")}
             </h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
               {stages?.length ?? 0} stagiaire
@@ -73,7 +75,7 @@ export default function SuiviStagiairesPage() {
         {isLoading && (
           <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
             <FiLoader className="h-5 w-5 animate-spin" />
-            Chargement...
+            {t("suivi.loading")}
           </div>
         )}
 
@@ -81,7 +83,7 @@ export default function SuiviStagiairesPage() {
           <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
             <FiUsers className="h-8 w-8 text-muted-foreground" />
             <p className="text-sm font-medium text-foreground">
-              Aucun stagiaire actif pour l&apos;instant
+              {t("suivi.empty")}
             </p>
           </div>
         )}

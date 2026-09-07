@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, ArrowLeft, Check, Plus, X, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,14 +46,14 @@ export default function Step6Competences() {
     handleSubmit,
     control,
     setValue,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(step6Schema),
     defaultValues: { competences: data.competences || [] },
   });
 
-  const selected = watch("competences") || [];
+  // useWatch (et non watch()) — compatible React Compiler
+  const selected = useWatch({ control, name: "competences" }) || [];
 
   const onSubmit = (values) => {
     saveStepData(values);

@@ -1,0 +1,4 @@
+-- Migration 0045 conservée pour préserver l'historique Drizzle.
+-- La colonne motif_refus_stagiaire est déjà gérée par 0044_offre_finale_motif_refus.
+-- Migration volontairement no-op pour éviter une double création de colonne.
+-- Ne pas supprimer cette migration si elle peut déjà être référencée par une base existante.

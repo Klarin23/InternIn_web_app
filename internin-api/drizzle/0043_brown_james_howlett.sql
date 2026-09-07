@@ -1,0 +1,5 @@
+-- Migration 0043 conservée pour préserver l'historique Drizzle.
+-- Les opérations qu'elle contenait étaient déjà réalisées par 0042_conversations_type_split.
+-- Elle est volontairement no-op afin d'éviter la double création de l'enum, des colonnes
+-- et des contraintes sur une base neuve ou lors d'une reprise de migration.
+-- Ne pas supprimer cette migration si elle peut déjà être référencée par une base existante.

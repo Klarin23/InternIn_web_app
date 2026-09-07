@@ -10,6 +10,7 @@ import {
 import { requireAuth } from "../../middlewares/auth.middleware.js";
 import { requireRole } from "../../middlewares/role.middleware.js";
 import { requireEntrepriseVerifiee } from "../../middlewares/entrepriseVerifiee.middleware.js";
+import { requireEquipePermission } from "../equipe/equipe.permissions.js";
 import { validate } from "../../middlewares/validate.middleware.js";
 import {
   envoyerInvitationSchema,
@@ -40,25 +41,26 @@ router.post(
 );
 
 // Côté entreprise — lecture + réponse uniquement si vérifiée
+// Côté entreprise : propriétaire OU membre_entreprise actif avec partenariats.gerer
 router.get(
   "/recues",
   requireAuth,
-  requireRole("entreprise"),
   requireEntrepriseVerifiee,
+  requireEquipePermission("partenariats.gerer"),
   invitationsRecues,
 );
 router.get(
   "/mes-universites-partenaires",
   requireAuth,
-  requireRole("entreprise"),
   requireEntrepriseVerifiee,
+  requireEquipePermission("partenariats.gerer"),
   universitesPartenaires,
 );
 router.patch(
   "/:id/reponse",
   requireAuth,
-  requireRole("entreprise"),
   requireEntrepriseVerifiee,
+  requireEquipePermission("partenariats.gerer"),
   validate(repondreInvitationSchema),
   repondre,
 );

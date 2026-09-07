@@ -2,6 +2,11 @@
 // l'onboarding, reçues en un seul payload à l'étape 11.
 
 import { z } from "zod";
+import { checkExternalUrl, checkLinkedInUrl, checkGitHubUrl, zUrlField } from "../../utils/urlValidation.js";
+
+const urlLinkedin = zUrlField(checkLinkedInUrl)(z.string().optional());
+const urlGithub = zUrlField(checkGitHubUrl)(z.string().optional());
+const urlGenerique = zUrlField(checkExternalUrl)(z.string().optional());
 
 const formationSchema = z.object({
   typeFormation: z.enum(["en_cours", "obtenue"]),
@@ -49,11 +54,11 @@ export const completeOnboardingSchema = z.object({
   heuresHebdoSouhaitees: z.number().min(15).max(40),
   dateDebutSouhaitee: z.string().min(1),
 
-  linkedinUrl: z.string().optional(),
-  githubUrl: z.string().optional(),
-  behanceUrl: z.string().optional(),
-  portfolioUrl: z.string().optional(),
-  siteWebUrl: z.string().optional(),
+  linkedinUrl: urlLinkedin,
+  githubUrl: urlGithub,
+  behanceUrl: urlGenerique,
+  portfolioUrl: urlGenerique,
+  siteWebUrl: urlGenerique,
 });
 
 // Schéma de mise à jour du profil depuis la page "Mon profil" — tous les
@@ -77,11 +82,11 @@ export const updateProfileSchema = z.object({
   cvUrl: z.string().min(1).optional(),
 
   // 6. Liens professionnels
-  linkedinUrl: z.string().optional(),
-  githubUrl: z.string().optional(),
-  behanceUrl: z.string().optional(),
-  portfolioUrl: z.string().optional(),
-  siteWebUrl: z.string().optional(),
+  linkedinUrl: urlLinkedin,
+  githubUrl: urlGithub,
+  behanceUrl: urlGenerique,
+  portfolioUrl: urlGenerique,
+  siteWebUrl: urlGenerique,
 
   // 8. Préférences de recherche
   secteursRecherches: z.array(z.string()).optional(),
@@ -122,4 +127,9 @@ export const updateProfileSchema = z.object({
   joursDisponibles: z.array(z.string()).optional(),
   heureDebutDisponible: z.string().optional(),
   heureFinDisponible: z.string().optional(),
+});
+
+// Confidentialité : seul le stagiaire connecté peut modifier SA propre visibilité.
+export const updatePrivacySchema = z.object({
+  profilVisibleEntreprises: z.boolean(),
 });

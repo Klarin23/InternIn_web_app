@@ -1,4 +1,4 @@
-import { eq, and, desc, ne, sql } from "drizzle-orm";
+import { eq, and, desc, ne, sql, inArray } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
   conversations,
@@ -7,7 +7,14 @@ import {
   stagiaires,
   entreprises,
   utilisateurs,
+  affectationsSuperviseurStage,
+  membresEquipe,
 } from "../../db/schema.js";
+import {
+  getStageLifecycleStatus,
+  isStageActivelyRunning,
+} from "../../utils/stageLifecycle.js";
+import { resolveSupervisionAccess } from "../superviseur/superviseur.service.js";
 
 // ---------------------------------------------------------------------------
 // Helpers identité
@@ -47,17 +54,210 @@ function badRequest(message) {
   return err;
 }
 
+
 /**
- * Vérifie si le stage autorise l'envoi de messages.
- * Règle métier : uniquement statut "actif".
+ * Vérifie qu'un membre d'équipe (superviseur / admin) peut accéder au stage.
+ * - mode superviseur : affectation obligatoire sur ce stage
+ * - mode entreprise / admin_entreprise : stage de son idEntreprise uniquement
  */
-function canSendMessages(statutStage) {
-  return statutStage === "actif";
+async function assertMembrePeutAccederStage(idUtilisateur, idStage, idEntrepriseStage) {
+  let access;
+  try {
+    access = await resolveSupervisionAccess(idUtilisateur);
+  } catch {
+    throw forbidden("Vous n'êtes pas autorisé à accéder à cette conversation");
+  }
+
+  if (access.idEntreprise !== idEntrepriseStage) {
+    throw forbidden("Vous n'êtes pas autorisé à accéder à cette conversation");
+  }
+
+  if (access.mode === "superviseur") {
+    if (!access.idMembre) {
+      throw forbidden("Vous n'êtes pas autorisé à accéder à cette conversation");
+    }
+    const [aff] = await db
+      .select({ idAffectation: affectationsSuperviseurStage.idAffectation })
+      .from(affectationsSuperviseurStage)
+      .where(
+        and(
+          eq(affectationsSuperviseurStage.idMembre, access.idMembre),
+          eq(affectationsSuperviseurStage.idStage, idStage),
+        ),
+      )
+      .limit(1);
+    if (!aff) {
+      throw forbidden(
+        "Ce stage ne vous est pas affecté. La messagerie est réservée aux stagiaires que vous supervisez.",
+      );
+    }
+  }
+  // mode entreprise / admin_entreprise : périmètre idEntreprise déjà vérifié
+  return access;
 }
 
-function canReadMessages(statutStage) {
-  // Historique lisible même après fin de stage
-  return statutStage === "actif" || statutStage === "termine" || statutStage === "interrompu";
+/**
+ * Liste les idStage accessibles pour un membre (affectation) ou tous ceux
+ * de l'entreprise pour admin / compte entreprise résolu via access.
+ */
+async function listStageIdsForSupervisionAccess(access) {
+  if (access.mode === "superviseur" && access.idMembre) {
+    const rows = await db
+      .select({ idStage: affectationsSuperviseurStage.idStage })
+      .from(affectationsSuperviseurStage)
+      .where(eq(affectationsSuperviseurStage.idMembre, access.idMembre));
+    return rows.map((r) => r.idStage);
+  }
+  // entreprise propriétaire ou admin_entreprise : tous les stages de l'entreprise
+  const rows = await db
+    .select({ idStage: stages.idStage })
+    .from(stages)
+    .where(eq(stages.idEntreprise, access.idEntreprise));
+  return rows.map((r) => r.idStage);
+}
+
+/**
+ * Crée les conversations manquantes pour des stages dont le cycle de vie
+ * est "actif" (dates), même si le statut stocké n'a pas encore été basculé.
+ * Sécurité : idStage doit déjà être filtré au périmètre de l'appelant.
+ */
+/**
+ * getOrCreateConversation — idempotent via contrainte unique partielle DB.
+ * @param {{ idStage: string, typeConversation: 'entreprise'|'superviseur', idEntreprise: string, idMembreEntreprise?: string|null }}
+ */
+async function getOrCreateConversation({
+  idStage,
+  typeConversation,
+  idEntreprise,
+  idMembreEntreprise = null,
+}) {
+  const conditions = [
+    eq(conversations.idStage, idStage),
+    eq(conversations.typeConversation, typeConversation),
+  ];
+  if (typeConversation === "superviseur") {
+    conditions.push(eq(conversations.idMembreEntreprise, idMembreEntreprise));
+  }
+
+  const [existing] = await db
+    .select()
+    .from(conversations)
+    .where(and(...conditions))
+    .limit(1);
+  if (existing) return existing;
+
+  try {
+    const [created] = await db
+      .insert(conversations)
+      .values({
+        idStage,
+        typeConversation,
+        idEntreprise,
+        idMembreEntreprise:
+          typeConversation === "superviseur" ? idMembreEntreprise : null,
+        statut: "active",
+      })
+      .returning();
+    return created;
+  } catch {
+    // Course concurrente : relire
+    const [again] = await db
+      .select()
+      .from(conversations)
+      .where(and(...conditions))
+      .limit(1);
+    return again || null;
+  }
+}
+
+/**
+ * Assure les conversations manquantes pour des stages actifs.
+ * @param {Array} stageRows — stages avec métadonnées d'affichage
+ * @param {Array} existingRows — conversations déjà chargées (muté)
+ * @param {{ typeConversation: 'entreprise'|'superviseur', idEntreprise: string, idMembreEntreprise?: string|null }} owner
+ */
+async function ensureConversationsForActiveStages(
+  stageRows,
+  existingRows,
+  owner,
+) {
+  const keyOf = (r) =>
+    `${r.idStage}|${r.typeConversation || owner.typeConversation}|${r.idMembreEntreprise || owner.idMembreEntreprise || ""}`;
+
+  const existingKeys = new Set(
+    existingRows.map((r) =>
+      `${r.idStage}|${r.typeConversation || owner.typeConversation}|${r.idMembreEntreprise || owner.idMembreEntreprise || ""}`,
+    ),
+  );
+
+  const toCreate = stageRows.filter(
+    (s) =>
+      !existingKeys.has(
+        `${s.idStage}|${owner.typeConversation}|${owner.idMembreEntreprise || ""}`,
+      ) &&
+      isStageActivelyRunning({
+        statut: s.statutStage ?? s.statut,
+        dateDebut: s.dateDebut,
+        dateFinPrevue: s.dateFinPrevue,
+      }),
+  );
+
+  for (const s of toCreate) {
+    const created = await getOrCreateConversation({
+      idStage: s.idStage,
+      typeConversation: owner.typeConversation,
+      idEntreprise: owner.idEntreprise || s.idEntreprise,
+      idMembreEntreprise: owner.idMembreEntreprise,
+    });
+    if (created && !existingKeys.has(keyOf({ ...created, ...owner, idStage: s.idStage }))) {
+      existingRows.push({
+        idConversation: created.idConversation,
+        typeConversation: created.typeConversation,
+        idMembreEntreprise: created.idMembreEntreprise,
+        statut: created.statut,
+        dateCreation: created.dateCreation,
+        idStage: s.idStage,
+        statutStage: s.statutStage ?? s.statut,
+        dateDebut: s.dateDebut,
+        dateFinPrevue: s.dateFinPrevue,
+        prenom: s.prenom,
+        nom: s.nom,
+        photoProfilUrl: s.photoProfilUrl,
+        idUtilisateurStagiaire: s.idUtilisateurStagiaire,
+        nomEntreprise: s.nomEntreprise,
+        logoUrl: s.logoUrl,
+        secteurActivite: s.secteurActivite,
+      });
+      existingKeys.add(
+        `${s.idStage}|${owner.typeConversation}|${owner.idMembreEntreprise || ""}`,
+      );
+    }
+  }
+  return existingRows;
+}
+
+
+/**
+ * Vérifie si le stage autorise l'envoi de messages.
+ * Règle métier : uniquement pendant la période active (dates + statut).
+ * Accepte soit un statut string, soit un objet stage { statut, dateDebut, dateFinPrevue }.
+ */
+function resolveLifecycleStatus(statutOrStage) {
+  if (statutOrStage && typeof statutOrStage === "object") {
+    return getStageLifecycleStatus(statutOrStage);
+  }
+  // Fallback string : si "a_venir" / "actif" / etc. déjà effectif
+  return statutOrStage;
+}
+
+function canSendMessages(statutOrStage) {
+  return resolveLifecycleStatus(statutOrStage) === "actif";
+}
+
+function canReadMessages(statutOrStage) {
+  const s = resolveLifecycleStatus(statutOrStage);
+  // Historique lisible même après fin / interruption ; pas avant le début
+  return s === "actif" || s === "termine" || s === "interrompu";
 }
 
 // ---------------------------------------------------------------------------
@@ -74,6 +274,9 @@ async function assertConversationAccess(idUtilisateur, typeUtilisateur, idConver
     .select({
       idConversation: conversations.idConversation,
       statutConversation: conversations.statut,
+      typeConversation: conversations.typeConversation,
+      idMembreEntreprise: conversations.idMembreEntreprise,
+      idEntrepriseConv: conversations.idEntreprise,
       idStage: stages.idStage,
       statutStage: stages.statut,
       dateDebut: stages.dateDebut,
@@ -101,15 +304,45 @@ async function assertConversationAccess(idUtilisateur, typeUtilisateur, idConver
       throw forbidden("Vous n'êtes pas autorisé à accéder à cette conversation");
     }
   } else if (typeUtilisateur === "entreprise") {
-    const entreprise = await resolveEntreprise(idUtilisateur);
-    if (!entreprise || entreprise.idEntreprise !== row.idEntreprise) {
+    // Compte propriétaire entreprise : uniquement conversations type entreprise
+    if (row.typeConversation !== "entreprise") {
       throw forbidden("Vous n'êtes pas autorisé à accéder à cette conversation");
+    }
+    const entreprise = await resolveEntreprise(idUtilisateur);
+    const idEnt = row.idEntrepriseConv || row.idEntreprise;
+    if (!entreprise || entreprise.idEntreprise !== idEnt) {
+      throw forbidden("Vous n'êtes pas autorisé à accéder à cette conversation");
+    }
+  } else if (typeUtilisateur === "membre_entreprise") {
+    // Superviseur / membre : uniquement SA conversation superviseur
+    if (row.typeConversation !== "superviseur") {
+      throw forbidden("Vous n'êtes pas autorisé à accéder à cette conversation");
+    }
+    let access;
+    try {
+      access = await resolveSupervisionAccess(idUtilisateur);
+    } catch {
+      throw forbidden("Vous n'êtes pas autorisé à accéder à cette conversation");
+    }
+    if (access.idMembre && row.idMembreEntreprise !== access.idMembre) {
+      throw forbidden("Vous n'êtes pas autorisé à accéder à cette conversation");
+    }
+    // Admin entreprise avec mode admin : peut accéder si même entreprise + affectation stage
+    if (access.mode === "admin_entreprise" || access.mode === "entreprise") {
+      // Admin : autorisé si périmètre stage OK (pas la conversation entreprise)
+      await assertMembrePeutAccederStage(idUtilisateur, row.idStage, row.idEntreprise);
+      // Mais uniquement conversation superviseur liée à ce membre si idMembre défini
+      if (access.idMembre && row.idMembreEntreprise !== access.idMembre) {
+        throw forbidden("Vous n'êtes pas autorisé à accéder à cette conversation");
+      }
+    } else {
+      await assertMembrePeutAccederStage(idUtilisateur, row.idStage, row.idEntreprise);
     }
   } else {
     throw forbidden("Rôle non autorisé pour la messagerie");
   }
 
-  if (!canReadMessages(row.statutStage)) {
+  if (!canReadMessages({ statut: row.statutStage, dateDebut: row.dateDebut, dateFinPrevue: row.dateFinPrevue })) {
     throw forbidden("Messagerie indisponible pour ce stage");
   }
 
@@ -127,9 +360,38 @@ export async function listConversationsStagiaire(idUtilisateur) {
   const rows = await db
     .select({
       idConversation: conversations.idConversation,
+      typeConversation: conversations.typeConversation,
+      idMembreEntreprise: conversations.idMembreEntreprise,
       statut: conversations.statut,
       dateCreation: conversations.dateCreation,
       idStage: stages.idStage,
+      idEntreprise: stages.idEntreprise,
+      statutStage: stages.statut,
+      dateDebut: stages.dateDebut,
+      dateFinPrevue: stages.dateFinPrevue,
+      nomEntreprise: entreprises.nomEntreprise,
+      logoUrl: entreprises.logoUrl,
+      secteurActivite: entreprises.secteurActivite,
+      idUtilisateurProprietaire: entreprises.idUtilisateur,
+      // Superviseur (si conversation type superviseur)
+      nomMembre: membresEquipe.nom,
+      emailMembre: membresEquipe.email,
+      idMembre: membresEquipe.idMembre,
+    })
+    .from(conversations)
+    .innerJoin(stages, eq(conversations.idStage, stages.idStage))
+    .innerJoin(entreprises, eq(stages.idEntreprise, entreprises.idEntreprise))
+    .leftJoin(
+      membresEquipe,
+      eq(conversations.idMembreEntreprise, membresEquipe.idMembre),
+    )
+    .where(eq(stages.idStagiaire, stagiaire.idStagiaire))
+    .orderBy(desc(conversations.dateCreation));
+
+  const mesStages = await db
+    .select({
+      idStage: stages.idStage,
+      idEntreprise: stages.idEntreprise,
       statutStage: stages.statut,
       dateDebut: stages.dateDebut,
       dateFinPrevue: stages.dateFinPrevue,
@@ -137,13 +399,126 @@ export async function listConversationsStagiaire(idUtilisateur) {
       logoUrl: entreprises.logoUrl,
       secteurActivite: entreprises.secteurActivite,
     })
-    .from(conversations)
-    .innerJoin(stages, eq(conversations.idStage, stages.idStage))
+    .from(stages)
     .innerJoin(entreprises, eq(stages.idEntreprise, entreprises.idEntreprise))
-    .where(eq(stages.idStagiaire, stagiaire.idStagiaire))
-    .orderBy(desc(conversations.dateCreation));
+    .where(eq(stages.idStagiaire, stagiaire.idStagiaire));
 
-  return enrichConversations(rows, idUtilisateur);
+  // 1) Conversations entreprise manquantes
+  for (const s of mesStages) {
+    await ensureConversationsForActiveStages([s], rows, {
+      typeConversation: "entreprise",
+      idEntreprise: s.idEntreprise,
+      idMembreEntreprise: null,
+    });
+  }
+
+  // 2) Conversations superviseur pour chaque affectation
+  if (mesStages.length) {
+    const stageIds = mesStages.map((s) => s.idStage);
+    const affectations = await db
+      .select({
+        idStage: affectationsSuperviseurStage.idStage,
+        idMembre: affectationsSuperviseurStage.idMembre,
+        idEntreprise: stages.idEntreprise,
+      })
+      .from(affectationsSuperviseurStage)
+      .innerJoin(stages, eq(affectationsSuperviseurStage.idStage, stages.idStage))
+      .where(inArray(affectationsSuperviseurStage.idStage, stageIds));
+
+    const stageById = Object.fromEntries(mesStages.map((s) => [s.idStage, s]));
+    for (const a of affectations) {
+      const s = stageById[a.idStage];
+      if (!s) continue;
+      await ensureConversationsForActiveStages([s], rows, {
+        typeConversation: "superviseur",
+        idEntreprise: a.idEntreprise,
+        idMembreEntreprise: a.idMembre,
+      });
+    }
+  }
+
+  // Propriétaires entreprise (batch, anti N+1)
+  const entrepriseIds = [
+    ...new Set(
+      rows
+        .filter((r) => (r.typeConversation || "entreprise") === "entreprise")
+        .map((r) => r.idEntreprise)
+        .filter(Boolean),
+    ),
+  ];
+  let ownerByEntreprise = {};
+  if (entrepriseIds.length) {
+    const ownerRows = await db
+      .select({
+        idEntreprise: entreprises.idEntreprise,
+        nomMembre: membresEquipe.nom,
+        idMembre: membresEquipe.idMembre,
+        idUtilisateur: entreprises.idUtilisateur,
+      })
+      .from(entreprises)
+      .leftJoin(
+        membresEquipe,
+        eq(membresEquipe.idUtilisateur, entreprises.idUtilisateur),
+      )
+      .where(inArray(entreprises.idEntreprise, entrepriseIds));
+    ownerByEntreprise = Object.fromEntries(
+      ownerRows.map((o) => [o.idEntreprise, o]),
+    );
+  }
+
+  const shaped = rows.map((r) => {
+    const type = r.typeConversation || "entreprise";
+    const base = {
+      ...r,
+      typeConversation: type,
+    };
+    if (type === "superviseur") {
+      const nomComplet = (r.nomMembre || "").trim() || null;
+      return {
+        ...base,
+        interlocuteur: {
+          type: "superviseur",
+          nomComplet,
+          titreKey: "messages.roleSupervisor",
+        },
+        entreprise: {
+          id: r.idEntreprise,
+          nom: r.nomEntreprise,
+          logoUrl: r.logoUrl,
+        },
+        // Champs plats pour le frontend existant
+        titrePrincipal: nomComplet,
+        titreSecondaire: r.nomEntreprise,
+        roleKey: "messages.roleSupervisor",
+        avatarUrl: null,
+        avatarKind: "person",
+        initialsSource: nomComplet || r.nomEntreprise,
+      };
+    }
+    const owner = ownerByEntreprise[r.idEntreprise];
+    const ownerName = (owner?.nomMembre || "").trim() || null;
+    return {
+      ...base,
+      interlocuteur: {
+        type: "entreprise",
+        nomComplet: ownerName,
+        titreKey: "messages.roleBusinessOwner",
+      },
+      entreprise: {
+        id: r.idEntreprise,
+        nom: r.nomEntreprise,
+        logoUrl: r.logoUrl,
+      },
+      titrePrincipal: r.nomEntreprise,
+      titreSecondaire: ownerName,
+      roleKey: "messages.roleBusinessOwner",
+      avatarUrl: r.logoUrl || null,
+      avatarKind: "company",
+      initialsSource: r.nomEntreprise,
+    };
+  });
+
+  return enrichConversations(shaped, idUtilisateur);
 }
 
 // ---------------------------------------------------------------------------
@@ -154,10 +529,12 @@ export async function listConversationsEntreprise(idUtilisateur) {
   const entreprise = await resolveEntreprise(idUtilisateur);
   if (!entreprise) return [];
 
-  // Conversations existantes liées aux stages de l'entreprise
+  // Uniquement conversations type entreprise de cette entreprise
   const rows = await db
     .select({
       idConversation: conversations.idConversation,
+      typeConversation: conversations.typeConversation,
+      idMembreEntreprise: conversations.idMembreEntreprise,
       statut: conversations.statut,
       dateCreation: conversations.dateCreation,
       idStage: stages.idStage,
@@ -172,14 +549,18 @@ export async function listConversationsEntreprise(idUtilisateur) {
     .from(conversations)
     .innerJoin(stages, eq(conversations.idStage, stages.idStage))
     .innerJoin(stagiaires, eq(stages.idStagiaire, stagiaires.idStagiaire))
-    .where(eq(stages.idEntreprise, entreprise.idEntreprise))
+    .where(
+      and(
+        eq(conversations.typeConversation, "entreprise"),
+        eq(stages.idEntreprise, entreprise.idEntreprise),
+      ),
+    )
     .orderBy(desc(conversations.dateCreation));
 
-  // Stages actifs sans conversation encore créée → on peut créer la conversation
-  // uniquement si le stage est actif (règle métier).
-  const stagesActifs = await db
+  const stagesEntreprise = await db
     .select({
       idStage: stages.idStage,
+      idEntreprise: stages.idEntreprise,
       statutStage: stages.statut,
       dateDebut: stages.dateDebut,
       dateFinPrevue: stages.dateFinPrevue,
@@ -190,40 +571,17 @@ export async function listConversationsEntreprise(idUtilisateur) {
     })
     .from(stages)
     .innerJoin(stagiaires, eq(stages.idStagiaire, stagiaires.idStagiaire))
-    .where(
-      and(
-        eq(stages.idEntreprise, entreprise.idEntreprise),
-        eq(stages.statut, "actif"),
-      ),
-    );
+    .where(eq(stages.idEntreprise, entreprise.idEntreprise));
 
-  const existingStageIds = new Set(rows.map((r) => r.idStage));
-  const toCreate = stagesActifs.filter((s) => !existingStageIds.has(s.idStage));
-
-  for (const s of toCreate) {
-    const [created] = await db
-      .insert(conversations)
-      .values({ idStage: s.idStage, statut: "active" })
-      .returning();
-    if (created) {
-      rows.push({
-        idConversation: created.idConversation,
-        statut: created.statut,
-        dateCreation: created.dateCreation,
-        idStage: s.idStage,
-        statutStage: s.statutStage,
-        dateDebut: s.dateDebut,
-        dateFinPrevue: s.dateFinPrevue,
-        prenom: s.prenom,
-        nom: s.nom,
-        photoProfilUrl: s.photoProfilUrl,
-        idUtilisateurStagiaire: s.idUtilisateurStagiaire,
-      });
-    }
-  }
+  await ensureConversationsForActiveStages(stagesEntreprise, rows, {
+    typeConversation: "entreprise",
+    idEntreprise: entreprise.idEntreprise,
+    idMembreEntreprise: null,
+  });
 
   return enrichConversations(rows, idUtilisateur);
 }
+
 
 async function enrichConversations(rows, idUtilisateur) {
   const enriched = await Promise.all(
@@ -254,10 +612,11 @@ async function enrichConversations(rows, idUtilisateur) {
 
       return {
         ...row,
+        typeConversation: row.typeConversation || "entreprise",
         dernierMessage: lastMsg || null,
         nonLus: unread?.count ?? 0,
-        messagerieActive: canSendMessages(row.statutStage),
-        lectureSeule: !canSendMessages(row.statutStage) && canReadMessages(row.statutStage),
+        messagerieActive: canSendMessages({ statut: row.statutStage, dateDebut: row.dateDebut, dateFinPrevue: row.dateFinPrevue }),
+        lectureSeule: !canSendMessages({ statut: row.statutStage, dateDebut: row.dateDebut, dateFinPrevue: row.dateFinPrevue }) && canReadMessages({ statut: row.statutStage, dateDebut: row.dateDebut, dateFinPrevue: row.dateFinPrevue }),
       };
     }),
   );
@@ -279,12 +638,98 @@ async function enrichConversations(rows, idUtilisateur) {
 // Dispatcher liste selon rôle
 // ---------------------------------------------------------------------------
 
+/**
+ * Conversations pour membre d'équipe (superviseur affecté / admin entreprise).
+ * Périmètre strict via resolveSupervisionAccess + affectations.
+ */
+export async function listConversationsMembreEntreprise(idUtilisateur) {
+  let access;
+  try {
+    access = await resolveSupervisionAccess(idUtilisateur);
+  } catch {
+    return [];
+  }
+
+  // Propriétaire entreprise (mode entreprise) : utiliser la boîte entreprise
+  if (access.mode === "entreprise") {
+    return listConversationsEntreprise(idUtilisateur);
+  }
+
+  if (!access.idMembre) return [];
+
+  const stageIds = await listStageIdsForSupervisionAccess(access);
+  if (!stageIds.length) return [];
+
+  // Uniquement conversations superviseur de CE membre
+  const rows = await db
+    .select({
+      idConversation: conversations.idConversation,
+      typeConversation: conversations.typeConversation,
+      idMembreEntreprise: conversations.idMembreEntreprise,
+      statut: conversations.statut,
+      dateCreation: conversations.dateCreation,
+      idStage: stages.idStage,
+      statutStage: stages.statut,
+      dateDebut: stages.dateDebut,
+      dateFinPrevue: stages.dateFinPrevue,
+      prenom: stagiaires.prenom,
+      nom: stagiaires.nom,
+      photoProfilUrl: stagiaires.photoProfilUrl,
+      idUtilisateurStagiaire: stagiaires.idUtilisateur,
+    })
+    .from(conversations)
+    .innerJoin(stages, eq(conversations.idStage, stages.idStage))
+    .innerJoin(stagiaires, eq(stages.idStagiaire, stagiaires.idStagiaire))
+    .where(
+      and(
+        eq(conversations.typeConversation, "superviseur"),
+        eq(conversations.idMembreEntreprise, access.idMembre),
+        eq(stages.idEntreprise, access.idEntreprise),
+        inArray(stages.idStage, stageIds),
+      ),
+    )
+    .orderBy(desc(conversations.dateCreation));
+
+  const stagesPerimetre = await db
+    .select({
+      idStage: stages.idStage,
+      idEntreprise: stages.idEntreprise,
+      statutStage: stages.statut,
+      dateDebut: stages.dateDebut,
+      dateFinPrevue: stages.dateFinPrevue,
+      prenom: stagiaires.prenom,
+      nom: stagiaires.nom,
+      photoProfilUrl: stagiaires.photoProfilUrl,
+      idUtilisateurStagiaire: stagiaires.idUtilisateur,
+    })
+    .from(stages)
+    .innerJoin(stagiaires, eq(stages.idStagiaire, stagiaires.idStagiaire))
+    .where(
+      and(
+        eq(stages.idEntreprise, access.idEntreprise),
+        inArray(stages.idStage, stageIds),
+      ),
+    );
+
+  await ensureConversationsForActiveStages(stagesPerimetre, rows, {
+    typeConversation: "superviseur",
+    idEntreprise: access.idEntreprise,
+    idMembreEntreprise: access.idMembre,
+  });
+
+  return enrichConversations(rows, idUtilisateur);
+}
+
+
 export async function listConversations(idUtilisateur, typeUtilisateur) {
   if (typeUtilisateur === "stagiaire") {
     return listConversationsStagiaire(idUtilisateur);
   }
   if (typeUtilisateur === "entreprise") {
     return listConversationsEntreprise(idUtilisateur);
+  }
+  if (typeUtilisateur === "membre_entreprise") {
+    return listConversationsMembreEntreprise(idUtilisateur);
   }
   return [];
 }
@@ -329,7 +774,7 @@ export async function envoyerMessage(
     idConversation,
   );
 
-  if (!canSendMessages(ctx.statutStage)) {
+  if (!canSendMessages({ statut: ctx.statutStage, dateDebut: ctx.dateDebut, dateFinPrevue: ctx.dateFinPrevue })) {
     throw forbidden(
       "Messagerie indisponible : le stage n'est pas actif. Aucun message ne peut être envoyé.",
     );
@@ -409,7 +854,43 @@ export async function compterNonLus(idUtilisateur, typeUtilisateur) {
       .innerJoin(stages, eq(conversations.idStage, stages.idStage))
       .where(
         and(
+          eq(conversations.typeConversation, "entreprise"),
           eq(stages.idEntreprise, entreprise.idEntreprise),
+          ne(messages.idExpediteur, idUtilisateur),
+          eq(messages.statutLecture, "envoye"),
+        ),
+      );
+    return { count: result?.count ?? 0 };
+  }
+
+  if (typeUtilisateur === "membre_entreprise") {
+    let access;
+    try {
+      access = await resolveSupervisionAccess(idUtilisateur);
+    } catch {
+      return { count: 0 };
+    }
+    if (access.mode === "entreprise") {
+      return compterNonLus(idUtilisateur, "entreprise");
+    }
+    if (!access.idMembre) return { count: 0 };
+    const stageIds = await listStageIdsForSupervisionAccess(access);
+    if (!stageIds.length) return { count: 0 };
+
+    const [result] = await db
+      .select({ count: sql`count(*)::int` })
+      .from(messages)
+      .innerJoin(
+        conversations,
+        eq(messages.idConversation, conversations.idConversation),
+      )
+      .innerJoin(stages, eq(conversations.idStage, stages.idStage))
+      .where(
+        and(
+          eq(conversations.typeConversation, "superviseur"),
+          eq(conversations.idMembreEntreprise, access.idMembre),
+          eq(stages.idEntreprise, access.idEntreprise),
+          inArray(stages.idStage, stageIds),
           ne(messages.idExpediteur, idUtilisateur),
           eq(messages.statutLecture, "envoye"),
         ),

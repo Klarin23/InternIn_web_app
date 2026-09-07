@@ -1,7 +1,9 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { motion } from "framer-motion";
 import { Loader2, Check, Plus, X, Sparkles } from "lucide-react";
 import { FiAward } from "react-icons/fi";
@@ -35,6 +37,7 @@ function slugCustom(nom) {
 }
 
 export default function CompetencesSection({ profil }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [customInput, setCustomInput] = useState("");
   const [customType, setCustomType] = useState("technique");
@@ -51,7 +54,7 @@ export default function CompetencesSection({ profil }) {
   const {
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { isSubmitting },
   } = useForm({
     values: {
@@ -64,7 +67,8 @@ export default function CompetencesSection({ profil }) {
     },
   });
 
-  const selected = watch("competences") || [];
+  // useWatch (et non watch()) pour rester compatible avec le React Compiler
+  const selected = useWatch({ control, name: "competences" }) || [];
 
   function isSelected(id) {
     return selected.some((c) => c.idCompetence === id);
@@ -160,13 +164,13 @@ export default function CompetencesSection({ profil }) {
   return (
     <>
       <ProfilSectionCard
-        title="Compétences"
+        title={t("stagiaireSpace.profile.skills")}
         icon={FiAward}
         onEdit={() => setOpen(true)}
       >
         {!profil.competences?.length ? (
           <p className="text-sm text-muted-foreground">
-            Aucune compétence renseignée.
+            {t("stagiaireSpace.profile.skillsSection.empty")}
           </p>
         ) : (
           <div className="flex flex-wrap gap-2">
@@ -179,7 +183,7 @@ export default function CompetencesSection({ profil }) {
               >
                 {c.nom}
                 <span className="text-xs text-muted-foreground">
-                  · {NIVEAU_LABELS[c.niveau] || c.niveau}
+                  · {(t(`stagiaireSpace.profile.levels.${c.niveau}`) || c.niveau) || c.niveau}
                 </span>
               </motion.span>
             ))}
@@ -190,7 +194,7 @@ export default function CompetencesSection({ profil }) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Compétences</DialogTitle>
+            <DialogTitle>{t("stagiaireSpace.profile.skills")}</DialogTitle>
           </DialogHeader>
 
           {isLoading ? (
@@ -225,10 +229,10 @@ export default function CompetencesSection({ profil }) {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold text-foreground">
-                    Aucune compétence pour le moment
+                    {t("stagiaireSpace.profile.skillsSection.noneSelected")}
                   </span>
                   <span className="block text-xs text-muted-foreground">
-                    Efface toute la sélection
+                    {t("stagiaireSpace.profile.skillsSection.noneSelectedHint")}
                   </span>
                 </span>
               </button>
@@ -236,7 +240,7 @@ export default function CompetencesSection({ profil }) {
               {/* Saisie libre */}
               <div className="rounded-md border border-border bg-muted/20 p-3">
                 <p className="mb-2 text-xs font-semibold text-foreground">
-                  Compétence absente de la liste
+                  {t("stagiaireSpace.profile.skillsSection.addCustom")}
                 </p>
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <select
@@ -244,9 +248,9 @@ export default function CompetencesSection({ profil }) {
                     onChange={(e) => setCustomType(e.target.value)}
                     className="h-10 rounded-sm border border-border bg-background px-2 text-sm sm:w-40"
                   >
-                    <option value="technique">Technique</option>
-                    <option value="professionnelle">Professionnelle</option>
-                    <option value="langue">Langue</option>
+                    <option value="technique">{t("stagiaireSpace.profile.skillTypesSingular.technique")}</option>
+                    <option value="professionnelle">{t("stagiaireSpace.profile.skillTypesSingular.professionnelle")}</option>
+                    <option value="langue">{t("stagiaireSpace.profile.skillTypesSingular.langue")}</option>
                   </select>
                   <Input
                     value={customInput}
@@ -257,7 +261,7 @@ export default function CompetencesSection({ profil }) {
                         addCustom();
                       }
                     }}
-                    placeholder="Ex. Figma, Wolof…"
+                    placeholder={t("stagiaireSpace.profile.skillsSection.customPlaceholder")}
                     className="h-10 flex-1 rounded-sm"
                   />
                   <Button
@@ -268,7 +272,7 @@ export default function CompetencesSection({ profil }) {
                     className="h-10 rounded-sm"
                   >
                     <Plus className="h-4 w-4" />
-                    Ajouter
+                    {t("stagiaireSpace.profile.skillsSection.add")}
                   </Button>
                 </div>
               </div>
@@ -277,7 +281,7 @@ export default function CompetencesSection({ profil }) {
               {selected.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                    Sélectionnées ({selected.length})
+                    {t("stagiaireSpace.profile.skillsSection.selected")} ({selected.length})
                   </p>
                   {selected.map((c) => (
                     <div
@@ -290,11 +294,11 @@ export default function CompetencesSection({ profil }) {
                             competencesList.find(
                               (x) => x.idCompetence === c.idCompetence,
                             )?.nom ||
-                            "Compétence"}
+                            t("stagiaireSpace.profile.skills")}
                         </span>
                         {c.isCustom && (
                           <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-600">
-                            Perso
+                            {t("stagiaireSpace.profile.skillsSection.customBadge")}
                           </span>
                         )}
                       </div>
@@ -311,7 +315,7 @@ export default function CompetencesSection({ profil }) {
                                   : "text-muted-foreground"
                               }`}
                             >
-                              {NIVEAU_LABELS[n]}
+                              {(t(`stagiaireSpace.profile.levels.${n}`) || n)}
                             </button>
                           ))}
                         </div>
@@ -333,7 +337,7 @@ export default function CompetencesSection({ profil }) {
                 {Object.entries(grouped).map(([type, items]) => (
                   <div key={type}>
                     <h5 className="mb-2.5 text-sm font-semibold text-foreground">
-                      {TYPE_LABELS[type] || type}
+                      {(t(`stagiaireSpace.profile.skillTypes.${type}`) || type) || type}
                     </h5>
                     <div className="flex flex-wrap gap-2">
                       {items.map((comp) => {
@@ -376,7 +380,7 @@ export default function CompetencesSection({ profil }) {
                   {isSubmitting || updateProfile.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    "Enregistrer"
+                    t("stagiaireSpace.profile.save")
                   )}
                 </Button>
               </div>

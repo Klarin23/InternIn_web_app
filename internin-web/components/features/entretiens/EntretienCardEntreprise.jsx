@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
@@ -26,39 +28,46 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useUpdateEntretienEntreprise } from "@/lib/queries/useEntretiens";
+import { toast } from "@/lib/store/useToastStore";
 import {
   STATUT_CONFIG,
   formatJourRelatif,
   formatHeure,
   formatCompteARebours,
 } from "@/lib/entretiens/statut";
-import { MODE_ICONS, MODE_LABELS } from "@/lib/entretiens/planification";
+import {
+  MODE_ICONS,
+  MODE_LABELS,
+  normaliserDateHeurePourApi,
+  formatDateHeureLocale,
+} from "@/lib/entretiens/planification";
+// placeholder;
 import FaireOffreDialog from "@/components/features/entretiens/FaireOffreDialog";
 import RejeterCandidatDialog from "@/components/features/entretiens/RejeterCandidatDialog";
 import HistoriqueOffresFinales from "@/components/features/entretiens/HistoriqueOffresFinales";
 import { cn } from "@/lib/utils";
 
-const STATUT_LABELS_ENTREPRISE = {
-  planifie: "En attente du candidat",
-  valide: "Validé par le candidat",
-  confirme: "Confirmé",
-  reprogramme: "Reprogrammation demandée",
-  termine: "Terminé",
-  annule: "Annulé",
-  absent: "Absence",
+const STATUT_LABEL_KEYS_ENTREPRISE = {
+  planifie: "interviews.entreprise.statusPlanifie",
+  valide: "interviews.entreprise.statusValide",
+  confirme: "interviews.entreprise.statusConfirme",
+  reprogramme: "interviews.entreprise.statusReprogramme",
+  termine: "interviews.entreprise.statusTermine",
+  annule: "interviews.entreprise.statusAnnule",
+  absent: "interviews.entreprise.statusAbsent",
 };
 
-const OFFRE_FINALE_MESSAGES = {
+const OFFRE_FINALE_MESSAGE_KEYS = {
   en_attente: {
-    text: "En attente de validation par l'administration",
+    textKey: "interviews.entreprise.offerPendingAdmin",
     className: "bg-[#FEF3C7] text-[#B45309]",
   },
   approuve: {
-    text: "Offre validée par l'administration",
+    textKey: "interviews.entreprise.offerApprovedAdmin",
     className: "bg-success/10 text-green-700",
   },
   rejete: {
-    text: "Offre rejetée par l'administration",
+    textKey: "interviews.entreprise.offerRejectedAdmin",
     className: "bg-destructive/10 text-destructive",
   },
 };
@@ -83,8 +92,8 @@ function couleurAvatar(nom) {
 
 function CandidatAvatar({ nom, photoUrl }) {
   if (photoUrl) {
-    // eslint-disable-next-line @next/next/no-img-element
     return (
+      // eslint-disable-next-line @next/next/no-img-element -- URL API dynamique
       <img
         src={photoUrl}
         alt=""
@@ -136,7 +145,7 @@ function MenuActionsSecondaires({ actions }) {
         type="button"
         variant="ghost"
         size="icon-sm"
-        aria-label="Plus d'actions"
+        aria-label={t("interviews.entreprise.moreActions")}
         aria-haspopup="menu"
         aria-expanded={ouvert}
         onClick={() => setOuvert((v) => !v)}
@@ -180,9 +189,10 @@ function MenuActionsSecondaires({ actions }) {
   );
 }
 
-function formatDateAffichee(date, maintenant) {
-  const jour = formatJourRelatif(date, maintenant, "fr-FR");
-  const heure = formatHeure(date, "fr-FR");
+function formatDateAffichee(date, maintenant, locale) {
+  const tag = locale === "en" ? "en-GB" : "fr-FR";
+  const jour = formatJourRelatif(date, maintenant, tag);
+  const heure = formatHeure(date, tag);
   return `${jour} · ${heure}`;
 }
 
@@ -191,6 +201,7 @@ export default function EntretienCardEntreprise({
   maintenant: maintenantProp,
   index = 0,
 }) {
+  const { t, locale } = useTranslation();
   const reduceMotion = useReducedMotion();
   const [nouvelleDate, setNouvelleDate] = useState("");
   const [lienSaisi, setLienSaisi] = useState("");
@@ -211,8 +222,8 @@ export default function EntretienCardEntreprise({
   const ModeIcon = MODE_ICONS[entretien.modeEntretien];
   const config = STATUT_CONFIG[entretien.statut];
   const date = new Date(entretien.dateHeure);
-  const dateAffichee = formatDateAffichee(date, maintenant);
-  const dateComplete = date.toLocaleString("fr-FR", {
+  const dateAffichee = formatDateAffichee(date, maintenant, locale);
+  const dateComplete = date.toLocaleString(locale === "en" ? "en-GB" : "fr-FR", { timeZone: "Africa/Douala",
     dateStyle: "long",
     timeStyle: "short",
   });
@@ -224,38 +235,40 @@ export default function EntretienCardEntreprise({
   const badgeLabel =
     entretien.statut === "termine" && entretien.idOffreFinale
       ? entretien.statutValidationPlateforme === "approuve"
-        ? "Terminé"
-        : OFFRE_FINALE_MESSAGES[entretien.statutValidationPlateforme]?.text
-      : STATUT_LABELS_ENTREPRISE[entretien.statut];
+        ? t("interviews.entreprise.statusTermine")
+        : (OFFRE_FINALE_MESSAGE_KEYS[entretien.statutValidationPlateforme]?.textKey ? t(OFFRE_FINALE_MESSAGE_KEYS[entretien.statutValidationPlateforme].textKey) : null)
+      : t(STATUT_LABEL_KEYS_ENTREPRISE[entretien.statut] || STATUT_LABEL_KEYS_ENTREPRISE.planifie);
   const badgeClassName =
     entretien.statut === "termine" && entretien.idOffreFinale
-      ? OFFRE_FINALE_MESSAGES[entretien.statutValidationPlateforme]?.className
+      ? OFFRE_FINALE_MESSAGE_KEYS[entretien.statutValidationPlateforme]?.className
       : config?.className;
 
   const lienMaps = entretien.lienGoogleMeet
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(entretien.lienGoogleMeet)}`
     : null;
 
+  // Statuts où l'entreprise peut encore agir (clôturer ou annuler)
+  const peutCloturer = ["confirme", "valide"].includes(entretien.statut);
+  const peutAnnuler = ["planifie", "valide", "confirme", "reprogramme"].includes(
+    entretien.statut,
+  );
+
   const actionsSecondaires = [];
-  if (entretien.statut === "confirme") {
+  if (peutCloturer) {
     actionsSecondaires.push({
-      label: "Marquer terminé",
+      label: t("interviews.entreprise.markCompleted"),
       Icon: FiCheckCircle,
       onClick: () =>
-        updateMutation.mutate({
-          id: entretien.idEntretien,
-          payload: { statut: "termine" },
-        }),
+        marquerStatut("termine", t("interviews.entreprise.markedCompleted")),
     });
     actionsSecondaires.push({
-      label: "Marquer absence",
+      label: t("interviews.entreprise.markAbsence"),
       Icon: FiUserX,
       onClick: () =>
-        updateMutation.mutate({
-          id: entretien.idEntretien,
-          payload: { statut: "absent" },
-        }),
+        marquerStatut("absent", "Absence du candidat enregistrée"),
     });
+  }
+  if (peutAnnuler) {
     actionsSecondaires.push({
       label: "Annuler l'entretien",
       Icon: FiXCircle,
@@ -271,7 +284,23 @@ export default function EntretienCardEntreprise({
         payload: { statut: "annule" },
       },
       {
+        onSuccess: () => toast.success(t("interviews.entreprise.cancelledSuccess")),
+        onError: (err) => toast.error(err?.message || "Impossible d'annuler"),
         onSettled: () => setConfirmAnnulation(false),
+      },
+    );
+  }
+
+  function marquerStatut(statut, messageOk) {
+    updateMutation.mutate(
+      {
+        id: entretien.idEntretien,
+        payload: { statut },
+      },
+      {
+        onSuccess: () => toast.success(messageOk),
+        onError: (err) =>
+          toast.error(err?.message || t("interviews.entreprise.updateImpossible")),
       },
     );
   }
@@ -332,7 +361,7 @@ export default function EntretienCardEntreprise({
           )}
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <ModeIcon className="size-4" />
-            {MODE_LABELS[entretien.modeEntretien]}
+            {t({video:"interviews.entreprise.modeVideo",telephone:"interviews.entreprise.modePhone",presentiel:"interviews.entreprise.modeOnsite"}[entretien.modeEntretien] || "interviews.entreprise.modeVideo")}
           </div>
         </div>
 
@@ -341,9 +370,8 @@ export default function EntretienCardEntreprise({
           <div className="mb-3 space-y-2">
             <p className="rounded-xl bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200">
               <b>Demande du candidat</b> — proposition :{" "}
-              {new Date(entretien.dateHeureProposee).toLocaleString("fr-FR", {
-                dateStyle: "medium",
-                timeStyle: "short",
+              {formatDateHeureLocale(entretien.dateHeureProposee, locale, {
+                withTime: true,
               })}
               <br />
               {entretien.retourEntretien}
@@ -362,7 +390,7 @@ export default function EntretienCardEntreprise({
                 onClick={() =>
                   updateMutation.mutate({
                     id: entretien.idEntretien,
-                    payload: { dateHeure: nouvelleDate },
+                    payload: { dateHeure: normaliserDateHeurePourApi(nouvelleDate) },
                   })
                 }
                 className="shrink-0 rounded-lg"
@@ -391,7 +419,7 @@ export default function EntretienCardEntreprise({
               <div className="flex gap-2">
                 <Input
                   type="url"
-                  placeholder="Lien de visioconférence (Google Meet, Zoom...)"
+                  placeholder={t("interviews.entreprise.videoLinkPlaceholder")}
                   value={lienSaisi}
                   onChange={(e) => {
                     setLienSaisi(e.target.value);
@@ -408,7 +436,7 @@ export default function EntretienCardEntreprise({
                     const lien = lienSaisi.trim();
                     if (!lienVisioValide(lien)) {
                       setErreurLienSaisi(
-                        "Le lien doit être une URL valide (https://...)",
+                        t("interviews.entreprise.invalidUrl"),
                       );
                       return;
                     }
@@ -470,7 +498,7 @@ export default function EntretienCardEntreprise({
               detailsOuverts && "rotate-180",
             )}
           />
-          {detailsOuverts ? "Masquer les détails" : "Voir les détails"}
+          {detailsOuverts ? t("interviews.entreprise.hideDetails") : t("interviews.entreprise.showDetails")}
         </button>
 
         <AnimatePresence initial={false}>
@@ -497,7 +525,7 @@ export default function EntretienCardEntreprise({
                 </p>
                 <p className="flex items-center gap-1.5 text-foreground">
                   <ModeIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                  {MODE_LABELS[entretien.modeEntretien]}
+                  {t({video:"interviews.entreprise.modeVideo",telephone:"interviews.entreprise.modePhone",presentiel:"interviews.entreprise.modeOnsite"}[entretien.modeEntretien] || "interviews.entreprise.modeVideo")}
                 </p>
                 {entretien.lienGoogleMeet && (
                   <p className="break-words text-muted-foreground">
@@ -506,12 +534,64 @@ export default function EntretienCardEntreprise({
                 )}
                 <p className="flex items-center gap-1.5 pt-1 text-foreground">
                   <config.Icon className="h-3.5 w-3.5" />
-                  {config.badge || STATUT_LABELS_ENTREPRISE[entretien.statut]}
+                  {config.badge || t(STATUT_LABEL_KEYS_ENTREPRISE[entretien.statut] || STATUT_LABEL_KEYS_ENTREPRISE.planifie)}
                 </p>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Actions visibles : marquer terminé / absence / annuler */}
+        {(peutCloturer || peutAnnuler) && (
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-border/60 pt-4">
+            {peutCloturer && (
+              <>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="rounded-lg gap-1.5"
+                  disabled={updateMutation.isPending}
+                  onClick={() =>
+                    marquerStatut("termine", t("interviews.entreprise.markedCompleted"))
+                  }
+                >
+                  {updateMutation.isPending ? (
+                    <FiLoader className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <FiCheckCircle className="h-3.5 w-3.5" />
+                  )}
+                  Marquer comme terminé
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="rounded-lg gap-1.5"
+                  disabled={updateMutation.isPending}
+                  onClick={() =>
+                    marquerStatut("absent", "Absence du candidat enregistrée")
+                  }
+                >
+                  <FiUserX className="h-3.5 w-3.5" />
+                  Marquer absence
+                </Button>
+              </>
+            )}
+            {peutAnnuler && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="rounded-lg gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
+                disabled={updateMutation.isPending}
+                onClick={() => setConfirmAnnulation(true)}
+              >
+                <FiXCircle className="h-3.5 w-3.5" />
+                Annuler l&apos;entretien
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Terminé → offre finale */}
         {entretien.statut === "termine" &&
@@ -543,14 +623,82 @@ export default function EntretienCardEntreprise({
           <p
             className={cn(
               "mt-2 rounded-xl p-3 text-xs font-medium",
-              OFFRE_FINALE_MESSAGES[entretien.statutValidationPlateforme]
-                ?.className,
+              entretien.statutValidationPlateforme === "approuve" &&
+                entretien.statutReponseStagiaire === "refusee"
+                ? "bg-destructive/10 text-destructive"
+                : entretien.statutValidationPlateforme === "approuve" &&
+                    entretien.statutReponseStagiaire === "acceptee"
+                  ? "bg-success/10 text-green-700"
+                  : OFFRE_FINALE_MESSAGE_KEYS[entretien.statutValidationPlateforme]
+                      ?.className,
             )}
           >
-            {OFFRE_FINALE_MESSAGES[entretien.statutValidationPlateforme]?.text}
-            {entretien.statutValidationPlateforme === "approuve" &&
-              " — le candidat a été notifié et peut désormais y répondre."}
+            {(() => {
+              const v = entretien.statutValidationPlateforme;
+              const r = entretien.statutReponseStagiaire;
+              if (v === "approuve" && r === "refusee") {
+                return t("interviews.entreprise.offerRefusedByCandidate");
+              }
+              if (v === "approuve" && r === "acceptee") {
+                return t("interviews.entreprise.offerAcceptedByCandidate");
+              }
+              if (v === "approuve") {
+                return t("interviews.entreprise.offerAwaitingCandidate");
+              }
+              const key = OFFRE_FINALE_MESSAGE_KEYS[v]?.textKey;
+              return key ? t(key) : null;
+            })()}
           </p>
+        )}
+        {entretien.idOffreFinale &&
+          entretien.statutValidationPlateforme === "approuve" &&
+          entretien.statutReponseStagiaire === "refusee" && (
+          <div className="mt-2 space-y-1.5 rounded-xl border border-destructive/25 bg-destructive/5 p-3 text-xs">
+            <p className="font-semibold text-destructive">
+              {t("interviews.entreprise.offerRefusedByCandidate")}
+            </p>
+            {entretien.dateReponseStagiaire && (
+              <p className="text-muted-foreground">
+                {t("interviews.entreprise.refusedOn", {
+                  name: `${entretien.prenom || ""} ${entretien.nom || ""}`.trim(),
+                  date: new Date(entretien.dateReponseStagiaire).toLocaleDateString(
+                    locale === "en" ? "en-GB" : "fr-FR",
+                    { timeZone: "Africa/Douala" },
+                  ),
+                })}
+              </p>
+            )}
+            {entretien.motifRefusStagiaire && (
+              <div className="rounded-md border border-border bg-card/80 px-2.5 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t("interviews.entreprise.refusalReason")}
+                </p>
+                <p className="mt-0.5 text-foreground">
+                  « {entretien.motifRefusStagiaire} »
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+        {entretien.idOffreFinale &&
+          entretien.statutValidationPlateforme === "approuve" &&
+          entretien.statutReponseStagiaire === "acceptee" && (
+          <div className="mt-2 rounded-xl border border-success/25 bg-success/5 p-3 text-xs">
+            <p className="font-semibold text-green-700 dark:text-green-400">
+              {t("interviews.entreprise.offerAcceptedByCandidate")}
+            </p>
+            {entretien.dateReponseStagiaire && (
+              <p className="mt-1 text-muted-foreground">
+                {t("interviews.entreprise.acceptedOn", {
+                  name: `${entretien.prenom || ""} ${entretien.nom || ""}`.trim(),
+                  date: new Date(entretien.dateReponseStagiaire).toLocaleDateString(
+                    locale === "en" ? "en-GB" : "fr-FR",
+                    { timeZone: "Africa/Douala" },
+                  ),
+                })}
+              </p>
+            )}
+          </div>
         )}
       </motion.div>
 

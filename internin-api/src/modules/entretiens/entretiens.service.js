@@ -1,4 +1,9 @@
 import { eq, or, and, ne } from "drizzle-orm";
+import { resolveEntrepriseContextOrThrow } from "../../utils/entrepriseContext.js";
+import {
+  parseStrictDateTime,
+  assertDateTimeInFuture,
+} from "../../utils/dateValidation.js";
 import { db } from "../../db/index.js";
 import {
   entretiens,
@@ -15,6 +20,16 @@ import {
   enregistrerActiviteCandidature,
   getMembreOptionnel,
 } from "../candidatures/candidatures.service.js";
+import { getUtilisateursAvecPermission } from "../../utils/entrepriseContext.js";
+import { publishRealtime, publishRealtimeMany } from "../../utils/realtime.js";
+
+/** Résout l'entreprise pour propriétaire OU membre actif (anti-IDOR). */
+async function getEntrepriseForUserOrThrow(idUtilisateur) {
+  const ctx = await resolveEntrepriseContextOrThrow(idUtilisateur);
+  return ctx.entreprise;
+}
+
+
 
 // Petits raccourcis utilisés uniquement pour notifier l'autre partie à
 // chaque étape du cycle d'un entretien — pas de logique métier ici.
@@ -81,21 +96,32 @@ function validerLienVisio(modeEntretien, lienGoogleMeet) {
 // Vérifie que la candidature appartient bien à une offre de cette entreprise,
 // ET qu'elle est au statut "présélectionnée" — seul état autorisant la
 // planification d'un entretien (règle demandée explicitement).
+
+function requireDateHeure(input, label = "dateHeure") {
+  // Validation calendaire stricte (rejette 31/02, 25:99, formats ambigus)
+  const d = parseStrictDateTime(input);
+  if (!d) {
+    const err = new Error(
+      `Date invalide pour ${label}. Utilisez une date/heure réelle (AAAA-MM-JJTHH:mm ou JJ/MM/AAAA HH:mm).`,
+    );
+    err.status = 400;
+    throw err;
+  }
+  return d;
+}
+
+/** Planification / reprogrammation : datetime strictement dans le futur. */
+function requireDateHeureFuture(input, label = "dateHeure") {
+  return assertDateTimeInFuture(input, label);
+}
+
 export async function createEntretien(
   idUtilisateurEntreprise,
   { idCandidature, dateHeure, modeEntretien, lienGoogleMeet },
 ) {
   validerLienVisio(modeEntretien, lienGoogleMeet);
 
-  const [entreprise] = await db
-    .select()
-    .from(entreprises)
-    .where(eq(entreprises.idUtilisateur, idUtilisateurEntreprise));
-  if (!entreprise) {
-    const err = new Error("Profil entreprise introuvable");
-    err.status = 404;
-    throw err;
-  }
+  const entreprise = await getEntrepriseForUserOrThrow(idUtilisateurEntreprise);
 
   const [row] = await db
     .select({
@@ -143,7 +169,7 @@ export async function createEntretien(
     .insert(entretiens)
     .values({
       idCandidature,
-      dateHeure: new Date(dateHeure),
+      dateHeure: requireDateHeureFuture(dateHeure, "La date de l'entretien"),
       modeEntretien,
       lienGoogleMeet: lienGoogleMeet || null,
       statut: "planifie",
@@ -155,7 +181,7 @@ export async function createEntretien(
     entreprise.idEntreprise, // adapte selon le nom de variable déjà présent dans la fonction
     membre?.idMembre,
     idCandidature,
-    "Entretien programmé",
+    "entretien_programme",
   );
 
   const idUtilisateurStagiaire = await getIdUtilisateurStagiaire(
@@ -169,6 +195,15 @@ export async function createEntretien(
       message:
         "Une entreprise vous propose un entretien — vérifiez la date proposée.",
       lien: "/entretiens",
+    });
+    publishRealtime(idUtilisateurStagiaire, {
+      type: "entretien.cree",
+      payload: {
+        idEntretien: entretien.idEntretien,
+        idCandidature,
+        statut: "planifie",
+        dateHeure: entretien.dateHeure,
+      },
     });
   }
 
@@ -216,11 +251,12 @@ export async function listEntretiensForStagiaire(idUtilisateurStagiaire) {
 }
 
 export async function listEntretiensForEntreprise(idUtilisateurEntreprise) {
-  const [entreprise] = await db
-    .select()
-    .from(entreprises)
-    .where(eq(entreprises.idUtilisateur, idUtilisateurEntreprise));
-  if (!entreprise) return [];
+  let entreprise;
+  try {
+    entreprise = await getEntrepriseForUserOrThrow(idUtilisateurEntreprise);
+  } catch {
+    return [];
+  }
 
   return db
     .select({
@@ -249,6 +285,9 @@ export async function listEntretiensForEntreprise(idUtilisateurEntreprise) {
       // fois l'offre approuvée par la plateforme.
       idOffreFinale: offresFinales.idOffreFinale,
       statutValidationPlateforme: offresFinales.statutValidationPlateforme,
+      statutReponseStagiaire: offresFinales.statutReponseStagiaire,
+      dateReponseStagiaire: offresFinales.dateReponseStagiaire,
+      motifRefusStagiaire: offresFinales.motifRefusStagiaire,
     })
     .from(entretiens)
     .innerJoin(
@@ -306,15 +345,7 @@ export async function getDisponibilitesCandidat(
   idUtilisateurEntreprise,
   idEntretien,
 ) {
-  const [entreprise] = await db
-    .select()
-    .from(entreprises)
-    .where(eq(entreprises.idUtilisateur, idUtilisateurEntreprise));
-  if (!entreprise) {
-    const err = new Error("Profil entreprise introuvable");
-    err.status = 404;
-    throw err;
-  }
+  const entreprise = await getEntrepriseForUserOrThrow(idUtilisateurEntreprise);
 
   const [row] = await db
     .select({
@@ -394,19 +425,29 @@ export async function validerEntretien(idUtilisateurStagiaire, idEntretien) {
     .where(eq(entretiens.idEntretien, idEntretien))
     .returning();
 
-  const idUtilisateurEntreprise = await getIdUtilisateurEntreprise(
+  const destinataires = await getUtilisateursAvecPermission(
     ownership.idOffreEntreprise,
+    "entretiens.gerer",
   );
-  if (idUtilisateurEntreprise) {
-    await creerNotification({
-      idUtilisateur: idUtilisateurEntreprise,
-      type: "entretien_confirme",
-      titre: "Entretien confirmé par le candidat",
-      message:
-        "Le candidat a confirmé la date — l'entretien est désormais confirmé.",
-      lien: "/entretiens-entreprise",
-    });
-  }
+  await Promise.all(
+    destinataires.map((idDest) =>
+      creerNotification({
+        idUtilisateur: idDest,
+        type: "entretien_confirme",
+        titre: "Entretien confirmé par le candidat",
+        message:
+          "Le candidat a confirmé la date — l'entretien est désormais confirmé.",
+        lien: "/entretiens-entreprise",
+      }),
+    ),
+  );
+  publishRealtimeMany(destinataires, {
+    type: "entretien.valide",
+    payload: {
+      idEntretien,
+      statut: "confirme",
+    },
+  });
 
   return updated;
 }
@@ -449,18 +490,25 @@ export async function annulerEntretien(
     .where(eq(entretiens.idEntretien, idEntretien))
     .returning();
 
-  const idUtilisateurEntreprise = await getIdUtilisateurEntreprise(
+  const destinataires = await getUtilisateursAvecPermission(
     ownership.idOffreEntreprise,
+    "entretiens.gerer",
   );
-  if (idUtilisateurEntreprise) {
-    await creerNotification({
-      idUtilisateur: idUtilisateurEntreprise,
-      type: "entretien_annule",
-      titre: "Entretien annulé par le candidat",
-      message: raisonAnnulation,
-      lien: "/entretiens-entreprise",
-    });
-  }
+  await Promise.all(
+    destinataires.map((idDest) =>
+      creerNotification({
+        idUtilisateur: idDest,
+        type: "entretien_annule",
+        titre: "Entretien annulé par le candidat",
+        message: raisonAnnulation,
+        lien: "/entretiens-entreprise",
+      }),
+    ),
+  );
+  publishRealtimeMany(destinataires, {
+    type: "entretien.annule",
+    payload: { idEntretien, statut: "annule" },
+  });
 
   return updated;
 }
@@ -531,24 +579,35 @@ export async function demanderReprogrammation(
     .update(entretiens)
     .set({
       statut: "reprogramme",
-      dateHeureProposee: new Date(dateHeureProposee),
+      dateHeureProposee: requireDateHeureFuture(dateHeureProposee, "La nouvelle date proposée"),
       retourEntretien,
     })
     .where(eq(entretiens.idEntretien, idEntretien))
     .returning();
 
-  const idUtilisateurEntreprise = await getIdUtilisateurEntreprise(
+  const destinataires = await getUtilisateursAvecPermission(
     ownership.idOffreEntreprise,
+    "entretiens.gerer",
   );
-  if (idUtilisateurEntreprise) {
-    await creerNotification({
-      idUtilisateur: idUtilisateurEntreprise,
-      type: "entretien_reprogrammation_demandee",
-      titre: "Demande de reprogrammation",
-      message: "Le candidat propose une nouvelle date pour l'entretien.",
-      lien: "/entretiens-entreprise",
-    });
-  }
+  await Promise.all(
+    destinataires.map((idDest) =>
+      creerNotification({
+        idUtilisateur: idDest,
+        type: "entretien_reprogrammation_demandee",
+        titre: "Demande de reprogrammation",
+        message: "Le candidat propose une nouvelle date pour l'entretien.",
+        lien: "/entretiens-entreprise",
+      }),
+    ),
+  );
+  publishRealtimeMany(destinataires, {
+    type: "entretien.reprogrammation_demandee",
+    payload: {
+      idEntretien,
+      statut: "reprogramme",
+      dateHeureProposee: updated.dateHeureProposee,
+    },
+  });
 
   return updated;
 }
@@ -560,14 +619,10 @@ export async function updateEntretienByEntreprise(
   idEntretien,
   payload,
 ) {
-  const [entreprise] = await db
-    .select()
-    .from(entreprises)
-    .where(eq(entreprises.idUtilisateur, idUtilisateurEntreprise));
+  const entreprise = await getEntrepriseForUserOrThrow(idUtilisateurEntreprise);
   const ownership = await getEntretienOwnership(idEntretien);
 
   if (
-    !entreprise ||
     !ownership ||
     ownership.idOffreEntreprise !== entreprise.idEntreprise
   ) {
@@ -592,7 +647,7 @@ export async function updateEntretienByEntreprise(
 
   const updateValues = {};
   if (payload.dateHeure) {
-    updateValues.dateHeure = new Date(payload.dateHeure);
+    updateValues.dateHeure = requireDateHeureFuture(payload.dateHeure, "La date de l'entretien");
     // Toute nouvelle date fixée par l'entreprise relance le cycle : le
     // stagiaire doit à nouveau valider ou reprogrammer cette nouvelle date.
     updateValues.statut = "planifie";
@@ -623,6 +678,30 @@ export async function updateEntretienByEntreprise(
         message: "L'entreprise a fixé une nouvelle date — merci de la valider.",
         lien: "/entretiens",
       });
+      publishRealtime(idUtilisateurStagiaire, {
+        type: "entretien.reprogramme",
+        payload: {
+          idEntretien,
+          statut: "planifie",
+          dateHeure: updated.dateHeure,
+        },
+      });
+    }
+  }
+
+  // Clôture / annulation côté entreprise
+  if (payload.statut && !payload.dateHeure) {
+    const idUtilisateurStagiaire = await getIdUtilisateurStagiaire(
+      ownership.idStagiaire,
+    );
+    if (idUtilisateurStagiaire) {
+      publishRealtime(idUtilisateurStagiaire, {
+        type: "entretien.maj",
+        payload: {
+          idEntretien,
+          statut: payload.statut,
+        },
+      });
     }
   }
 
@@ -638,11 +717,12 @@ export async function updateEntretienByEntreprise(
 export async function countEntretiensEnAttenteEntreprise(
   idUtilisateurEntreprise,
 ) {
-  const [entreprise] = await db
-    .select()
-    .from(entreprises)
-    .where(eq(entreprises.idUtilisateur, idUtilisateurEntreprise));
-  if (!entreprise) return { reprogrammation: 0 };
+  let entreprise;
+  try {
+    entreprise = await getEntrepriseForUserOrThrow(idUtilisateurEntreprise);
+  } catch {
+    return { reprogrammation: 0 };
+  }
 
   const rows = await db
     .select({ statut: entretiens.statut })

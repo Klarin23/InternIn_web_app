@@ -1,4 +1,6 @@
 import { Resend } from "resend";
+import { db } from "../db/index.js";
+import { parametresPlateforme } from "../db/schema.js";
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -6,7 +8,52 @@ const resend = process.env.RESEND_API_KEY
 
 const from = process.env.EMAIL_FROM || "InternIn <onboarding@resend.dev>";
 
+/** Cache court pour éviter une requête DB à chaque e-mail */
+let emailPrefCache = { at: 0, enabled: true };
+const EMAIL_PREF_TTL_MS = 15_000;
+
+/**
+ * Lit le paramètre admin notificationsEmail (défaut: true).
+ * En cas d'erreur DB, on laisse passer l'envoi pour ne pas bloquer auth/invitations.
+ */
+async function areTransactionalEmailsEnabled() {
+  const now = Date.now();
+  if (now - emailPrefCache.at < EMAIL_PREF_TTL_MS) {
+    return emailPrefCache.enabled;
+  }
+  try {
+    const [row] = await db
+      .select({ enabled: parametresPlateforme.notificationsEmail })
+      .from(parametresPlateforme)
+      .limit(1);
+    const enabled = row?.enabled !== false;
+    emailPrefCache = { at: now, enabled };
+    return enabled;
+  } catch {
+    emailPrefCache = { at: now, enabled: true };
+    return true;
+  }
+}
+
+/** Invalide le cache (appelable après PATCH paramètres admin). */
+export function invalidateEmailPreferenceCache() {
+  emailPrefCache = { at: 0, enabled: true };
+}
+
 async function sendMail({ to, subject, text, html }) {
+  const allowed = await areTransactionalEmailsEnabled();
+  if (!allowed) {
+    console.warn(
+      "📧 E-mails transactionnels désactivés (paramètre admin notificationsEmail=false) — envoi ignoré",
+    );
+    console.log("────────────────────────────────────────");
+    console.log("📧 À      :", to);
+    console.log("📌 Sujet  :", subject);
+    console.log("📄 Contenu (non envoyé):\n", text);
+    console.log("────────────────────────────────────────");
+    return { skipped: true, reason: "notifications_email_disabled" };
+  }
+
   // En local sans Resend (ou si l'envoi échoue) → afficher dans le terminal
   if (!resend) {
     console.warn("⚠️ RESEND_API_KEY absente — e-mail non envoyé");
@@ -15,7 +62,7 @@ async function sendMail({ to, subject, text, html }) {
     console.log("📌 Sujet  :", subject);
     console.log("📄 Contenu:\n", text);
     console.log("────────────────────────────────────────");
-    return;
+    return { skipped: true, reason: "no_resend_key" };
   }
 
   try {
@@ -26,11 +73,13 @@ async function sendMail({ to, subject, text, html }) {
       text,
       html,
     });
+    return { sent: true };
   } catch (err) {
     console.error("❌ Erreur Resend:", err.message || err);
     console.log("────────────────────────────────────────");
     console.log("📧 Lien de secours (terminal):\n", text);
     console.log("────────────────────────────────────────");
+    return { skipped: true, reason: "resend_error" };
   }
 }
 
@@ -46,7 +95,7 @@ export async function sendVerificationEmail({ email, token }) {
     console.log("────────────────────────────────────────");
   }
 
-  await sendMail({
+  return sendMail({
     to: email,
     subject: "Vérifiez votre adresse e-mail — InternIn",
     text: `Bienvenue sur InternIn !\n\nConfirmez votre e-mail :\n${verificationUrl}\n\nLien valable 24 h.`,
@@ -70,7 +119,14 @@ export async function sendPasswordResetEmail({ email, token }) {
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
   const resetUrl = `${frontendUrl}/reinitialiser-mot-de-passe?token=${encodeURIComponent(token)}`;
 
-  await sendMail({
+  if (process.env.NODE_ENV !== "production") {
+    console.log("────────────────────────────────────────");
+    console.log("🔑 LIEN RESET MDP (dev) :");
+    console.log(resetUrl);
+    console.log("────────────────────────────────────────");
+  }
+
+  return sendMail({
     to: email,
     subject: "Réinitialisation du mot de passe — InternIn",
     text: `Réinitialisez votre mot de passe :\n${resetUrl}\n\nLien valable 1 heure.`,
@@ -98,7 +154,7 @@ export async function sendInvitationEmail({
 }) {
   const roleLabel = roleEquipe || "membre";
 
-  await sendMail({
+  return sendMail({
     to: email,
     subject: `Invitation à rejoindre ${nomEntreprise || "une équipe"} — InternIn`,
     text: `

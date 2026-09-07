@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { FiCamera, FiLoader, FiCheckCircle } from "react-icons/fi";
@@ -12,6 +14,7 @@ import { toast } from "@/lib/store/useToastStore";
 // dépendre du cycle de soumission du reste du formulaire — le logo est
 // sauvegardé indépendamment, exactement comme avant.
 export default function EditProfilLogoHeader({ profil }) {
+  const { t } = useTranslation();
   const fileInputRef = useRef(null);
   const uploadLogo = useUploadLogoEntreprise();
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -32,7 +35,7 @@ export default function EditProfilLogoHeader({ profil }) {
 
     uploadLogo.mutate(file, {
       onError: (err) => {
-        toast.error(err.message || "Échec de l'envoi du logo");
+        toast.error(err.message || t("profilEntreprise.edit.logoUploadError"));
         setPreviewUrl(null);
       },
       onSuccess: () => setPreviewUrl(null),
@@ -67,7 +70,7 @@ export default function EditProfilLogoHeader({ profil }) {
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploadLogo.isPending}
-          aria-label="Changer le logo de l'entreprise"
+          aria-label={t("profilEntreprise.header.changeLogo")}
           className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-foreground opacity-0 shadow-sm transition-opacity duration-150 hover:bg-muted group-hover:opacity-100 focus-visible:opacity-100"
         >
           {uploadLogo.isPending ? (
@@ -88,17 +91,17 @@ export default function EditProfilLogoHeader({ profil }) {
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="truncate text-base font-semibold text-foreground">
-            {profil.nomEntreprise || "Votre entreprise"}
+            {profil.nomEntreprise || t("profilEntreprise.edit.yourCompany")}
           </h3>
           {estVerifiee && (
             <span className="flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-xs font-semibold text-green-700">
               <FiCheckCircle className="h-3 w-3" />
-              Entreprise vérifiée
+              {t("profilEntreprise.header.verified")}
             </span>
           )}
         </div>
         <p className="mt-0.5 truncate text-sm text-muted-foreground">
-          {profil.secteurActivite || "Secteur non renseigné"}
+          {profil.secteurActivite || t("profilEntreprise.header.industryNotProvided")}
         </p>
       </div>
 

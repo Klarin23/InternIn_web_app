@@ -3,6 +3,7 @@ import {
   listMesStagiaires,
   getDetailStagiaire,
   getCalendrierSupervision,
+  rappelerEvaluationSuperviseur,
 } from "./superviseur.service.js";
 
 export async function getDashboard(req, res, next) {
@@ -37,6 +38,20 @@ export async function getCalendrier(req, res, next) {
     const mois = req.query.mois ? Number(req.query.mois) : undefined;
     res.json(
       await getCalendrierSupervision(req.user.idUtilisateur, { annee, mois }),
+    );
+  } catch (err) {
+    next(err);
+  }
+}
+
+
+export async function postRappelEvaluationHandler(req, res, next) {
+  try {
+    res.json(
+      await rappelerEvaluationSuperviseur(
+        req.user.idUtilisateur,
+        req.params.idStage,
+      ),
     );
   } catch (err) {
     next(err);

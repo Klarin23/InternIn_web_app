@@ -107,6 +107,7 @@ export default function OffresRecommandeesCard({ profil }) {
               <Link href={`/offres/${offre.idOffre}`} className="block">
                 <div className="mb-2.5 flex items-center gap-2.5">
                   {offre.logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- logo API dynamique
                     <img
                       src={offre.logoUrl}
                       alt={offre.nomEntreprise || "Logo"}

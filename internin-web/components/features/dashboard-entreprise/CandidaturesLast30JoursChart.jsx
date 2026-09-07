@@ -1,4 +1,6 @@
 "use client";
+
+import { useTranslation } from "@/lib/i18n/useTranslation";
 // Nouveau graphique dédié aux 30 derniers jours (distinct de
 // RecruitmentActivityChart qui reste sur une vue 6 mois/mensuelle — les deux
 // peuvent coexister, ou tu peux retirer l'ancien du dashboard si tu préfères
@@ -14,7 +16,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-function buildDailySeries(candidatures) {
+function buildDailySeries(candidatures, loc) {
   const days = [];
   const now = new Date();
 
@@ -34,7 +36,7 @@ function buildDailySeries(candidatures) {
     }).length;
 
     return {
-      label: d.toLocaleDateString("fr-FR", {
+      label: d.toLocaleDateString(loc, {
         day: "2-digit",
         month: "2-digit",
       }),
@@ -44,14 +46,16 @@ function buildDailySeries(candidatures) {
 }
 
 export default function CandidaturesLast30JoursChart({ candidatures }) {
-  const data = buildDailySeries(candidatures);
+  const { t, locale } = useTranslation();
+  const loc = locale === "fr" ? "fr-FR" : "en-GB";
+  const data = buildDailySeries(candidatures, loc);
 
   return (
-    <div className="rounded-md border border-border bg-card p-5">
+    <div className="rounded-2xl border border-border bg-card shadow-sm p-5">
       <h5 className="mb-1 text-sm font-semibold text-foreground">
-        Candidatures reçues
+        {t("entrepriseSpace.dashboard.applicationsReceived")}
       </h5>
-      <p className="mb-4 text-xs text-muted-foreground">30 derniers jours</p>
+      <p className="mb-4 text-xs text-muted-foreground">{t("entrepriseSpace.dashboard.last30Days")}</p>
       <ResponsiveContainer width="100%" height={260}>
         <AreaChart data={data} margin={{ left: -20 }}>
           <defs>

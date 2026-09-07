@@ -1,20 +1,19 @@
 "use client";
 
 // Détecte la perte / le retour de connexion Internet via les événements
-// natifs du navigateur (online/offline). Évite le flash SSR.
+// natifs du navigateur (online/offline).
+// État initial toujours `true` (identique SSR / 1er rendu client) pour éviter
+// les mismatches d'hydratation. L'état réel est synchronisé après montage.
 
 import { useEffect, useState, useCallback } from "react";
 
 const RECONNECTED_DISPLAY_MS = 2800;
 
 export function useNetworkStatus() {
-  // true par défaut pour éviter un flash "hors ligne" au premier rendu client
   const [isOnline, setIsOnline] = useState(true);
   const [justReconnected, setJustReconnected] = useState(false);
 
   useEffect(() => {
-    setIsOnline(typeof navigator !== "undefined" ? navigator.onLine : true);
-
     let reconnectTimer;
 
     function handleOnline() {
@@ -36,6 +35,11 @@ export function useNetworkStatus() {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
+    // Sync après peinture : si déjà hors ligne au chargement
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      handleOffline();
+    }
+
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
@@ -43,7 +47,6 @@ export function useNetworkStatus() {
     };
   }, []);
 
-  // Vérifie immédiatement l'état (bouton Réessayer)
   const checkConnection = useCallback(async () => {
     const online = typeof navigator !== "undefined" ? navigator.onLine : true;
     if (online) {

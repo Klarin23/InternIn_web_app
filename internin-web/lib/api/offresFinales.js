@@ -30,10 +30,18 @@ export function listMesOffresFinalesRequest(token) {
   return apiFetch("/offres-finales/mes-offres", { token });
 }
 
-export function repondreOffreFinaleRequest(id, statutReponseStagiaire, token) {
+export function repondreOffreFinaleRequest(
+  id,
+  { statutReponseStagiaire, motifRefusStagiaire } = {},
+  token,
+) {
+  const body = { statutReponseStagiaire };
+  if (statutReponseStagiaire === "refusee" && motifRefusStagiaire != null) {
+    body.motifRefusStagiaire = motifRefusStagiaire;
+  }
   return apiFetch(`/offres-finales/${id}/reponse`, {
     method: "PATCH",
-    body: { statutReponseStagiaire },
+    body,
     token,
   });
 }

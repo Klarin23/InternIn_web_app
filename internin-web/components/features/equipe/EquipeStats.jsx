@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { FiUsers, FiUserCheck, FiClock, FiShield } from "react-icons/fi";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 function AnimatedCounter({ value }) {
   const [affiche, setAffiche] = useState(0);
@@ -59,6 +60,7 @@ function StatCard({ index, icon: Icon, value, label, iconBg }) {
 }
 
 export default function EquipeStats({ membres = [] }) {
+  const { t } = useTranslation();
   const total = membres.length;
   const actifs = membres.filter((m) => m.statutMembre === "actif").length;
   const enAttente = membres.filter((m) => m.statutMembre === "invite").length;
@@ -74,28 +76,28 @@ export default function EquipeStats({ membres = [] }) {
         index={0}
         icon={FiUsers}
         value={total}
-        label="Total membres"
+        label={t("equipe.stats.total")}
         iconBg="bg-[#14b8a6] text-white"
       />
       <StatCard
         index={1}
         icon={FiUserCheck}
         value={actifs}
-        label="Membres actifs"
+        label={t("equipe.stats.active")}
         iconBg="bg-emerald-500 text-white"
       />
       <StatCard
         index={2}
         icon={FiClock}
         value={enAttente}
-        label="Invitations en attente"
+        label={t("equipe.stats.pending")}
         iconBg="bg-amber-500 text-white"
       />
       <StatCard
         index={3}
         icon={FiShield}
         value={admins}
-        label="Administrateurs"
+        label={t("equipe.stats.admins")}
         iconBg="bg-violet-500 text-white"
       />
     </div>

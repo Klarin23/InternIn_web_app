@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,6 +42,7 @@ const schema = z.object({
 });
 
 export default function ProfilProfessionnelSection({ profil }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const updateProfile = useUpdateStagiaireProfile();
 
@@ -68,14 +71,14 @@ export default function ProfilProfessionnelSection({ profil }) {
   return (
     <>
       <ProfilSectionCard
-        title="Profil professionnel"
+        title={t("stagiaireSpace.profile.professional")}
         icon={FiFileText}
         onEdit={() => setOpen(true)}
       >
         <div className="space-y-3">
           <div>
             <dt className="text-xs text-muted-foreground">
-              Titre professionnel
+              {t("stagiaireSpace.profile.professionalTitle")}
             </dt>
             <dd className="text-sm text-foreground">
               {profil.titreProfessionnel || "—"}
@@ -83,7 +86,7 @@ export default function ProfilProfessionnelSection({ profil }) {
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">
-              Présentation personnelle
+              {t("stagiaireSpace.profile.personalPresentation")}
             </dt>
             <dd className="text-sm text-foreground">
               {profil.presentation || "—"}
@@ -91,7 +94,7 @@ export default function ProfilProfessionnelSection({ profil }) {
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">
-              Objectif professionnel
+              {t("stagiaireSpace.profile.careerObjective")}
             </dt>
             <dd className="text-sm text-foreground">
               {profil.objectifProfessionnel || "—"}
@@ -100,24 +103,24 @@ export default function ProfilProfessionnelSection({ profil }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <dt className="text-xs text-muted-foreground">
-                Type de stage recherché
+                {t("stagiaireSpace.profile.internshipTypeSought")}
               </dt>
               <dd className="text-sm text-foreground">
-                {DUREE_LABELS[profil.dureeStageSouhaitee] || "—"}
+                {(t(`stagiaireSpace.profile.duration.${profil.dureeStageSouhaitee}`) || profil.dureeStageSouhaitee) || "—"}
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-muted-foreground">Disponibilité</dt>
+              <dt className="text-xs text-muted-foreground">{t("stagiaireSpace.profile.availability")}</dt>
               <dd className="text-sm text-foreground">
                 {profil.dateDebutSouhaitee
-                  ? `À partir du ${profil.dateDebutSouhaitee}`
+                  ? `${t("stagiaireSpace.profile.fromDate")} ${profil.dateDebutSouhaitee}`
                   : "—"}
               </dd>
             </div>
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">
-              Localisation souhaitée
+              {t("stagiaireSpace.profile.desiredLocation")}
             </dt>
             <dd className="text-sm text-foreground">{villes || "—"}</dd>
           </div>
@@ -127,19 +130,19 @@ export default function ProfilProfessionnelSection({ profil }) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Profil professionnel</DialogTitle>
+            <DialogTitle>{t("stagiaireSpace.profile.professional")}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="titreProfessionnel">Titre professionnel</Label>
+              <Label htmlFor="titreProfessionnel">{t("stagiaireSpace.profile.professionalTitle")}</Label>
               <Input
                 id="titreProfessionnel"
-                placeholder="Ex. Développeur Web Front-End"
+                placeholder={t("stagiaireSpace.profile.professionalTitlePlaceholder")}
                 {...register("titreProfessionnel")}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="presentation">Présentation personnelle</Label>
+              <Label htmlFor="presentation">{t("stagiaireSpace.profile.personalPresentation")}</Label>
               <Textarea
                 id="presentation"
                 rows={4}
@@ -147,9 +150,7 @@ export default function ProfilProfessionnelSection({ profil }) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="objectifProfessionnel">
-                Objectif professionnel
-              </Label>
+              <Label htmlFor="objectifProfessionnel">{t("stagiaireSpace.profile.careerObjective")}</Label>
               <Textarea
                 id="objectifProfessionnel"
                 rows={3}
@@ -157,19 +158,19 @@ export default function ProfilProfessionnelSection({ profil }) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Type de stage recherché</Label>
+              <Label>{t("stagiaireSpace.profile.internshipTypeSought")}</Label>
               <Controller
                 name="dureeStageSouhaitee"
                 control={control}
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Sélectionner" />
+                      <SelectValue placeholder={t("stagiaireSpace.profile.select")} />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(DUREE_LABELS).map(([value, label]) => (
+                      {Object.keys(DUREE_LABELS).map((value) => (
                         <SelectItem key={value} value={value}>
-                          {label}
+                          {t(`stagiaireSpace.profile.duration.${value}`)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -178,7 +179,7 @@ export default function ProfilProfessionnelSection({ profil }) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="dateDebutSouhaitee">Disponible à partir du</Label>
+              <Label htmlFor="dateDebutSouhaitee">{t("stagiaireSpace.profile.availableFrom")}</Label>
               <Input
                 id="dateDebutSouhaitee"
                 type="date"
@@ -186,7 +187,7 @@ export default function ProfilProfessionnelSection({ profil }) {
               />
             </div>
             <Button type="submit" disabled={isSubmitting} className="w-full">
-              Enregistrer
+              {t("stagiaireSpace.profile.save")}
             </Button>
           </form>
         </DialogContent>

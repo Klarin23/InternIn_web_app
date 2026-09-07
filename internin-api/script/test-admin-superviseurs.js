@@ -1,0 +1,18 @@
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = path.join(__dirname, "../..");
+const svc = fs.readFileSync(path.join(root, "internin-api/src/modules/administrateurs/administrateurs.service.js"), "utf8");
+const page = fs.readFileSync(path.join(root, "internin-web/app/(admin)/utilisateurs/page.jsx"), "utf8");
+let f=0; const a=(n,c)=>{if(!c){console.error("FAIL",n);f++}else console.log("OK  ",n)};
+a("fetch", svc.includes("fetchSuperviseursUtilisateurs"));
+a("rows", svc.includes("superviseursRows"));
+a("stats", svc.includes("superviseurs: nbSuperviseurs"));
+a("role", svc.includes('eq(membresEquipe.roleEquipe, "superviseur")'));
+a("detail", svc.includes('typeUtilisateur === "membre_entreprise"'));
+a("audit", svc.includes("UTILISATEUR_STATUT_"));
+a("filter", page.includes("filterSupervisors") && page.includes("superviseur"));
+a("label", page.includes("roleSupervisor"));
+if(f) process.exit(1);
+console.log("All admin superviseurs checks passed");

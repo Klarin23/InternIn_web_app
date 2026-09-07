@@ -1,0 +1,1 @@
+ALTER TABLE "entreprises" ADD COLUMN "motif_rejet_verification" text;

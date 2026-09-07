@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import AppSidebar from "@/components/layout/AppSidebar";
 import PullToRefresh from "@/components/layout/PullToRefresh";
 import InactiveAccountGate from "@/components/features/account/InactiveAccountGate";
+import MaintenanceGate from "@/components/features/system/MaintenanceGate";
 
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { useAuthReady } from "@/lib/auth/useAuthReady";
@@ -72,7 +73,7 @@ export default function StagiaireLayout({ children }) {
         roleLabel={t("roles.internSpace")}
       />
       <PullToRefresh className="h-screen flex-1 overflow-y-auto">
-        {displayedChildren}
+        <MaintenanceGate>{displayedChildren}</MaintenanceGate>
       </PullToRefresh>
     </div>
   );

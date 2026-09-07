@@ -28,10 +28,11 @@ import {
   TONE_DOT,
   formatNotifDate,
 } from "@/lib/notifications/notifMeta";
+import { translateNotification } from "@/lib/notifications/translateNotif";
 
 export default function NotificationsCenter() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const reduceMotion = useReducedMotion();
   const showToast = useToastStore((s) => s.showToast);
   const [open, setOpen] = useState(false);
@@ -72,7 +73,7 @@ export default function NotificationsCenter() {
     marquerToutes.mutate(undefined, {
       onSuccess: () => {
         showToast?.({
-          message: "Toutes les notifications ont été marquées comme lues",
+          message: t("notifications.markAllReadSuccess"),
           variant: "success",
         });
       },
@@ -137,16 +138,21 @@ export default function NotificationsCenter() {
               transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
               className="fixed inset-x-3 top-14 z-50 flex max-h-[min(70vh,520px)] flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[380px]"
               role="dialog"
-              aria-label="Notifications"
+              aria-label={t("notifications.title")}
             >
               <div className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-3">
                 <div>
                   <h2 className="text-sm font-bold text-foreground">
-                    Notifications
+                    {t("notifications.title")}
                   </h2>
                   {nonLues > 0 && (
                     <p className="text-[11px] text-muted-foreground">
-                      {nonLues} non lue{nonLues > 1 ? "s" : ""}
+                      {t(
+                        nonLues > 1
+                          ? "notifications.unreadCountPlural"
+                          : "notifications.unreadCount",
+                        { n: nonLues },
+                      )}
                     </p>
                   )}
                 </div>
@@ -159,14 +165,14 @@ export default function NotificationsCenter() {
                       className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-primary transition hover:bg-primary/10 disabled:opacity-50"
                     >
                       <FiCheck className="h-3.5 w-3.5" />
-                      Tout lire
+                      {t("notifications.readAll")}
                     </button>
                   )}
                   <button
                     type="button"
                     className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted sm:hidden"
                     onClick={() => setOpen(false)}
-                    aria-label="Fermer"
+                    aria-label={t("notifications.close")}
                   >
                     <FiX className="h-4 w-4" />
                   </button>
@@ -181,7 +187,7 @@ export default function NotificationsCenter() {
                   </div>
                 ) : isError ? (
                   <div className="px-4 py-10 text-center text-sm text-destructive">
-                    Impossible de charger les notifications.
+                    {t("notifications.loadError")}
                   </div>
                 ) : notifications.length === 0 ? (
                   <div className="flex flex-col items-center gap-2 px-4 py-14 text-center">
@@ -189,7 +195,7 @@ export default function NotificationsCenter() {
                       <FiInbox className="h-5 w-5" />
                     </div>
                     <p className="text-sm font-medium text-foreground">
-                      Aucune notification
+                      {t("notifications.empty")}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Vous serez informé ici des événements importants.
@@ -244,12 +250,12 @@ export default function NotificationsCenter() {
                                       !n.lu ? "font-semibold" : "font-medium",
                                     )}
                                   >
-                                    {n.titre}
+                                    {translateNotification(n, t).titre}
                                   </span>
                                 </span>
-                                {n.message && (
+                                {translateNotification(n, t).message && (
                                   <span className="mt-0.5 line-clamp-2 block text-xs leading-relaxed text-muted-foreground">
-                                    {n.message}
+                                    {translateNotification(n, t).message}
                                   </span>
                                 )}
                                 <span className="mt-1.5 flex items-center gap-2">
@@ -258,7 +264,7 @@ export default function NotificationsCenter() {
                                   </span>
                                   {n.lien && (
                                     <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-primary opacity-0 transition group-hover:opacity-100">
-                                      {meta.label}
+                                      {t(meta.labelKey)}
                                       <FiChevronRight className="h-3 w-3" />
                                     </span>
                                   )}
@@ -272,7 +278,7 @@ export default function NotificationsCenter() {
                                 supprimer.mutate(n.idNotification);
                               }}
                               className="shrink-0 rounded-lg p-1.5 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 focus:opacity-100"
-                              aria-label="Supprimer"
+                              aria-label={t("notifications.delete")}
                             >
                               <FiTrash2 className="h-3.5 w-3.5" />
                             </button>
@@ -293,7 +299,7 @@ export default function NotificationsCenter() {
                   }}
                   className="flex w-full items-center justify-center gap-1 rounded-xl py-2 text-xs font-semibold text-primary transition hover:bg-primary/5"
                 >
-                  Voir toutes les notifications
+                  {t("notifications.viewAll")}
                   <FiChevronRight className="h-3.5 w-3.5" />
                 </button>
               </div>

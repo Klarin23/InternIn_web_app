@@ -25,12 +25,13 @@ import {
 } from "@/lib/queries/useMessages";
 import { toast } from "@/lib/store/useToastStore";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatTime(dateStr) {
+function formatTime(dateStr, locale, yesterdayLabel) {
   if (!dateStr) return "";
   try {
     const d = new Date(dateStr);
@@ -40,7 +41,7 @@ function formatTime(dateStr) {
       d.getMonth() === now.getMonth() &&
       d.getFullYear() === now.getFullYear();
     if (sameDay) {
-      return d.toLocaleTimeString("fr-FR", {
+      return d.toLocaleTimeString(locale || "fr-FR", {
         hour: "2-digit",
         minute: "2-digit",
       });
@@ -51,8 +52,8 @@ function formatTime(dateStr) {
       d.getDate() === yesterday.getDate() &&
       d.getMonth() === yesterday.getMonth() &&
       d.getFullYear() === yesterday.getFullYear();
-    if (isYesterday) return "Hier";
-    return d.toLocaleDateString("fr-FR", {
+    if (isYesterday) return yesterdayLabel || "Hier";
+    return d.toLocaleDateString(locale || "fr-FR", {
       day: "numeric",
       month: "short",
     });
@@ -61,10 +62,10 @@ function formatTime(dateStr) {
   }
 }
 
-function formatMessageTime(dateStr) {
+function formatMessageTime(dateStr, locale) {
   if (!dateStr) return "";
   try {
-    return new Date(dateStr).toLocaleTimeString("fr-FR", {
+    return new Date(dateStr).toLocaleTimeString(locale || "fr-FR", {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -73,7 +74,7 @@ function formatMessageTime(dateStr) {
   }
 }
 
-function dayLabel(dateStr) {
+function dayLabel(dateStr, t, locale) {
   if (!dateStr) return "";
   try {
     const d = new Date(dateStr);
@@ -82,15 +83,15 @@ function dayLabel(dateStr) {
       d.getDate() === now.getDate() &&
       d.getMonth() === now.getMonth() &&
       d.getFullYear() === now.getFullYear();
-    if (sameDay) return "Aujourd'hui";
+    if (sameDay) return t("stagiaireSpace.messages.today");
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
     const isYesterday =
       d.getDate() === yesterday.getDate() &&
       d.getMonth() === yesterday.getMonth() &&
       d.getFullYear() === yesterday.getFullYear();
-    if (isYesterday) return "Hier";
-    return d.toLocaleDateString("fr-FR", {
+    if (isYesterday) return t("stagiaireSpace.messages.yesterday");
+    return d.toLocaleDateString(locale || "fr-FR", {
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -100,13 +101,13 @@ function dayLabel(dateStr) {
   }
 }
 
-function groupMessagesByDay(messages) {
+function groupMessagesByDay(messages, t, locale) {
   if (!messages?.length) return [];
   const groups = [];
   let currentLabel = null;
   let currentItems = [];
   for (const msg of messages) {
-    const label = dayLabel(msg.dateEnvoi);
+    const label = dayLabel(msg.dateEnvoi, t, locale);
     if (label !== currentLabel) {
       if (currentItems.length) {
         groups.push({ label: currentLabel, items: currentItems });
@@ -163,13 +164,63 @@ function MessagesSkeleton() {
   );
 }
 
+
+function getInitials(source) {
+  if (!source || typeof source !== "string") return "?";
+  const parts = source.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function conversationDisplay(conversation, t) {
+  const type = conversation?.typeConversation || "entreprise";
+  const company =
+    conversation?.entreprise?.nom ||
+    conversation?.nomEntreprise ||
+    t("messages.companyFallback");
+  if (type === "superviseur") {
+    const name =
+      conversation?.titrePrincipal ||
+      conversation?.interlocuteur?.nomComplet ||
+      t("messages.nameUnavailable");
+    return {
+      type,
+      primary: name,
+      secondary: company,
+      role: t(conversation?.roleKey || "messages.roleSupervisor"),
+      avatarUrl: null,
+      avatarKind: "person",
+      initials: getInitials(name),
+    };
+  }
+  const owner =
+    conversation?.titreSecondaire ||
+    conversation?.interlocuteur?.nomComplet ||
+    t("messages.nameUnavailable");
+  return {
+    type,
+    primary: company,
+    secondary: owner,
+    role: t(conversation?.roleKey || "messages.roleBusinessOwner"),
+    avatarUrl: conversation?.avatarUrl || conversation?.logoUrl || null,
+    avatarKind: "company",
+    initials: getInitials(company),
+  };
+}
+
+
 function ConversationItem({ conversation, active, onSelect }) {
+  const { t } = useTranslation();
   const hasUnread = (conversation.nonLus || 0) > 0;
+  const display = conversationDisplay(conversation, t);
   const preview =
     conversation.dernierMessage?.contenu?.slice(0, 60) ||
-    "Aucun message pour le moment";
+    t("stagiaireSpace.messages.noMessageYet");
   const time = formatTime(
     conversation.dernierMessage?.dateEnvoi || conversation.dateCreation,
+    t("stagiaireSpace.messages.locale"),
+    t("stagiaireSpace.messages.yesterday"),
   );
 
   return (
@@ -185,35 +236,43 @@ function ConversationItem({ conversation, active, onSelect }) {
             : "hover:bg-muted/60",
       )}
     >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted">
-        {conversation.logoUrl ? (
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted text-xs font-semibold text-muted-foreground">
+        {display.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={conversation.logoUrl}
+            src={display.avatarUrl}
             alt=""
             className="h-full w-full object-contain"
           />
         ) : (
-          <Building2 className="h-5 w-5 text-muted-foreground" />
+          <span aria-hidden>{display.initials}</span>
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-2">
-          <p
-            className={cn(
-              "truncate text-sm",
-              hasUnread
-                ? "font-semibold text-foreground"
-                : "font-medium text-foreground",
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p
+              className={cn(
+                "truncate text-sm text-foreground",
+                hasUnread ? "font-semibold" : "font-medium",
+              )}
+            >
+              {display.primary}
+            </p>
+            {display.secondary && (
+              <p className="truncate text-xs text-muted-foreground">
+                {display.secondary}
+              </p>
             )}
-          >
-            {conversation.nomEntreprise}
-          </p>
+            <p className="truncate text-[11px] font-medium text-primary/80">
+              {display.role}
+            </p>
+          </div>
           <span className="shrink-0 text-[11px] text-muted-foreground">
             {time}
           </span>
         </div>
-        <div className="mt-0.5 flex items-center justify-between gap-2">
+        <div className="mt-1 flex items-center justify-between gap-2">
           <p
             className={cn(
               "truncate text-xs",
@@ -236,7 +295,9 @@ function ConversationItem({ conversation, active, onSelect }) {
   );
 }
 
+
 function MessageBubble({ message, isMine, reduceMotion }) {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={reduceMotion ? false : { opacity: 0, y: 8, scale: 0.98 }}
@@ -259,7 +320,7 @@ function MessageBubble({ message, isMine, reduceMotion }) {
             isMine ? "text-primary-foreground/70" : "text-muted-foreground",
           )}
         >
-          <span>{formatMessageTime(message.dateEnvoi)}</span>
+          <span>{formatMessageTime(message.dateEnvoi, t("stagiaireSpace.messages.locale"))}</span>
           {isMine &&
             (message.statutLecture === "lu" ? (
               <CheckCheck className="h-3 w-3" />
@@ -273,6 +334,7 @@ function MessageBubble({ message, isMine, reduceMotion }) {
 }
 
 function Composer({ onSend, disabled }) {
+  const { t } = useTranslation();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const textareaRef = useRef(null);
@@ -303,7 +365,7 @@ function Composer({ onSend, disabled }) {
     <div className="border-t border-border bg-card p-3 sm:p-4">
       <div className="flex items-end gap-2 rounded-md border border-border bg-background px-3 py-2 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20">
         <label htmlFor="message-input" className="sr-only">
-          Écrire un message
+          {t("stagiaireSpace.messages.writeMessage")}
         </label>
         <textarea
           id="message-input"
@@ -312,7 +374,7 @@ function Composer({ onSend, disabled }) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Écrivez votre message..."
+          placeholder={t("stagiaireSpace.messages.placeholder")}
           disabled={disabled || sending}
           className="max-h-32 min-h-[24px] flex-1 resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
           style={{ fieldSizing: "content" }}
@@ -322,14 +384,14 @@ function Composer({ onSend, disabled }) {
           size="icon"
           disabled={!text.trim() || sending || disabled}
           onClick={handleSend}
-          aria-label="Envoyer le message"
+          aria-label={t("stagiaireSpace.messages.sendAria")}
           className="h-8 w-8 shrink-0"
         >
           <Send className="h-4 w-4" />
         </Button>
       </div>
       <p className="mt-1.5 text-[11px] text-muted-foreground">
-        Entrée pour envoyer · Maj+Entrée pour une nouvelle ligne
+        {t("stagiaireSpace.messages.keyboardHint")}
       </p>
     </div>
   );
@@ -340,6 +402,7 @@ function Composer({ onSend, disabled }) {
 // ---------------------------------------------------------------------------
 
 export default function MessagesPage() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const reduceMotion = useReducedMotion();
   const [selectedId, setSelectedId] = useState(null);
@@ -364,12 +427,12 @@ export default function MessagesPage() {
     if (!q) return conversations;
     return conversations.filter(
       (c) =>
-        c.nomEntreprise?.toLowerCase().includes(q) ||
+        (c.nomEntreprise?.toLowerCase().includes(q) || c.titrePrincipal?.toLowerCase().includes(q) || c.titreSecondaire?.toLowerCase().includes(q)) ||
         c.dernierMessage?.contenu?.toLowerCase().includes(q),
     );
   }, [conversations, search]);
 
-  const groups = useMemo(() => groupMessagesByDay(messages), [messages]);
+  const groups = useMemo(() => groupMessagesByDay(messages, t, t("stagiaireSpace.messages.locale")), [messages, t]);
 
   // Mark as read when opening
   useEffect(() => {
@@ -397,7 +460,7 @@ export default function MessagesPage() {
     try {
       await sendMutation.mutateAsync(contenu);
     } catch (err) {
-      toast.error(err?.message || "Impossible d'envoyer le message.");
+      toast.error(err?.message || t("stagiaireSpace.messages.sendError"));
       throw err;
     }
   }
@@ -407,8 +470,8 @@ export default function MessagesPage() {
   return (
     <>
       <AppHeader
-        title="Messages"
-        subtitle="Échangez avec les entreprises et les personnes qui vous accompagnent dans votre stage."
+        title={t("stagiaireSpace.messages.title")}
+        subtitle={t("stagiaireSpace.messages.subtitle")}
         refreshKeys={["conversations", "messages", "messagesUnread"]}
       />
 
@@ -436,7 +499,7 @@ export default function MessagesPage() {
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Rechercher une conversation..."
+                placeholder={t("stagiaireSpace.messages.searchPlaceholder")}
                 className="w-full rounded-md border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
@@ -450,13 +513,13 @@ export default function MessagesPage() {
                 <MessageSquare className="h-8 w-8 text-muted-foreground/50" />
                 <p className="text-sm font-medium text-foreground">
                   {search
-                    ? "Aucune conversation trouvée"
-                    : "Aucune conversation"}
+                    ? t("stagiaireSpace.messages.emptySearch")
+                    : t("stagiaireSpace.messages.empty")}
                 </p>
                 <p className="max-w-[240px] text-xs text-muted-foreground">
                   {search
-                    ? "Essayez avec un autre nom ou mot-clé."
-                    : "Vos échanges avec les entreprises apparaîtront ici une fois un stage démarré."}
+                    ? t("stagiaireSpace.messages.emptySearchHint")
+                    : t("stagiaireSpace.messages.emptyHint")}
                 </p>
               </div>
             )}
@@ -486,10 +549,10 @@ export default function MessagesPage() {
                 <MessageSquare className="h-7 w-7 text-muted-foreground" />
               </div>
               <p className="text-sm font-semibold text-foreground">
-                Sélectionnez une conversation
+                {t("stagiaireSpace.messages.selectConversation")}
               </p>
               <p className="max-w-xs text-sm text-muted-foreground">
-                Choisissez une conversation pour consulter vos échanges.
+                {t("stagiaireSpace.messages.chooseConversation")}
               </p>
             </div>
           )}
@@ -502,28 +565,45 @@ export default function MessagesPage() {
                   type="button"
                   onClick={handleBack}
                   className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted lg:hidden"
-                  aria-label="Retour aux conversations"
+                  aria-label={t("stagiaireSpace.messages.backToConversations")}
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </button>
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted">
-                  {selected.logoUrl ? (
+                  {(() => {
+                  const d = conversationDisplay(selected, t);
+                  return d.avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={selected.logoUrl}
+                      src={d.avatarUrl}
                       alt=""
                       className="h-full w-full object-contain"
                     />
                   ) : (
-                    <Building2 className="h-5 w-5 text-muted-foreground" />
-                  )}
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {d.initials}
+                    </span>
+                  );
+                })()}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {selected.nomEntreprise}
-                  </p>
+                  {(() => {
+                    const d = conversationDisplay(selected, t);
+                    return (
+                      <>
+                        <p className="truncate text-sm font-semibold text-foreground">
+                          {d.primary}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {d.secondary}
+                          {d.secondary ? " · " : ""}
+                          {d.role}
+                        </p>
+                      </>
+                    );
+                  })()}
                   <p className="truncate text-xs text-muted-foreground">
-                    Stage · {selected.secteurActivite || "Entreprise"}
+                    {t("stagiaireSpace.messages.internship")} · {selected.secteurActivite || t("stagiaireSpace.messages.company")}
                   </p>
                 </div>
               </div>
@@ -536,7 +616,7 @@ export default function MessagesPage() {
                   <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
                     <MessageSquare className="h-7 w-7 text-muted-foreground/40" />
                     <p className="text-sm text-muted-foreground">
-                      Aucun message pour le moment. Envoyez le premier !
+                      {t("stagiaireSpace.messages.noMessageSendFirst")}
                     </p>
                   </div>
                 )}
@@ -570,17 +650,17 @@ export default function MessagesPage() {
               ) : (
                 <div className="border-t border-border bg-muted/40 px-4 py-6 text-center">
                   <p className="text-sm font-medium text-foreground">
-                    Messagerie indisponible
+                    {t("stagiaireSpace.messages.messagingUnavailable")}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {selected.statutStage === "termine" || selected.statutStage === "interrompu"
-                      ? "Ce stage est terminé. La conversation est en lecture seule."
-                      : "Les échanges seront disponibles dès le début officiel du stage."}
+                      ? t("stagiaireSpace.messages.readonlyFinished")
+                      : t("stagiaireSpace.messages.availableAtStart")}
                   </p>
                   {selected.dateDebut && selected.statutStage !== "termine" && selected.statutStage !== "interrompu" && (
                     <p className="mt-2 text-xs font-medium text-muted-foreground">
-                      Début du stage :{" "}
-                      {new Date(selected.dateDebut).toLocaleDateString("fr-FR", {
+                      {t("stagiaireSpace.messages.internshipStart")}{" "}
+                      {new Date(selected.dateDebut).toLocaleDateString(t("stagiaireSpace.messages.locale"), {
                         day: "numeric",
                         month: "long",
                         year: "numeric",

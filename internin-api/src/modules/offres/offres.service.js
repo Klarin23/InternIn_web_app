@@ -5,6 +5,7 @@
 import { db } from "../../db/index.js";
 import { sql, eq, and, or, ilike } from "drizzle-orm";
 import { offresStage, entreprises, candidatures } from "../../db/schema.js";
+import { resolveEntrepriseContextOrThrow } from "../../utils/entrepriseContext.js";
 
 export async function listOffresPubliees({
   recherche,
@@ -45,6 +46,7 @@ export async function listOffresPubliees({
       remunerationType: offresStage.remunerationType,
       montantRemuneration: offresStage.montantRemuneration,
       nombrePostes: offresStage.nombrePostes,
+      nombreCandidaturesActives: sql`count(${candidatures.idCandidature}) filter (where ${candidatures.statut} not in ('rejetee', 'retiree'))`.mapWith(Number),
       datePublication: offresStage.datePublication,
       nomEntreprise: entreprises.nomEntreprise,
       logoUrl: entreprises.logoUrl,
@@ -57,7 +59,17 @@ export async function listOffresPubliees({
       entreprises,
       eq(offresStage.idEntreprise, entreprises.idEntreprise),
     )
-    .where(and(...conditions));
+    .leftJoin(candidatures, eq(candidatures.idOffre, offresStage.idOffre))
+    .where(and(...conditions))
+    .groupBy(
+      offresStage.idOffre, offresStage.titre, offresStage.departement,
+      offresStage.secteurActivite, offresStage.description,
+      offresStage.competencesRequises, offresStage.modeTravail,
+      offresStage.remunerationType, offresStage.montantRemuneration,
+      offresStage.nombrePostes, offresStage.datePublication,
+      entreprises.nomEntreprise, entreprises.logoUrl, entreprises.ville,
+      offresStage.dateLimiteCandidature, offresStage.statut,
+    );
 }
 
 export async function getOffreById(idOffre) {
@@ -75,6 +87,7 @@ export async function getOffreById(idOffre) {
       remunerationType: offresStage.remunerationType,
       montantRemuneration: offresStage.montantRemuneration,
       nombrePostes: offresStage.nombrePostes,
+      nombreCandidaturesActives: sql`(select count(*)::int from candidatures c where c.id_offre = ${offresStage.idOffre} and c.statut not in ('rejetee', 'retiree'))`,
       statut: offresStage.statut,
       datePublication: offresStage.datePublication,
       dureeStage: offresStage.dureeStage,
@@ -103,15 +116,9 @@ export async function getOffreById(idOffre) {
 // Liste les offres d'une entreprise avec le nombre de candidatures reçues
 // par offre (LEFT JOIN + count groupé, pour inclure aussi les offres à 0 candidature).
 export async function listOffresByEntreprise(idUtilisateurEntreprise) {
-  const [entreprise] = await db
-    .select()
-    .from(entreprises)
-    .where(eq(entreprises.idUtilisateur, idUtilisateurEntreprise));
-  if (!entreprise) {
-    const err = new Error("Profil entreprise introuvable");
-    err.status = 404;
-    throw err;
-  }
+  const { entreprise } = await resolveEntrepriseContextOrThrow(
+    idUtilisateurEntreprise,
+  );
 
   return db
     .select({
@@ -133,9 +140,6 @@ export async function listOffresByEntreprise(idUtilisateurEntreprise) {
       nombreCandidatures: sql`count(${candidatures.idCandidature})`.mapWith(
         Number,
       ),
-      // "Profils consultés" = candidatures dont le statut a dépassé "soumise"
-      // (l'entreprise les a donc au moins ouvertes). "Présélectionnés" =
-      // statut exact "preselectionnee" — donnée réelle, pas estimée.
       nombreConsultes:
         sql`count(${candidatures.idCandidature}) filter (where ${candidatures.statut} != 'soumise')`.mapWith(
           Number,
@@ -178,15 +182,9 @@ export async function listOffresByEntreprise(idUtilisateurEntreprise) {
 // Bloque la création si l'entreprise n'est pas vérifiée — règle métier
 // du PRD (une entreprise en attente ne peut pas encore publier).
 export async function createOffre(idUtilisateurEntreprise, payload) {
-  const [entreprise] = await db
-    .select()
-    .from(entreprises)
-    .where(eq(entreprises.idUtilisateur, idUtilisateurEntreprise));
-  if (!entreprise) {
-    const err = new Error("Profil entreprise introuvable");
-    err.status = 404;
-    throw err;
-  }
+  const { entreprise } = await resolveEntrepriseContextOrThrow(
+    idUtilisateurEntreprise,
+  );
 
   // Aucune création d'offre (même brouillon) tant que non vérifiée
   if (entreprise.statutVerification !== "verifiee") {
@@ -225,15 +223,9 @@ export async function createOffre(idUtilisateurEntreprise, payload) {
 // Récupère une offre pour son propriétaire, sans restriction de statut
 // (contrairement à getOffreById qui n'expose que les offres publiées).
 export async function getOffreForEntreprise(idUtilisateurEntreprise, idOffre) {
-  const [entreprise] = await db
-    .select()
-    .from(entreprises)
-    .where(eq(entreprises.idUtilisateur, idUtilisateurEntreprise));
-  if (!entreprise) {
-    const err = new Error("Profil entreprise introuvable");
-    err.status = 404;
-    throw err;
-  }
+  const { entreprise } = await resolveEntrepriseContextOrThrow(
+    idUtilisateurEntreprise,
+  );
 
   const [offre] = await db
     .select()
@@ -253,10 +245,9 @@ export async function updateOffre(idUtilisateurEntreprise, idOffre, payload) {
     idUtilisateurEntreprise,
     idOffre,
   );
-  const [entreprise] = await db
-    .select()
-    .from(entreprises)
-    .where(eq(entreprises.idUtilisateur, idUtilisateurEntreprise));
+  const { entreprise } = await resolveEntrepriseContextOrThrow(
+    idUtilisateurEntreprise,
+  );
 
   // Même règle qu'à la création : impossible de publier sans être vérifié
   if (entreprise.statutVerification !== "verifiee") {
@@ -317,10 +308,9 @@ export async function dupliquerOffre(idUtilisateurEntreprise, idOffre) {
     idUtilisateurEntreprise,
     idOffre,
   );
-  const [entreprise] = await db
-    .select()
-    .from(entreprises)
-    .where(eq(entreprises.idUtilisateur, idUtilisateurEntreprise));
+  const { entreprise } = await resolveEntrepriseContextOrThrow(
+    idUtilisateurEntreprise,
+  );
 
   if (entreprise.statutVerification !== "verifiee") {
     const err = new Error(

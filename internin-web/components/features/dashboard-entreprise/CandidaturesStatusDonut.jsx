@@ -1,32 +1,36 @@
 "use client";
+
+import { useTranslation } from "@/lib/i18n/useTranslation";
 // Ordre des couleurs conforme à la Charte Graphique §16 :
 // Turquoise -> Violet -> Jaune -> Bleu -> Vert
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 const STATUT_CONFIG = [
-  { key: "soumise", label: "Soumise", color: "#14B8A6" },
-  { key: "consultee", label: "Consultée", color: "#5B3DF5" },
-  { key: "preselectionnee", label: "Présélectionnée", color: "#F7B500" },
-  { key: "acceptee", label: "Acceptée", color: "#3B82F6" },
-  { key: "rejetee", label: "Rejetée", color: "#22C55E" },
+  { key: "soumise", color: "#14B8A6" },
+  { key: "consultee", color: "#5B3DF5" },
+  { key: "preselectionnee", color: "#F7B500" },
+  { key: "acceptee", color: "#3B82F6" },
+  { key: "rejetee", color: "#22C55E" },
 ];
 
 export default function CandidaturesStatusDonut({ candidatures }) {
+  const { t, locale } = useTranslation();
   const data = STATUT_CONFIG.map((s) => ({
     ...s,
+    label: t(`applicationStatus.${s.key}`),
     value: (candidatures || []).filter((c) => c.statut === s.key).length,
   })).filter((d) => d.value > 0);
 
   const total = data.reduce((sum, d) => sum + d.value, 0);
 
   return (
-    <div className="rounded-md border border-border bg-card p-5">
-      <h5 className="mb-1 text-sm font-semibold text-foreground">Statut des candidatures</h5>
-      <p className="mb-4 text-xs text-muted-foreground">Répartition actuelle</p>
+    <div className="rounded-2xl border border-border bg-card shadow-sm p-5">
+      <h5 className="mb-1 text-sm font-semibold text-foreground">{t("entrepriseSpace.dashboard.statusDonutTitle")}</h5>
+      <p className="mb-4 text-xs text-muted-foreground">{t("entrepriseSpace.dashboard.statusDonutSubtitle")}</p>
 
       {total === 0 ? (
-        <p className="py-10 text-center text-sm text-muted-foreground">Aucune candidature pour l&apos;instant</p>
+        <p className="py-10 text-center text-sm text-muted-foreground">{t("entrepriseSpace.dashboard.noRecentApplications")}</p>
       ) : (
         <>
           <ResponsiveContainer width="100%" height={180}>

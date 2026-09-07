@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import {
   FiEye,
   FiCheckSquare,
@@ -26,15 +27,20 @@ import {
   STATUT_CONFIG,
 } from "./stageUtils";
 
-const TABS = [
-  { value: "apercu", label: "Aperçu", icon: FiEye },
-  { value: "taches", label: "Tâches", icon: FiCheckSquare },
-  { value: "evaluation", label: "Évaluation", icon: FiStar },
-  { value: "rapports", label: "Rapports", icon: FiFileText },
-  { value: "messages", label: "Messages", icon: FiMessageSquare },
+const TAB_DEFS = [
+  { value: "apercu", labelKey: "suivi.tabOverview", icon: FiEye },
+  { value: "taches", labelKey: "suivi.tabTasks", icon: FiCheckSquare },
+  { value: "evaluation", labelKey: "suivi.tabEvaluation", icon: FiStar },
+  { value: "rapports", labelKey: "suivi.tabReports", icon: FiFileText },
+  { value: "messages", labelKey: "suivi.tabMessages", icon: FiMessageSquare },
 ];
 
 export default function StagiaireDetailPanel({ stage, index }) {
+  const { t } = useTranslation();
+  const TABS = useMemo(
+    () => TAB_DEFS.map((tab) => ({ ...tab, label: t(tab.labelKey) })),
+    [t],
+  );
   const [tab, setTab] = useState("apercu");
   const couleur = AVATAR_COLORS[index % AVATAR_COLORS.length];
   const { data: evaluations } = useEvaluations(stage.idStage);
@@ -62,7 +68,7 @@ export default function StagiaireDetailPanel({ stage, index }) {
             <span
               className={`rounded-full px-2.5 py-1 text-xs ${config.color}`}
             >
-              {config.label}
+              {t(config.labelKey)}
             </span>
           </div>
           <p className="text-xs text-muted-foreground">{stage.titrePoste}</p>
@@ -78,18 +84,18 @@ export default function StagiaireDetailPanel({ stage, index }) {
         {stage.nomTuteur && (
           <span className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5">
             <FiUser className="h-3.5 w-3.5" />
-            Tuteur : {stage.nomTuteur}
+            {t("suivi.tutor")} {stage.nomTuteur}
           </span>
         )}
         <span className="rounded-full bg-muted px-3 py-1.5">
-          {stage.nomUniversite || "Université non précisée"}
+          {stage.nomUniversite || t("suivi.universityFallback")}
         </span>
       </div>
 
       {/* Barre de progression du stage */}
       <div className="mb-5">
         <div className="mb-1.5 flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">Progression du stage</span>
+          <span className="text-muted-foreground">{t("suivi.stageProgress")}</span>
           <span className="font-semibold text-foreground">{avancement}%</span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-muted">
@@ -102,28 +108,28 @@ export default function StagiaireDetailPanel({ stage, index }) {
 
       {/* Onglets */}
       <div className="mb-5 flex gap-1 overflow-x-auto border-b border-border">
-        {TABS.map((t) => (
+        {TABS.map((tabItem) => (
           <button
-            key={t.value}
+            key={tabItem.value}
             type="button"
-            onClick={() => setTab(t.value)}
+            onClick={() => setTab(tabItem.value)}
             className={`flex flex-shrink-0 items-center gap-1.5 border-b-2 px-3.5 py-2.5 text-sm font-medium transition ${
-              tab === t.value
+              tab === tabItem.value
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            <t.icon className="h-4 w-4" />
-            {t.label}
+            <tabItem.icon className="h-4 w-4" />
+            {tabItem.label}
           </button>
         ))}
       </div>
 
       {tab === "apercu" && <ApercuTab stage={stage} />}
-      {tab === "taches" && <TachesTab />}
+      {tab === "taches" && <TachesTab stage={stage} />}
       {tab === "evaluation" && <EvaluationTab stage={stage} />}
       {tab === "rapports" && <RapportsTab />}
-      {tab === "messages" && <MessagesTab />}
+      {tab === "messages" && <MessagesTab stage={stage} />}
 
       {/* Boutons persistants — visibles peu importe l'onglet sélectionné */}
       {stage.statut === "actif" && (
@@ -131,8 +137,15 @@ export default function StagiaireDetailPanel({ stage, index }) {
           <TerminerStageDialog
             idStage={stage.idStage}
             stagiaireNom={`${stage.prenom} ${stage.nom}`}
+            stage={stage}
           />
-          <SignalerDialog idStage={stage.idStage} />
+          <SignalerDialog
+            idStage={stage.idStage}
+            stagiaireNom={`${stage.prenom || ""} ${stage.nom || ""}`.trim()}
+            prenom={stage.prenom}
+            nom={stage.nom}
+            titrePoste={stage.titrePoste}
+          />
         </div>
       )}
     </div>

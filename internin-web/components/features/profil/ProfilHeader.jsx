@@ -1,4 +1,6 @@
 "use client";
+
+import { useTranslation } from "@/lib/i18n/useTranslation";
 // Profile Hero de la page "Mon profil" (espace stagiaire) — refonte
 // visuelle uniquement. La logique d'upload de photo (useUploadPhotoProfil)
 // est inchangée, seule la présentation change. Le pourcentage de
@@ -13,6 +15,7 @@ import { useUploadPhotoProfil } from "@/lib/queries/useStagiaireProfile";
 import { calculerCompletionProfil } from "@/lib/utils/profilCompletion";
 
 export default function ProfilHeader({ profil }) {
+  const { t } = useTranslation();
   const fileInputRef = useRef(null);
   const uploadPhoto = useUploadPhotoProfil();
   const [isHoveringPhoto, setIsHoveringPhoto] = useState(false);
@@ -53,7 +56,7 @@ export default function ProfilHeader({ profil }) {
             onMouseEnter={() => setIsHoveringPhoto(true)}
             onMouseLeave={() => setIsHoveringPhoto(false)}
             disabled={uploadPhoto.isPending}
-            aria-label="Changer la photo de profil"
+            aria-label={t("stagiaireSpace.profile.changePhoto")}
             className="group relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-primary text-2xl font-bold text-primary-foreground shadow-sm ring-4 ring-background transition-transform duration-200 hover:scale-[1.02] sm:h-28 sm:w-28"
           >
             {profil.photoProfilUrl ? (
@@ -80,7 +83,7 @@ export default function ProfilHeader({ profil }) {
               ) : (
                 <>
                   <FiCamera className="h-5 w-5" />
-                  <span className="text-[11px] font-medium">Modifier</span>
+                  <span className="text-[11px] font-medium">{t("stagiaireSpace.profile.modify")}</span>
                 </>
               )}
             </div>

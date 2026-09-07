@@ -1,6 +1,7 @@
 "use client";
 
 import AppHeader from "@/components/layout/AppHeader";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useStagiaireProfile } from "@/lib/queries/useStagiaireProfile";
 import ProfilHeader from "@/components/features/profil/ProfilHeader";
 import ProfilSkeleton from "@/components/features/profil/ProfilSkeleton";
@@ -14,13 +15,14 @@ import CentresInteretSection from "@/components/features/profil/CentresInteretSe
 import PreferencesRechercheSection from "@/components/features/profil/PreferencesRechercheSection";
 
 export default function ProfilPage() {
+  const { t } = useTranslation();
   const { data: profil, isLoading } = useStagiaireProfile();
 
   return (
     <>
       <AppHeader
-        title="Mon profil"
-        subtitle="Complétez votre profil pour être remarqué des recruteurs"
+        title={t("stagiaireSpace.profile.title")}
+        subtitle={t("stagiaireSpace.profile.subtitle")}
       />
       <div className="space-y-6 px-4 py-6 sm:px-6">
         {isLoading && <ProfilSkeleton />}

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { FiLoader, FiAlertCircle, FiUser } from "react-icons/fi";
+import { useState, useMemo } from "react";
+import { FiLoader, FiAlertCircle } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,12 +27,12 @@ import {
   STATUT_DOT_COLORS,
   AVATAR_COLORS,
 } from "./equipeConstants";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+import { roleLabel, permissionLabel, categorieLabel, statutLabel } from "./equipeConstants";
 import { useCatalogueEquipe, useUpdateMembre } from "@/lib/queries/useEquipe";
 
-// Formulaire isolé, remonté (via key={membre.idMembre} dans le parent) à
-// chaque changement de membre sélectionné : son état local part directement
-// des valeurs du membre, sans effet de synchronisation.
 function MembreDetailForm({ membre, catalogue, onClose }) {
+  const { t } = useTranslation();
   const mutation = useUpdateMembre();
   const [roleEquipe, setRoleEquipe] = useState(membre.roleEquipe);
   const [permissions, setPermissions] = useState(
@@ -40,7 +40,26 @@ function MembreDetailForm({ membre, catalogue, onClose }) {
   );
 
   const permissionsEffectives =
-    permissions ?? catalogue?.permissionsParDefautRole[roleEquipe] ?? [];
+    permissions ?? catalogue?.permissionsParDefautRole?.[roleEquipe] ?? [];
+
+  const permissionsByCategory = useMemo(() => {
+    if (!catalogue?.permissions) return [];
+    const categories =
+      catalogue.categories ?? [
+        { id: "recrutement" },
+        { id: "suivi" },
+        { id: "partenariats" },
+        { id: "administration" },
+      ];
+    return categories
+      .map((cat) => ({
+        ...cat,
+        items: catalogue.permissions.filter(
+          (p) => (p.categorie || "recrutement") === cat.id,
+        ),
+      }))
+      .filter((cat) => cat.items.length > 0);
+  }, [catalogue]);
 
   function togglePermission(cle) {
     const base = permissionsEffectives;
@@ -63,14 +82,16 @@ function MembreDetailForm({ membre, catalogue, onClose }) {
           permissionsPersonnalisees: permissionsEffectives,
         },
       },
-      { onSuccess: () => onClose() },
+      {
+        onSuccess: () => onClose(),
+      },
     );
   }
 
   return (
     <>
       <div className="space-y-1.5">
-        <Label>Rôle</Label>
+        <Label>{t("equipe.detail.role")}</Label>
         <Select value={roleEquipe} onValueChange={handleRoleChange}>
           <SelectTrigger className="h-11 w-full rounded-md">
             <SelectValue />
@@ -86,29 +107,48 @@ function MembreDetailForm({ membre, catalogue, onClose }) {
       </div>
 
       {catalogue && (
-        <div className="space-y-2">
-          <Label>Fonctionnalités accessibles</Label>
-          <div className="space-y-2 rounded-md border border-border p-3">
-            {catalogue.permissions.map((p) => (
-              <label
-                key={p.cle}
-                className="flex cursor-pointer items-center gap-2.5 text-sm text-foreground"
-              >
-                <Checkbox
-                  checked={permissionsEffectives.includes(p.cle)}
-                  onCheckedChange={() => togglePermission(p.cle)}
-                />
-                {p.label}
-              </label>
-            ))}
-          </div>
+        <div className="space-y-3">
+          <Label>{t("equipe.detail.features")}</Label>
+          {permissionsByCategory.map((cat) => (
+            <div
+              key={cat.id}
+              className="rounded-md border border-border p-3 space-y-2"
+            >
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {categorieLabel(t, cat.id) || cat.label}
+              </p>
+              <div className="space-y-2">
+                {cat.items.map((p) => {
+                  const checked = permissionsEffectives.includes(p.cle);
+                  return (
+                    <label
+                      key={p.cle}
+                      className={`flex cursor-pointer items-center gap-2.5 text-sm transition-colors ${
+                        checked
+                          ? "text-foreground"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={() => togglePermission(p.cle)}
+                        disabled={mutation.isPending}
+                      />
+                      {permissionLabel(t, p)}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
       {mutation.isError && (
         <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           <FiAlertCircle className="h-4 w-4 shrink-0" />
-          {mutation.error.message}
+          {mutation.error?.message ||
+            t("equipe.detail.updateError")}
         </div>
       )}
 
@@ -121,7 +161,7 @@ function MembreDetailForm({ membre, catalogue, onClose }) {
         {mutation.isPending ? (
           <FiLoader className="h-4 w-4 animate-spin" />
         ) : (
-          "Enregistrer les modifications"
+          t("equipe.detail.save")
         )}
       </Button>
     </>
@@ -129,6 +169,7 @@ function MembreDetailForm({ membre, catalogue, onClose }) {
 }
 
 export default function MembreDetailDialog({ membre, onClose }) {
+  const { t } = useTranslation();
   const { data: catalogue } = useCatalogueEquipe();
 
   const initiales = membre
@@ -168,7 +209,7 @@ export default function MembreDetailDialog({ membre, onClose }) {
           <div className="space-y-4 py-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
-                {ROLE_LABELS[membre.roleEquipe] || membre.roleEquipe}
+                {roleLabel(t, membre.roleEquipe) || membre.roleEquipe}
               </span>
               <span
                 className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${STATUT_MEMBRE_COLORS[membre.statutMembre]}`}
@@ -176,14 +217,17 @@ export default function MembreDetailDialog({ membre, onClose }) {
                 <span
                   className={`h-1.5 w-1.5 rounded-full ${STATUT_DOT_COLORS[membre.statutMembre]}`}
                 />
-                {STATUT_MEMBRE_LABELS[membre.statutMembre]}
+                {statutLabel(t, membre.statutMembre)}
               </span>
             </div>
 
             {membre.estAdminPrincipal ? (
               <p className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-                L&apos;administrateur principal dispose d&apos;un accès complet
-                et non modifiable à toutes les fonctionnalités.
+                {t("equipe.detail.adminLocked")}
+              </p>
+            ) : membre.statutMembre === "desactive" ? (
+              <p className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                {t("equipe.detail.disabledHint")}
               </p>
             ) : (
               <MembreDetailForm

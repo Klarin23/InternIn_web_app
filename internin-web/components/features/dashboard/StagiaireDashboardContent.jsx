@@ -22,6 +22,7 @@ import { useMesCandidatures } from "@/lib/queries/useMesCandidatures";
 import { useMesEntretiens } from "@/lib/queries/useEntretiens";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { calculerCompletionProfil } from "@/lib/utils/profilCompletion";
+import { MaintenanceScreen } from "@/components/features/system/MaintenanceGate";
 
 const STATUTS_ENTRETIEN_A_VENIR = [
   "planifie",
@@ -32,7 +33,7 @@ const STATUTS_ENTRETIEN_A_VENIR = [
 
 export default function StagiaireDashboardContent() {
   const { t } = useTranslation();
-  const { data: profile, isLoading, isError } = useStagiaireProfile();
+  const { data: profile, isLoading, isError, error } = useStagiaireProfile();
   const { data: candidatures } = useMesCandidatures();
   const { data: entretiens } = useMesEntretiens();
 
@@ -76,9 +77,14 @@ export default function StagiaireDashboardContent() {
           </div>
         )}
 
-        {isError && (
+        {isError &&
+          (error?.code === "MAINTENANCE" ||
+          error?.status === 503 ||
+          error?.maintenance) ? (
+          <MaintenanceScreen message={error?.message} />
+        ) : isError ? (
           <p className="text-sm text-destructive">{t("dashboard.loadError")}</p>
-        )}
+        ) : null}
 
         {profile && (
           <>

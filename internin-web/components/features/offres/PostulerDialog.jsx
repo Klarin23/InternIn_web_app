@@ -43,6 +43,7 @@ import { calculerCompletionProfil } from "@/lib/utils/profilCompletion";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { dureeLabel, estOffreExpiree } from "@/lib/constants/offres";
 import { toast } from "@/lib/store/useToastStore";
+import { openProtectedCv } from "@/lib/utils/openProtectedDocument";
 import { cn } from "@/lib/utils";
 
 const MAX_MOTIVATION = 1000;
@@ -51,10 +52,10 @@ const ACCEPT_CV =
 const MAX_CV_BYTES = 5 * 1024 * 1024;
 
 const ETAPES = [
-  { id: 0, key: "profil", label: "Profil" },
-  { id: 1, key: "motivation", label: "Motivation" },
-  { id: 2, key: "documents", label: "Documents" },
-  { id: 3, key: "verification", label: "Vérification" },
+  { id: 0, key: "profil", labelKey: "offersPage.apply.stepProfil" },
+  { id: 1, key: "motivation", labelKey: "offersPage.apply.stepMotivation" },
+  { id: 2, key: "documents", labelKey: "offersPage.apply.stepDocuments" },
+  { id: 3, key: "verification", labelKey: "offersPage.apply.stepVerification" },
 ];
 
 function initiales(prenom, nom) {
@@ -68,7 +69,7 @@ function formationPrincipale(profil) {
   if (!f) return null;
   const parts = [
     f.diplome,
-    f.anneeEtude ? `Année ${f.anneeEtude}` : null,
+    f.anneeEtude ? String(f.anneeEtude) : null,
     f.faculte || f.departement,
   ].filter(Boolean);
   return parts.length ? parts.join(" — ") : null;
@@ -82,8 +83,9 @@ function etablissementPrincipal(profil) {
 /* ─── Stepper ─── */
 
 function CandidatureStepper({ etape, onGo }) {
+  const { t } = useTranslation();
   return (
-    <nav aria-label="Progression de la candidature" className="w-full">
+    <nav aria-label={t("offersPage.apply.progressAria")} className="w-full">
       <ol className="hidden items-center sm:flex">
         {ETAPES.map((e, i) => {
           const done = i < etape;
@@ -119,7 +121,7 @@ function CandidatureStepper({ etape, onGo }) {
                       : "text-muted-foreground",
                   )}
                 >
-                  {e.label}
+                  {t(e.labelKey)}
                 </span>
               </button>
               {i < ETAPES.length - 1 && (
@@ -149,7 +151,7 @@ function CandidatureStepper({ etape, onGo }) {
           ))}
         </div>
         <span className="shrink-0 text-xs font-medium text-muted-foreground">
-          {etape + 1}/{ETAPES.length} · {ETAPES[etape].label}
+          {t("offersPage.apply.stepOf", { current: etape + 1, total: ETAPES.length })} · {ETAPES[etape].label}
         </span>
       </div>
     </nav>
@@ -159,6 +161,7 @@ function CandidatureStepper({ etape, onGo }) {
 /* ─── Étape Profil ─── */
 
 function EtapeProfil({ profil, completion, loading }) {
+  const { t } = useTranslation();
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16 text-muted-foreground">
@@ -178,7 +181,7 @@ function EtapeProfil({ profil, completion, loading }) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Vérifiez les informations qui seront visibles par l&apos;entreprise.
+        {t("offersPage.apply.profilIntro")}
       </p>
 
       <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
@@ -248,7 +251,7 @@ function EtapeProfil({ profil, completion, loading }) {
         <div className="mt-5 space-y-1.5">
           <div className="flex items-center justify-between text-xs">
             <span className="font-medium text-muted-foreground">
-              Profil complété
+              {t("offersPage.apply.profileComplete")}
             </span>
             <span className="font-semibold text-foreground">{pct}%</span>
           </div>
@@ -266,16 +269,16 @@ function EtapeProfil({ profil, completion, loading }) {
       {completion?.complet ? (
         <div className="flex items-start gap-2.5 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3.5 py-3 text-sm text-emerald-800 dark:text-emerald-300">
           <FiCheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>Votre profil est prêt pour cette candidature.</span>
+          <span>{t("offersPage.apply.readyProfile")}</span>
         </div>
       ) : (
         <div className="flex flex-col gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-3 text-sm text-amber-900 dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-2.5">
             <FiAlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
-              Votre profil n&apos;est pas complètement renseigné
+              {t("offersPage.apply.profileIncomplete")}
               {completion?.manquants?.length
-                ? ` (${completion.manquants.length} élément${completion.manquants.length > 1 ? "s" : ""} manquant${completion.manquants.length > 1 ? "s" : ""})`
+                ? ` ${t("offersPage.apply.missingCount", { n: completion.manquants.length })}`
                 : ""}
               .
             </span>
@@ -284,7 +287,7 @@ function EtapeProfil({ profil, completion, loading }) {
             href="/profil"
             className="shrink-0 text-sm font-semibold text-primary underline-offset-2 hover:underline"
           >
-            Compléter mon profil
+            {t("offersPage.apply.editProfile")}
           </Link>
         </div>
       )}
@@ -295,6 +298,7 @@ function EtapeProfil({ profil, completion, loading }) {
 /* ─── Étape Motivation ─── */
 
 function EtapeMotivation({ value, onChange }) {
+  const { t } = useTranslation();
   const len = value.length;
   const nearLimit = len > MAX_MOTIVATION * 0.9;
 
@@ -302,22 +306,22 @@ function EtapeMotivation({ value, onChange }) {
     <div className="space-y-3">
       <div className="space-y-1.5">
         <Label htmlFor="lettreMotivation" className="text-sm font-semibold">
-          Pourquoi souhaitez-vous rejoindre cette entreprise&nbsp;?
+          {t("offersPage.apply.motivationQuestion")}
         </Label>
         <Textarea
           id="lettreMotivation"
           rows={8}
           maxLength={MAX_MOTIVATION}
-          placeholder="Présentez brièvement votre motivation et expliquez pourquoi cette offre correspond à votre parcours…"
+          placeholder={t("offersPage.apply.motivationPlaceholder")}
           value={value}
           onChange={(e) => onChange(e.target.value.slice(0, MAX_MOTIVATION))}
-          className="min-h-[160px] resize-y rounded-lg text-sm leading-relaxed"
+          className="min-h-40 resize-y rounded-lg text-sm leading-relaxed"
         />
       </div>
       <div className="flex items-center justify-between gap-3 text-xs">
         <p className="text-muted-foreground">
-          Présentez brièvement votre motivation et le lien avec votre parcours.
-          Facultatif, mais recommandé.
+          {t("offersPage.apply.motivationIntro")}
+          {t("offersPage.apply.motivationHint")}.
         </p>
         <span
           className={cn(
@@ -341,6 +345,7 @@ function EtapeDocuments({
   uploading,
   setUploading,
 }) {
+  const { t } = useTranslation();
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
   const [erreurFichier, setErreurFichier] = useState("");
@@ -358,11 +363,11 @@ function EtapeDocuments({
 
       const ext = file.name.split(".").pop()?.toLowerCase();
       if (!["pdf", "doc", "docx"].includes(ext || "")) {
-        setErreurFichier("Formats acceptés : PDF, DOC, DOCX");
+        setErreurFichier(t("offersPage.apply.fileInvalidType"));
         return;
       }
       if (file.size > MAX_CV_BYTES) {
-        setErreurFichier("Fichier trop volumineux (max. 5 Mo)");
+        setErreurFichier(t("offersPage.apply.fileTooLarge"));
         return;
       }
 
@@ -371,14 +376,14 @@ function EtapeDocuments({
         const { url } = await uploadDocumentRequest(file, "cv", token);
         await updateProfile.mutateAsync({ cvUrl: url });
         onCvUpdated?.();
-        toast.success("CV enregistré sur votre profil");
+        toast.success(t("offersPage.apply.cvOnProfile"));
       } catch (err) {
-        setErreurFichier(err.message || "Échec de l'envoi du CV");
+        setErreurFichier(err.message || t("offersPage.apply.uploadError"));
       } finally {
         setUploading(false);
       }
     },
-    [token, updateProfile, onCvUpdated, setUploading],
+    [setUploading, t, token, updateProfile, onCvUpdated],
   );
 
   function onDrop(e) {
@@ -391,8 +396,7 @@ function EtapeDocuments({
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Votre CV est joint automatiquement depuis votre profil. Vous pouvez le
-        remplacer ici si besoin.
+{t("offersPage.apply.cvAutoAttached")}
       </p>
 
       {cvUrl ? (
@@ -414,21 +418,26 @@ function EtapeDocuments({
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <a
-              href={cvUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
               className="rounded-md px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+              onClick={async () => {
+                try {
+                  await openProtectedCv(cvUrl);
+                } catch (err) {
+                  toast.error(err?.message || "Impossible d'ouvrir le CV");
+                }
+              }}
             >
-              Voir
-            </a>
+              {t("offersPage.apply.view")}
+            </button>
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={uploading}
               className="rounded-md px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 disabled:opacity-50"
             >
-              Remplacer
+              {t("offersPage.apply.replace")}
             </button>
           </div>
         </motion.div>
@@ -460,13 +469,13 @@ function EtapeDocuments({
             <FiUploadCloud className="h-8 w-8 text-primary" />
           )}
           <p className="text-sm font-semibold text-foreground">
-            {uploading ? "Envoi en cours…" : "Ajouter votre CV"}
+            {uploading ? t("offersPage.apply.uploading") : t("offersPage.apply.selectCv")}
           </p>
           <p className="text-xs text-muted-foreground">
-            Glissez-déposez votre fichier ici ou cliquez pour parcourir
+            {t("offersPage.apply.dropCv")}
           </p>
           <p className="text-[11px] text-muted-foreground">
-            PDF · DOC · DOCX · max 5 Mo
+            {t("offersPage.apply.cvFormats")}
           </p>
         </div>
       )}
@@ -475,7 +484,7 @@ function EtapeDocuments({
         <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-3 text-sm text-amber-900 dark:text-amber-200">
           <FiAlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
-            Aucun CV sur votre profil. Ajoutez-le pour maximiser vos chances.
+            {t("offersPage.apply.noCvWarning")}
           </span>
         </div>
       )}
@@ -492,7 +501,7 @@ function EtapeDocuments({
         type="file"
         accept={ACCEPT_CV}
         className="sr-only"
-        aria-label="Sélectionner un CV"
+        aria-label={t("offersPage.apply.selectCv")}
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) validerEtUploader(file);
@@ -521,13 +530,11 @@ function EtapeVerification({
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Vérifiez les informations avant d&apos;envoyer votre candidature.
+        {t("offersPage.apply.verifyIntro")}
       </p>
 
       <section className="rounded-xl border border-border bg-card p-4">
-        <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Offre
-        </h4>
+        <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("offersPage.apply.sectionOffer")}</h4>
         <p className="font-semibold text-foreground">{titre}</p>
         {entreprise && (
           <p className="mt-0.5 text-sm text-muted-foreground">{entreprise}</p>
@@ -550,15 +557,13 @@ function EtapeVerification({
 
       <section className="rounded-xl border border-border bg-card p-4">
         <div className="mb-2 flex items-center justify-between">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Candidat
-          </h4>
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("offersPage.apply.sectionCandidate")}</h4>
           <button
             type="button"
             onClick={() => onGo(0)}
             className="text-xs font-medium text-primary hover:underline"
           >
-            Modifier
+            {t("offersPage.apply.edit")}
           </button>
         </div>
         <p className="font-semibold text-foreground">
@@ -578,15 +583,13 @@ function EtapeVerification({
 
       <section className="rounded-xl border border-border bg-card p-4">
         <div className="mb-2 flex items-center justify-between">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Motivation
-          </h4>
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("offersPage.apply.sectionMotivation")}</h4>
           <button
             type="button"
             onClick={() => onGo(1)}
             className="text-xs font-medium text-primary hover:underline"
           >
-            Modifier
+            {t("offersPage.apply.edit")}
           </button>
         </div>
         {lettreMotivation.trim() ? (
@@ -595,22 +598,20 @@ function EtapeVerification({
           </p>
         ) : (
           <p className="text-sm italic text-muted-foreground">
-            Aucune lettre de motivation
+            {t("offersPage.apply.noMotivation")}
           </p>
         )}
       </section>
 
       <section className="rounded-xl border border-border bg-card p-4">
         <div className="mb-2 flex items-center justify-between">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Documents
-          </h4>
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("offersPage.apply.sectionDocuments")}</h4>
           <button
             type="button"
             onClick={() => onGo(2)}
             className="text-xs font-medium text-primary hover:underline"
           >
-            Modifier
+            {t("offersPage.apply.edit")}
           </button>
         </div>
         {profil?.cvUrl ? (
@@ -634,6 +635,7 @@ function EtapeVerification({
 /* ─── Succès ─── */
 
 function CandidatureSuccess({ onClose }) {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.94 }}
@@ -655,15 +657,13 @@ function CandidatureSuccess({ onClose }) {
         <FiCheck className="h-8 w-8" strokeWidth={2.5} />
       </motion.div>
       <h3 className="text-xl font-bold text-foreground">
-        Candidature envoyée&nbsp;!
+        {t("offersPage.apply.successTitle")}
       </h3>
       <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-        Votre candidature a bien été transmise à l&apos;entreprise. Vous pouvez
-        suivre son évolution depuis votre espace candidat.
-      </p>
+        {t("offersPage.apply.successDesc")}</p>
       <div className="mt-7 flex w-full flex-col gap-2.5 sm:max-w-xs">
         <Button asChild className="h-11 rounded-lg">
-          <Link href="/candidatures">Voir ma candidature</Link>
+          <Link href="/candidatures">{t("offersPage.apply.viewApplications")}</Link>
         </Button>
         <Button
           type="button"
@@ -671,7 +671,7 @@ function CandidatureSuccess({ onClose }) {
           onClick={onClose}
           className="h-11 rounded-lg"
         >
-          Fermer
+          {t("offersPage.apply.close")}
         </Button>
       </div>
     </motion.div>
@@ -718,8 +718,10 @@ export default function PostulerDialog({ idOffre, offreTitle, offre = null }) {
         queryKey: ["candidatureStatut", idOffre],
       });
       queryClient.invalidateQueries({ queryKey: ["mesCandidatures"] });
+      queryClient.invalidateQueries({ queryKey: ["offres"] });
+      queryClient.invalidateQueries({ queryKey: ["offre", idOffre] });
       setSuccess(true);
-      toast.success("Candidature envoyée");
+      toast.success(t("offersPage.apply.successTitle"));
     },
   });
 
@@ -789,7 +791,7 @@ export default function PostulerDialog({ idOffre, offreTitle, offre = null }) {
           className="flex h-12 w-full cursor-not-allowed items-center justify-center gap-2 rounded-sm border border-destructive/30 bg-destructive/10 text-sm font-semibold text-destructive"
         >
           <FiAlertCircle className="h-4 w-4 shrink-0" />
-          Offre expirée
+          {t("offersPage.apply.offerExpired")}
         </button>
       ) : (
         <Button
@@ -805,7 +807,7 @@ export default function PostulerDialog({ idOffre, offreTitle, offre = null }) {
       <DialogContent
         showCloseButton={false}
         className={cn(
-          "flex max-h-[min(92vh,840px)] w-full flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[560px]",
+          "flex max-h-[min(92vh,840px)] w-full flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-140",
           "bg-background shadow-2xl ring-1 ring-border",
         )}
         onInteractOutside={(e) => {
@@ -820,7 +822,7 @@ export default function PostulerDialog({ idOffre, offreTitle, offre = null }) {
             <div className="mb-4 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <DialogTitle className="text-base font-bold text-foreground sm:text-lg">
-                  Postuler à cette offre
+                  {t("offersPage.apply.dialogTitleShort")}
                 </DialogTitle>
                 <p className="mt-0.5 truncate text-sm font-medium text-foreground">
                   {titreOffre}
@@ -835,7 +837,7 @@ export default function PostulerDialog({ idOffre, offreTitle, offre = null }) {
                 type="button"
                 onClick={() => handleOpenChange(false)}
                 disabled={mutation.isPending}
-                aria-label="Fermer"
+                aria-label={t("offersPage.apply.close")}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-50"
               >
                 <FiX className="h-5 w-5" />
@@ -907,11 +909,11 @@ export default function PostulerDialog({ idOffre, offreTitle, offre = null }) {
             <div className="mt-4 space-y-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               <div className="flex items-start gap-2 font-semibold">
                 <FiAlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                Impossible d&apos;envoyer votre candidature
+                {t("offersPage.apply.errorTitle")}
               </div>
               <p className="pl-6 text-destructive/90">
                 {mutation.error?.message ||
-                  "Vérifiez votre connexion et réessayez."}
+                  t("offersPage.apply.errorRetry")}
               </p>
               <div className="pl-6">
                 <button
@@ -919,7 +921,7 @@ export default function PostulerDialog({ idOffre, offreTitle, offre = null }) {
                   onClick={() => mutation.mutate()}
                   className="text-xs font-semibold underline underline-offset-2"
                 >
-                  Réessayer
+                  {t("offersPage.apply.retry")}
                 </button>
               </div>
             </div>
@@ -938,7 +940,7 @@ export default function PostulerDialog({ idOffre, offreTitle, offre = null }) {
                   className="h-11 rounded-lg px-4"
                 >
                   <FiArrowLeft className="h-4 w-4" />
-                  {etape === ETAPES.length - 1 ? "Modifier" : "Retour"}
+                  {etape === ETAPES.length - 1 ? t("offersPage.apply.edit") : t("offersPage.apply.back")}
                 </Button>
               ) : (
                 <span />
@@ -949,9 +951,9 @@ export default function PostulerDialog({ idOffre, offreTitle, offre = null }) {
                   type="button"
                   onClick={handleContinuer}
                   disabled={loadingProfil || uploadingCv}
-                  className="h-11 min-w-[140px] rounded-lg"
+                  className="h-11 min-w-35 rounded-lg"
                 >
-                  Continuer
+                  {t("offersPage.apply.next")}
                   <FiArrowRight className="h-4 w-4" />
                 </Button>
               ) : (
@@ -959,17 +961,17 @@ export default function PostulerDialog({ idOffre, offreTitle, offre = null }) {
                   type="button"
                   onClick={handleEnvoyer}
                   disabled={mutation.isPending || uploadingCv}
-                  className="h-11 min-w-[180px] rounded-lg"
+                  className="h-11 min-w-45 rounded-lg"
                 >
                   {mutation.isPending ? (
                     <>
                       <FiLoader className="h-4 w-4 animate-spin" />
-                      Envoi de la candidature…
+                      {t("offersPage.apply.sending")}
                     </>
                   ) : (
                     <>
                       <FiSend className="h-4 w-4" />
-                      Envoyer ma candidature
+                      {t("offersPage.apply.submit")}
                     </>
                   )}
                 </Button>
@@ -998,7 +1000,7 @@ export default function PostulerDialog({ idOffre, offreTitle, offre = null }) {
                   id="quit-title"
                   className="text-base font-semibold text-foreground"
                 >
-                  Quitter la candidature&nbsp;?
+                  {t("offersPage.apply.leaveConfirm")}
                 </h3>
                 <p className="mt-1.5 text-sm text-muted-foreground">
                   Les informations que vous avez saisies pourraient être
@@ -1011,7 +1013,7 @@ export default function PostulerDialog({ idOffre, offreTitle, offre = null }) {
                     className="h-10 rounded-lg"
                     onClick={() => setConfirmQuit(false)}
                   >
-                    Continuer la candidature
+                    {t("offersPage.apply.successContinue")} la candidature
                   </Button>
                   <Button
                     type="button"
@@ -1023,7 +1025,7 @@ export default function PostulerDialog({ idOffre, offreTitle, offre = null }) {
                       setTimeout(resetAll, 200);
                     }}
                   >
-                    Quitter
+                    {t("offersPage.apply.leaveYes")}
                   </Button>
                 </div>
               </motion.div>

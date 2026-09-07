@@ -2,7 +2,50 @@
 // La logique métier reste inchangée.
 // Les clés de traduction sont exposées aux composants UI.
 
-import { FiCalendar, FiClock, FiX, FiCheckCircle } from "react-icons/fi";
+import { FiCalendar, FiClock, FiX, FiCheckCircle, FiCornerUpLeft } from "react-icons/fi";
+
+export const MOTIFS_RETRAIT = [
+  { code: "ACCEPTED_OTHER_OPPORTUNITY", labelKey: "candidatures.withdraw.reasons.ACCEPTED_OTHER_OPPORTUNITY", label: "J'ai accepté une autre opportunité." },
+  { code: "NO_LONGER_AVAILABLE", labelKey: "candidatures.withdraw.reasons.NO_LONGER_AVAILABLE", label: "Je ne suis plus disponible." },
+  { code: "OFFER_NO_LONGER_FITS", labelKey: "candidatures.withdraw.reasons.OFFER_NO_LONGER_FITS", label: "L'offre ne correspond plus à mon projet." },
+  { code: "FOUND_INTERNSHIP_ELSEWHERE", labelKey: "candidatures.withdraw.reasons.FOUND_INTERNSHIP_ELSEWHERE", label: "J'ai trouvé un stage ailleurs." },
+  { code: "AVAILABILITY_CHANGED", labelKey: "candidatures.withdraw.reasons.AVAILABILITY_CHANGED", label: "Mes disponibilités ont changé." },
+  { code: "PERSONAL_REASONS", labelKey: "candidatures.withdraw.reasons.PERSONAL_REASONS", label: "Raisons personnelles." },
+  { code: "OTHER", labelKey: "candidatures.withdraw.reasons.OTHER", label: "Autre." },
+];
+
+export const MOTIFS_RETRAIT_LABELS = Object.fromEntries(
+  MOTIFS_RETRAIT.map((m) => [m.code, m.label]),
+);
+
+/** Statuts pour lesquels le stagiaire peut encore retirer sa candidature */
+export const TRANSITIONS_CANDIDATURE = Object.freeze({
+  soumise: Object.freeze(["consultee", "preselectionnee", "rejetee"]),
+  consultee: Object.freeze(["preselectionnee", "rejetee"]),
+  preselectionnee: Object.freeze(["rejetee"]),
+  rejetee: Object.freeze([]),
+  acceptee: Object.freeze([]),
+  retiree: Object.freeze([]),
+});
+
+/**
+ * Vérifie côté UI si un changement de statut est autorisé par la machine
+ * d'état métier. Le backend reste la source d'autorité finale.
+ */
+export function peutChangerStatutCandidature(statutActuel, nouveauStatut) {
+  if (!statutActuel || !nouveauStatut || statutActuel === nouveauStatut) {
+    return false;
+  }
+
+  return TRANSITIONS_CANDIDATURE[statutActuel]?.includes(nouveauStatut) ?? false;
+}
+
+export const STATUTS_RETRAIT_AUTORISES = ["soumise", "consultee", "preselectionnee"];
+
+export function peutRetirerCandidature(candidature) {
+  return !!candidature && STATUTS_RETRAIT_AUTORISES.includes(candidature.statut);
+}
+
 
 export const STATUTS_ENTRETIEN_ACTIFS = [
   "planifie",
@@ -43,6 +86,11 @@ export const FILTRES_STATUT = [
     label: "Refusées",
     labelKey: "candidatures.filters.rejected",
   },
+  {
+    valeur: "retiree",
+    label: "Retirées",
+    labelKey: "candidatures.filters.withdrawn",
+  },
 ];
 
 const LABEL_PAR_FILTRE = {
@@ -51,6 +99,7 @@ const LABEL_PAR_FILTRE = {
   entretien: "Entretien",
   acceptee: "Accepté",
   refusee: "Refusé",
+  retiree: "Retirée par vous",
 };
 
 export function formatDate(date, avecHeure = false, locale = "fr-FR") {
@@ -116,11 +165,46 @@ export function getAffichage(
   }
 
   if (candidature.statut === "retiree") {
+    const motifEntry = MOTIFS_RETRAIT.find(
+      (m) => m.code === candidature.motifRetraitCode,
+    );
+    const motifLabel = t && motifEntry?.labelKey
+      ? t(motifEntry.labelKey)
+      : MOTIFS_RETRAIT_LABELS[candidature.motifRetraitCode] ||
+        candidature.motifRetraitCommentaire ||
+        null;
+    // Si motif OTHER + commentaire, préférer le commentaire libre
+    const reasonText =
+      candidature.motifRetraitCode === "OTHER" && candidature.motifRetraitCommentaire
+        ? candidature.motifRetraitCommentaire
+        : motifLabel || candidature.motifRetraitCommentaire || null;
+    const dateRetrait = candidature.dateRetrait
+      ? formatDate(candidature.dateRetrait, false, locale)
+      : null;
+    let detail = t
+      ? t("candidatures.status.withdrawn.detail")
+      : "Vous avez retiré cette candidature";
+    if (dateRetrait && reasonText) {
+      detail = t
+        ? t("candidatures.status.withdrawn.detailDateReason", {
+            date: dateRetrait,
+            reason: reasonText,
+          })
+        : `Retrait effectué le ${dateRetrait} — Motif : ${reasonText}`;
+    } else if (dateRetrait) {
+      detail = t
+        ? t("candidatures.status.withdrawn.detailDate", { date: dateRetrait })
+        : `Retrait effectué le ${dateRetrait}`;
+    } else if (reasonText) {
+      detail = t
+        ? t("candidatures.status.withdrawn.detailReason", { reason: reasonText })
+        : `Motif : ${reasonText}`;
+    }
     return {
-      label: t ? t("candidatures.status.withdrawn.label") : "Retirée",
-      className: "bg-muted text-muted-foreground",
-      Icon: FiX,
-      detail: null,
+      label: t ? t("candidatures.status.withdrawn.label") : "Retirée par vous",
+      className: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+      Icon: FiCornerUpLeft,
+      detail,
     };
   }
 
@@ -242,10 +326,32 @@ export function getEtapesTimeline(candidature, entretiens) {
 
 export function matchFiltre(candidature, entretiens, filtre) {
   if (filtre === "toutes") return true;
-
-  return (
-    getAffichage(candidature, entretiens).label === LABEL_PAR_FILTRE[filtre]
-  );
+  if (filtre === "retiree") return candidature.statut === "retiree";
+  if (filtre === "refusee") return candidature.statut === "rejetee";
+  if (filtre === "acceptee") return candidature.statut === "acceptee";
+  if (filtre === "consultee") return candidature.statut === "consultee";
+  if (filtre === "attente") {
+    // En attente = soumise sans entretien actif affiché comme "pending"
+    if (candidature.statut === "soumise") return true;
+    // preselectionnee sans entretien actif
+    if (candidature.statut === "preselectionnee") {
+      const hasEntretien = (entretiens || []).some(
+        (e) =>
+          e.idCandidature === candidature.idCandidature &&
+          STATUTS_ENTRETIEN_ACTIFS.includes(e.statut),
+      );
+      return !hasEntretien;
+    }
+    return false;
+  }
+  if (filtre === "entretien") {
+    return (entretiens || []).some(
+      (e) =>
+        e.idCandidature === candidature.idCandidature &&
+        STATUTS_ENTRETIEN_ACTIFS.includes(e.statut),
+    );
+  }
+  return false;
 }
 
 export function matchRecherche(candidature, recherche) {

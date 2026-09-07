@@ -10,7 +10,7 @@
 // progression, gestion des modifications non sauvegardées) a été ajoutée.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, useReducedMotion } from "framer-motion";
 import {
@@ -44,6 +44,7 @@ import {
 } from "@/lib/schemas/editProfilEntreprise.schema";
 import { calculerCompletionEntreprise } from "@/lib/utils/profilCompletion";
 import { toast } from "@/lib/store/useToastStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 import EditProfilLogoHeader from "./edit/EditProfilLogoHeader";
 import EditProfilCompletionBar from "./edit/EditProfilCompletionBar";
@@ -52,21 +53,13 @@ import EditProfilFormSection from "./edit/EditProfilFormSection";
 import EditProfilField from "./edit/EditProfilField";
 import EditProfilActionsBar from "./edit/EditProfilActionsBar";
 
-const TAILLE_LABELS = {
-  "1-10": "1 à 10 employés",
-  "11-50": "11 à 50 employés",
-  "51-200": "51 à 200 employés",
-  "201-500": "201 à 500 employés",
-  "500+": "Plus de 500 employés",
-};
-
-const SECTIONS = [
-  { id: "general", navLabel: "Informations générales", icon: FiInfo },
-  { id: "coordonnees", navLabel: "Coordonnées", icon: FiPhone },
-  { id: "localisation", navLabel: "Localisation", icon: FiMapPin },
-  { id: "presentation", navLabel: "Présentation", icon: FiFileText },
-  { id: "professionnel", navLabel: "Informations professionnelles", icon: FiUsers },
-  { id: "reseaux", navLabel: "Réseaux sociaux", icon: FiLinkedin },
+const SECTION_IDS = [
+  { id: "general", icon: FiInfo },
+  { id: "coordonnees", icon: FiPhone },
+  { id: "localisation", icon: FiMapPin },
+  { id: "presentation", icon: FiFileText },
+  { id: "professionnel", icon: FiUsers },
+  { id: "reseaux", icon: FiLinkedin },
 ];
 
 const staggerContainer = {
@@ -75,18 +68,38 @@ const staggerContainer = {
 };
 
 export default function EditProfilEntrepriseDialog({ open, onOpenChange, profil }) {
+  const { t } = useTranslation();
   const updateProfile = useUpdateEntrepriseProfile();
   const shouldReduceMotion = useReducedMotion();
 
+  const SECTIONS = useMemo(
+    () =>
+      SECTION_IDS.map((s) => ({
+        ...s,
+        navLabel: t(`profilEntreprise.edit.sections.${s.id}`),
+      })),
+    [t],
+  );
+
+  const TAILLE_LABELS = useMemo(
+    () => ({
+      "1-10": t("profilEntreprise.companySize.1-10"),
+      "11-50": t("profilEntreprise.companySize.11-50"),
+      "51-200": t("profilEntreprise.companySize.51-200"),
+      "201-500": t("profilEntreprise.companySize.201-500"),
+      "500+": t("profilEntreprise.companySize.500+"),
+    }),
+    [t],
+  );
+
   const containerRef = useRef(null);
   const sectionRefs = useRef({});
-  const [activeId, setActiveId] = useState(SECTIONS[0].id);
+  const [activeId, setActiveId] = useState("general");
 
   const {
     register,
     handleSubmit,
     control,
-    watch,
     formState: { errors, isDirty, isSubmitting },
   } = useForm({
     resolver: zodResolver(editProfilEntrepriseSchema),
@@ -105,11 +118,12 @@ export default function EditProfilEntrepriseDialog({ open, onOpenChange, profil 
     },
   });
 
-  const watched = watch();
+  // useWatch (et non watch()) pour rester compatible avec le React Compiler
+  const watched = useWatch({ control });
   const completion = useMemo(
     () =>
       calculerCompletionEntreprise({
-        ...watched,
+        ...(watched ?? {}),
         logoUrl: profil?.logoUrl,
       }),
     [watched, profil?.logoUrl],
@@ -159,7 +173,7 @@ export default function EditProfilEntrepriseDialog({ open, onOpenChange, profil 
   function handleOpenChange(nextOpen) {
     if (!nextOpen && isDirty) {
       const confirmerFermeture = window.confirm(
-        "Des modifications n'ont pas été enregistrées. Voulez-vous vraiment fermer sans enregistrer ?",
+        t("profilEntreprise.edit.unsavedChanges"),
       );
       if (!confirmerFermeture) return;
     }
@@ -170,14 +184,14 @@ export default function EditProfilEntrepriseDialog({ open, onOpenChange, profil 
   function onSubmit(values) {
     updateProfile.mutate(values, {
       onSuccess: () => {
-        toast.success("Profil mis à jour");
+        toast.success(t("profilEntreprise.edit.updated"));
         setTimeout(() => {
           updateProfile.reset();
           onOpenChange(false);
         }, 900);
       },
       onError: (err) => {
-        toast.error(err.message || "Échec de la mise à jour du profil");
+        toast.error(err.message || t("profilEntreprise.edit.updateError"));
       },
     });
   }
@@ -190,10 +204,9 @@ export default function EditProfilEntrepriseDialog({ open, onOpenChange, profil 
           className="grid min-h-0 flex-1 grid-rows-[auto_auto_minmax(0,1fr)_auto]"
         >
           <DialogHeader className="gap-1 px-5 pt-5 pr-10">
-            <DialogTitle>Modifier le profil de l&apos;entreprise</DialogTitle>
+            <DialogTitle>{t("profilEntreprise.edit.title")}</DialogTitle>
             <DialogDescription>
-              Ces informations sont visibles publiquement par les stagiaires et
-              universités partenaires.
+              {t("profilEntreprise.edit.description")}
             </DialogDescription>
           </DialogHeader>
 
@@ -225,20 +238,20 @@ export default function EditProfilEntrepriseDialog({ open, onOpenChange, profil 
                 id="general"
                 sectionRef={(el) => (sectionRefs.current.general = el)}
                 icon={FiInfo}
-                title="Informations générales"
-                description="Le nom et le secteur d'activité de votre entreprise."
+                title={t("profilEntreprise.edit.general.title")}
+                description={t("profilEntreprise.edit.general.description")}
               >
-                <EditProfilField id="nomEntreprise" label="Nom de l'entreprise" error={errors.nomEntreprise?.message}>
+                <EditProfilField id="nomEntreprise" label={t("profilEntreprise.edit.general.companyName")} error={errors.nomEntreprise?.message ? t(errors.nomEntreprise.message, { defaultValue: errors.nomEntreprise.message }) : undefined}>
                   <Input
                     id="nomEntreprise"
                     aria-invalid={!!errors.nomEntreprise}
                     {...register("nomEntreprise")}
                   />
                 </EditProfilField>
-                <EditProfilField id="secteurActivite" label="Secteur d'activité" error={errors.secteurActivite?.message}>
+                <EditProfilField id="secteurActivite" label={t("profilEntreprise.edit.general.industry")} error={errors.secteurActivite?.message}>
                   <Input
                     id="secteurActivite"
-                    placeholder="Ex. Technologies de l'information"
+                    placeholder={t("profilEntreprise.edit.general.industryPlaceholder")}
                     aria-invalid={!!errors.secteurActivite}
                     {...register("secteurActivite")}
                   />
@@ -249,10 +262,10 @@ export default function EditProfilEntrepriseDialog({ open, onOpenChange, profil 
                 id="coordonnees"
                 sectionRef={(el) => (sectionRefs.current.coordonnees = el)}
                 icon={FiPhone}
-                title="Coordonnées"
-                description="Comment les stagiaires et partenaires peuvent vous joindre."
+                title={t("profilEntreprise.edit.contact.title")}
+                description={t("profilEntreprise.edit.contact.description")}
               >
-                <EditProfilField id="siteWeb" label="Site web" error={errors.siteWeb?.message}>
+                <EditProfilField id="siteWeb" label={t("profilEntreprise.edit.contact.website")} error={errors.siteWeb?.message}>
                   <Input
                     id="siteWeb"
                     placeholder="https://votre-entreprise.com"
@@ -261,14 +274,14 @@ export default function EditProfilEntrepriseDialog({ open, onOpenChange, profil 
                   />
                 </EditProfilField>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <EditProfilField id="emailPro" label="Email professionnel">
+                  <EditProfilField id="emailPro" label={t("profilEntreprise.edit.contact.email")}>
                     <Input id="emailPro" value={profil?.email || ""} disabled readOnly />
                   </EditProfilField>
-                  <EditProfilField id="telephonePro" label="Téléphone">
+                  <EditProfilField id="telephonePro" label={t("profilEntreprise.edit.contact.phone")}>
                     <Input
                       id="telephonePro"
                       value={profil?.telephone || ""}
-                      placeholder="Non renseigné"
+                      placeholder={t("profilEntreprise.edit.contact.phonePlaceholder")}
                       disabled
                       readOnly
                     />
@@ -284,18 +297,18 @@ export default function EditProfilEntrepriseDialog({ open, onOpenChange, profil 
                 id="localisation"
                 sectionRef={(el) => (sectionRefs.current.localisation = el)}
                 icon={FiMapPin}
-                title="Localisation"
-                description="Où se situe votre entreprise."
+                title={t("profilEntreprise.edit.location.title")}
+                description={t("profilEntreprise.edit.location.description")}
               >
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <EditProfilField id="ville" label="Ville" error={errors.ville?.message}>
+                  <EditProfilField id="ville" label={t("profilEntreprise.edit.location.city")} error={errors.ville?.message}>
                     <Input id="ville" aria-invalid={!!errors.ville} {...register("ville")} />
                   </EditProfilField>
-                  <EditProfilField id="pays" label="Pays" error={errors.pays?.message}>
+                  <EditProfilField id="pays" label={t("profilEntreprise.edit.location.country")} error={errors.pays?.message}>
                     <Input id="pays" aria-invalid={!!errors.pays} {...register("pays")} />
                   </EditProfilField>
                 </div>
-                <EditProfilField id="adresse" label="Adresse" error={errors.adresse?.message}>
+                <EditProfilField id="adresse" label={t("profilEntreprise.edit.location.address")} error={errors.adresse?.message}>
                   <Input id="adresse" aria-invalid={!!errors.adresse} {...register("adresse")} />
                 </EditProfilField>
               </EditProfilFormSection>
@@ -304,12 +317,12 @@ export default function EditProfilEntrepriseDialog({ open, onOpenChange, profil 
                 id="presentation"
                 sectionRef={(el) => (sectionRefs.current.presentation = el)}
                 icon={FiFileText}
-                title="Présentation de l'entreprise"
-                description="Aidez les stagiaires à mieux comprendre qui vous êtes."
+                title={t("profilEntreprise.edit.presentation.title")}
+                description={t("profilEntreprise.edit.presentation.description")}
               >
                 <EditProfilField
                   id="aPropos"
-                  label="À propos de l'entreprise"
+                  label={t("profilEntreprise.edit.presentation.about")}
                   error={errors.aPropos?.message}
                 >
                   <Textarea
@@ -319,12 +332,12 @@ export default function EditProfilEntrepriseDialog({ open, onOpenChange, profil 
                     {...register("aPropos")}
                   />
                 </EditProfilField>
-                <EditProfilField id="mission" label="Mission" error={errors.mission?.message}>
+                <EditProfilField id="mission" label={t("profilEntreprise.edit.presentation.mission")} error={errors.mission?.message}>
                   <Textarea id="mission" rows={3} {...register("mission")} />
                 </EditProfilField>
                 <EditProfilField
                   id="cultureEntreprise"
-                  label="Culture d'entreprise"
+                  label={t("profilEntreprise.edit.presentation.companyCulture")}
                   error={errors.cultureEntreprise?.message}
                 >
                   <Textarea id="cultureEntreprise" rows={3} {...register("cultureEntreprise")} />
@@ -335,17 +348,17 @@ export default function EditProfilEntrepriseDialog({ open, onOpenChange, profil 
                 id="professionnel"
                 sectionRef={(el) => (sectionRefs.current.professionnel = el)}
                 icon={FiUsers}
-                title="Informations professionnelles"
-                description="La taille de votre structure."
+                title={t("profilEntreprise.edit.professional.title")}
+                description={t("profilEntreprise.edit.professional.description")}
               >
-                <EditProfilField id="tailleEntreprise" label="Taille de l'entreprise" error={errors.tailleEntreprise?.message}>
+                <EditProfilField id="tailleEntreprise" label={t("profilEntreprise.edit.professional.companySize")} error={errors.tailleEntreprise?.message}>
                   <Controller
                     name="tailleEntreprise"
                     control={control}
                     render={({ field }) => (
                       <Select value={field.value} onValueChange={field.onChange}>
                         <SelectTrigger id="tailleEntreprise" className="w-full" aria-invalid={!!errors.tailleEntreprise}>
-                          <SelectValue placeholder="Sélectionner" />
+                          <SelectValue placeholder={t("profilEntreprise.edit.professional.select")} />
                         </SelectTrigger>
                         <SelectContent>
                           {TAILLES_ENTREPRISE.map((t) => (
@@ -364,10 +377,10 @@ export default function EditProfilEntrepriseDialog({ open, onOpenChange, profil 
                 id="reseaux"
                 sectionRef={(el) => (sectionRefs.current.reseaux = el)}
                 icon={FiLinkedin}
-                title="Réseaux sociaux"
-                description="Votre profil sur les réseaux professionnels."
+                title={t("profilEntreprise.edit.social.title")}
+                description={t("profilEntreprise.edit.social.description")}
               >
-                <EditProfilField id="linkedinUrl" label="LinkedIn" error={errors.linkedinUrl?.message}>
+                <EditProfilField id="linkedinUrl" label={t("profilEntreprise.edit.social.linkedin")} error={errors.linkedinUrl?.message}>
                   <Input
                     id="linkedinUrl"
                     placeholder="https://linkedin.com/company/..."

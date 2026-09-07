@@ -1,6 +1,10 @@
+"use client";
+
 import { FiBriefcase, FiUsers, FiUserCheck } from "react-icons/fi";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function QuickStatsGrid({ offres }) {
+  const { t } = useTranslation();
   const offresPubliees = offres.filter((o) => o.statut === "publie").length;
   const totalCandidatures = offres.reduce(
     (sum, o) => sum + o.nombreCandidatures,
@@ -13,19 +17,19 @@ export default function QuickStatsGrid({ offres }) {
   const stats = [
     {
       icon: FiBriefcase,
-      label: "Offres publiées",
+      label: t("entrepriseSpace.dashboard.publishedOffers"),
       value: offresPubliees,
       color: "bg-secondary/10 text-secondary",
     },
     {
       icon: FiUsers,
-      label: "Candidatures reçues",
+      label: t("entrepriseSpace.dashboard.applicationsReceived"),
       value: totalCandidatures,
       color: "bg-primary/10 text-primary",
     },
     {
       icon: FiUserCheck,
-      label: "Postes ouverts",
+      label: t("entrepriseSpace.offers.openPositions"),
       value: postesOuverts,
       color: "bg-accent/40 text-amber-700",
     },

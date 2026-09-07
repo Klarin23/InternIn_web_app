@@ -12,9 +12,8 @@ import AProposSection from "@/components/features/profil-entreprise/AProposSecti
 import DomainesActiviteSection from "@/components/features/profil-entreprise/DomainesActiviteSection";
 import OpportunitesStageSection from "@/components/features/profil-entreprise/OpportunitesStageSection";
 import CompletudeCard from "@/components/features/profil-entreprise/CompletudeCard";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
-// Petit wrapper pour la cascade d'entrée des sections (voir délais dans la
-// spec : Informations 80ms, Description 140ms, Domaines 200ms, Stats 260ms)
 function SectionAnimee({ delay, children }) {
   return (
     <motion.div
@@ -28,18 +27,15 @@ function SectionAnimee({ delay, children }) {
 }
 
 export default function ProfilEntreprisePage() {
+  const { t } = useTranslation();
   const { data: profil, isLoading } = useEntrepriseProfile();
   const [editionOuverte, setEditionOuverte] = useState(false);
 
   return (
-    // reducedMotion="user" : Framer Motion respecte automatiquement le
-    // réglage système "prefers-reduced-motion" et retire les animations
-    // de transformation (translations, scale...) pour les personnes qui
-    // l'ont activé, sans avoir à dupliquer la logique dans chaque composant.
     <MotionConfig reducedMotion="user">
       <AppHeader
-        title="Mon profil"
-        subtitle="Informations publiques de votre entreprise"
+        title={t("profilEntreprise.title")}
+        subtitle={t("profilEntreprise.subtitle")}
       />
       <div className="px-6 py-6">
         {isLoading && <EntrepriseProfilSkeleton />}

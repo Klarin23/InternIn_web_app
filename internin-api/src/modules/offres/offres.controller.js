@@ -1,4 +1,9 @@
 import {
+  resolveIdStagiaire,
+  listFavorisIds,
+  isFavori,
+} from "../favoris/favoris.service.js";
+import {
   listOffresPubliees,
   getOffreById,
   listOffresByEntreprise,
@@ -17,7 +22,25 @@ export async function listOffres(req, res, next) {
       modeTravail,
       secteurActivite,
     });
-    res.json(offres);
+
+    if (req.user?.typeUtilisateur === "stagiaire") {
+      try {
+        const idStagiaire = await resolveIdStagiaire(req.user.idUtilisateur);
+        if (idStagiaire) {
+          const ids = await listFavorisIds(idStagiaire);
+          return res.json(
+            offres.map((o) => ({
+              ...o,
+              isFavorite: ids.has(o.idOffre),
+            })),
+          );
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    res.json(offres.map((o) => ({ ...o, isFavorite: false })));
   } catch (err) {
     next(err);
   }
@@ -26,7 +49,18 @@ export async function listOffres(req, res, next) {
 export async function getOffre(req, res, next) {
   try {
     const offre = await getOffreById(req.params.id);
-    res.json(offre);
+    let isFavorite = false;
+    if (req.user?.typeUtilisateur === "stagiaire") {
+      try {
+        const idStagiaire = await resolveIdStagiaire(req.user.idUtilisateur);
+        if (idStagiaire) {
+          isFavorite = await isFavori(idStagiaire, req.params.id);
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    res.json({ ...offre, isFavorite });
   } catch (err) {
     next(err);
   }

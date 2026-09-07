@@ -12,6 +12,8 @@ import {
 } from "@/lib/navigation/useNavItems";
 import { useAdminProfile } from "@/lib/queries/useAdminProfile";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import SecurityAlertBanner from "@/components/features/admin/SecurityAlertBanner";
+import AdminMaintenanceToast from "@/components/features/system/AdminMaintenanceToast";
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
@@ -46,6 +48,7 @@ export default function AdminLayout({ children }) {
 
   return (
     <div className="role-admin flex h-screen overflow-hidden bg-muted/30">
+      <AdminMaintenanceToast />
       <AppSidebar
         items={navItems}
         roleLabel={t("roles.adminConsole")}
@@ -58,7 +61,8 @@ export default function AdminLayout({ children }) {
         }}
       />
       <PullToRefresh className="h-screen flex-1 overflow-y-auto">
-        {children}
+        <SecurityAlertBanner />
+            {children}
       </PullToRefresh>
     </div>
   );

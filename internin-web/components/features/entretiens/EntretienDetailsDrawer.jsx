@@ -1,19 +1,4 @@
 "use client";
-// Drawer "Voir les détails" d'un entretien : panneau latéral sur desktop
-// (translateX), bottom sheet sur mobile (translateY), backdrop translucide.
-// Réutilise les mêmes hooks/mutations que EntretienCardStagiaire.jsx pour
-// Reprogrammer/Annuler (aucune logique backend dupliquée ou réécrite).
-//
-// Correctif appliqué : le bouton "Annuler l'entretien" vérifiait
-// `statut === "valide"`, un statut que le backend n'atteint plus jamais
-// (validerEntretien passe directement à "confirme"). Corrigé en
-// `statut === "confirme"`, seul état où annulerEntretien() l'autorise
-// côté serveur (entretiens.service.js).
-//
-// Deuxième correctif : `maintenant` est reçu en prop, jamais recalculé via
-// Date.now() pendant le rendu (React 19.2 interdit les fonctions impures
-// dans le corps d'un composant). Ta page parente calcule déjà `maintenant`
-// une seule fois et le transmet ici.
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -32,6 +17,7 @@ import {
   formatAnnonceEntretien,
   buildLienGoogleCalendar,
 } from "@/lib/entretiens/statut";
+import { normaliserDateHeurePourApi } from "@/lib/entretiens/planification";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const MODE_ICONS = { video: FiVideo, telephone: FiPhone, presentiel: FiMapPin };
@@ -329,7 +315,7 @@ export default function EntretienDetailsDrawer({ entretien, onClose, maintenant 
                     reprogrammerMutation.mutate(
                       {
                         id: entretien.idEntretien,
-                        dateHeureProposee: nouvelleDate,
+                        dateHeureProposee: normaliserDateHeurePourApi(nouvelleDate),
                         retourEntretien: message,
                       },
                       { onSuccess: () => setShowReprogForm(false) },

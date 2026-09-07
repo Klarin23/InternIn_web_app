@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AppSidebar from "@/components/layout/AppSidebar";
+import MaintenanceGate from "@/components/features/system/MaintenanceGate";
 import PullToRefresh from "@/components/layout/PullToRefresh";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { useAuthReady } from "@/lib/auth/useAuthReady";
@@ -64,7 +65,7 @@ export default function UniversiteLayout({ children }) {
         }}
       />
       <PullToRefresh className="h-screen flex-1 overflow-y-auto">
-        {children}
+        <MaintenanceGate>{children}</MaintenanceGate>
       </PullToRefresh>
     </div>
   );

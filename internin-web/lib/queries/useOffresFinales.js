@@ -1,3 +1,4 @@
+import { toast } from "@/lib/store/useToastStore";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   createOffreFinaleRequest,
@@ -20,6 +21,10 @@ export function useCreateOffreFinale() {
       queryClient.invalidateQueries({
         queryKey: ["historiqueOffresFinales", variables.idEntretien],
       });
+      toast.success("Offre finale envoyée");
+    },
+    onError: (err) => {
+      toast.error(err?.message || "Impossible d'envoyer l'offre finale");
     },
   });
 }
@@ -59,10 +64,18 @@ export function useValiderOffreFinale() {
   return useMutation({
     mutationFn: ({ id, statutValidationPlateforme }) =>
       validerOffreFinaleRequest(id, statutValidationPlateforme, token),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["offresFinalesEnAttente"] });
       queryClient.invalidateQueries({ queryKey: ["offresFinalesAdmin"] });
       queryClient.invalidateQueries({ queryKey: ["adminStats"] });
+      if (variables?.statutValidationPlateforme === "approuve") {
+        toast.success("Offre approuvée");
+      } else if (variables?.statutValidationPlateforme === "rejete") {
+        toast.success("Offre rejetée");
+      }
+    },
+    onError: (err) => {
+      toast.error(err?.message || "Impossible de mettre à jour l'offre");
     },
   });
 }
@@ -80,12 +93,28 @@ export function useRepondreOffreFinale() {
   const token = useAuthStore((state) => state.token);
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, statutReponseStagiaire }) =>
-      repondreOffreFinaleRequest(id, statutReponseStagiaire, token),
-    onSuccess: () => {
+    mutationFn: ({ id, statutReponseStagiaire, motifRefusStagiaire }) =>
+      repondreOffreFinaleRequest(
+        id,
+        { statutReponseStagiaire, motifRefusStagiaire },
+        token,
+      ),
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["mesOffresFinales"] });
       queryClient.invalidateQueries({ queryKey: ["mesCandidatures"] });
       queryClient.invalidateQueries({ queryKey: ["stagiaireProfile"] });
+      queryClient.invalidateQueries({ queryKey: ["entretiens"] });
+      queryClient.invalidateQueries({ queryKey: ["historiqueOffresFinales"] });
+      if (variables?.statutReponseStagiaire === "refusee") {
+        toast.success(
+          "Votre refus a bien été enregistré. L'entreprise a été informée.",
+        );
+      } else if (variables?.statutReponseStagiaire === "acceptee") {
+        toast.success("Offre acceptée");
+      }
+    },
+    onError: (err) => {
+      toast.error(err?.message || "Impossible d'enregistrer votre réponse");
     },
   });
 }

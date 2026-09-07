@@ -72,10 +72,10 @@ export function supprimerObjectifRequest(idStage, idObjectif, token) {
   );
 }
 
-export function ajouterTacheRequest(idStage, description, token) {
+export function ajouterTacheRequest(idStage, description, token, idObjectif = null) {
   return apiFetch(`/superviseur/stagiaires/${idStage}/taches`, {
     method: "POST",
-    body: { description },
+    body: { description, ...(idObjectif ? { idObjectif } : {}) },
     token,
   });
 }
@@ -188,4 +188,12 @@ export function modifierEvaluationRequest(
       token,
     },
   );
+}
+
+/** Entreprise : rappel au superviseur pour évaluation en retard */
+export function rappelerEvaluationSuperviseurRequest(idStage, token) {
+  return apiFetch(`/superviseur/stagiaires/${idStage}/rappel-evaluation`, {
+    method: "POST",
+    token,
+  });
 }

@@ -11,34 +11,23 @@ import {
   FiFlag,
 } from "react-icons/fi";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
-const STYLE = {
-  urgent: {
-    bar: "bg-destructive",
-    badge: "bg-destructive/10 text-destructive ring-1 ring-destructive/20",
-    label: "Urgent",
-    icon: FiAlertTriangle,
-  },
-  attention: {
-    bar: "bg-amber-500",
-    badge:
-      "bg-amber-500/10 text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-400",
-    label: "Attention",
-    icon: FiAlertTriangle,
-  },
-  info: {
-    bar: "bg-primary/70",
-    badge: "bg-primary/10 text-primary ring-1 ring-primary/20",
-    label: "Info",
-    icon: FiFlag,
-  },
-  attente: {
-    bar: "bg-primary/70",
-    badge: "bg-primary/10 text-primary ring-1 ring-primary/20",
-    label: "Info",
-    icon: FiFlag,
-  },
-};
+
+function localizeAlertText(item, t) {
+  if (!item) return { titre: "", description: "" };
+  let titre = item.titre || "";
+  let description = item.description || "";
+  const map = {
+    "Évaluation à effectuer": "superviseurDashboard.alerts.items.evalTodo",
+    "Évaluation en retard": "superviseurDashboard.alerts.items.evalLate",
+    "Stage bientôt terminé": "superviseurDashboard.alerts.items.endingSoon",
+    "Journal à vérifier": "superviseurDashboard.alerts.items.journalReview",
+  };
+  if (map[titre]) titre = t(map[titre]);
+  // descriptions often include names - keep as-is from backend if mixed
+  return { titre, description };
+}
 
 const TYPE_ICON = {
   evaluation: FiClipboard,
@@ -46,14 +35,43 @@ const TYPE_ICON = {
   fin_stage: FiFlag,
 };
 
-const DEFAULT_ACTION = {
-  evaluation: "Évaluer maintenant",
-  journal: "Vérifier",
-  fin_stage: "Voir le stage",
-};
-
 export default function AlertCenter({ items = [], compact = false }) {
+  const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
+
+  const STYLE = {
+    urgent: {
+      bar: "bg-destructive",
+      badge: "bg-destructive/10 text-destructive ring-1 ring-destructive/20",
+      label: t("superviseurDashboard.severity.urgent"),
+      icon: FiAlertTriangle,
+    },
+    attention: {
+      bar: "bg-amber-500",
+      badge:
+        "bg-amber-500/10 text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-400",
+      label: t("superviseurDashboard.severity.attention"),
+      icon: FiAlertTriangle,
+    },
+    info: {
+      bar: "bg-primary/70",
+      badge: "bg-primary/10 text-primary ring-1 ring-primary/20",
+      label: t("superviseurDashboard.severity.info"),
+      icon: FiFlag,
+    },
+    attente: {
+      bar: "bg-primary/70",
+      badge: "bg-primary/10 text-primary ring-1 ring-primary/20",
+      label: t("superviseurDashboard.severity.info"),
+      icon: FiFlag,
+    },
+  };
+
+  const DEFAULT_ACTION = {
+    evaluation: t("superviseurDashboard.actions.evaluateNow"),
+    journal: t("superviseurDashboard.actions.verify"),
+    fin_stage: t("superviseurDashboard.actions.viewInternship"),
+  };
 
   const urgent = items.filter((i) => i.gravite === "urgent").length;
   const attention = items.filter(
@@ -71,11 +89,11 @@ export default function AlertCenter({ items = [], compact = false }) {
                 <FiAlertTriangle className="h-4 w-4" />
               </span>
               <h3 className="text-sm font-bold text-foreground">
-                À votre attention
+                {t("superviseurDashboard.alerts.title")}
               </h3>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              Situations détectées à partir de vos stagiaires et évaluations
+              {t("superviseurDashboard.alerts.subtitle")}
             </p>
           </div>
           {items.length > 0 && (
@@ -88,12 +106,16 @@ export default function AlertCenter({ items = [], compact = false }) {
           <div className="mt-3 flex flex-wrap gap-2 text-xs">
             {urgent > 0 && (
               <span className="rounded-full bg-destructive/10 px-2.5 py-1 font-semibold text-destructive">
-                {urgent} urgente{urgent > 1 ? "s" : ""}
+                {t("superviseurDashboard.alerts.urgentCount", {
+                  count: urgent,
+                })}
               </span>
             )}
             {attention > 0 && (
               <span className="rounded-full bg-amber-500/10 px-2.5 py-1 font-semibold text-amber-700 dark:text-amber-400">
-                {attention} à surveiller
+                {t("superviseurDashboard.alerts.watchCount", {
+                  count: attention,
+                })}
               </span>
             )}
           </div>
@@ -105,9 +127,11 @@ export default function AlertCenter({ items = [], compact = false }) {
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600">
             <FiCheckCircle className="h-6 w-6" />
           </div>
-          <p className="text-sm font-semibold text-foreground">Tout est à jour</p>
+          <p className="text-sm font-semibold text-foreground">
+            {t("superviseurDashboard.alerts.emptyTitle")}
+          </p>
           <p className="max-w-xs text-xs text-muted-foreground">
-            Aucune situation ne nécessite votre attention pour le moment.
+            {t("superviseurDashboard.alerts.emptyDesc")}
           </p>
         </div>
       ) : (
@@ -116,7 +140,9 @@ export default function AlertCenter({ items = [], compact = false }) {
             const style = STYLE[item.gravite] || STYLE.info;
             const Icon = TYPE_ICON[item.type] || FiAlertTriangle;
             const action =
-              item.actionLabel || DEFAULT_ACTION[item.type] || "Voir";
+              item.actionLabel ||
+              DEFAULT_ACTION[item.type] ||
+              t("superviseurDashboard.actions.view");
             return (
               <motion.li
                 key={`${item.type}-${item.idStage}-${idx}`}
@@ -146,19 +172,26 @@ export default function AlertCenter({ items = [], compact = false }) {
                         </span>
                         <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
                           <Icon className="h-3 w-3" />
-                          {item.titre}
+                          {localizeAlertText(item, t).titre}
                         </span>
                       </div>
-                      <p className="truncate text-sm font-semibold text-foreground">
-                        {item.prenomStagiaire
-                          ? `${item.prenomStagiaire} ${item.nomStagiaire || ""}`
-                          : item.description}
-                      </p>
-                      {item.prenomStagiaire && item.description && (
-                        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                          {item.description}
-                        </p>
-                      )}
+                      {(() => {
+                        const loc = localizeAlertText(item, t);
+                        return (
+                          <>
+                            <p className="truncate text-sm font-semibold text-foreground">
+                              {item.prenomStagiaire
+                                ? `${item.prenomStagiaire} ${item.nomStagiaire || ""}`
+                                : loc.description || loc.titre}
+                            </p>
+                            {item.prenomStagiaire && (loc.description || item.description) && (
+                              <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                                {loc.description || item.description}
+                              </p>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                     <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary transition-transform group-hover:translate-x-0.5">
                       {action}
@@ -178,7 +211,7 @@ export default function AlertCenter({ items = [], compact = false }) {
             href="/tableau-de-bord#alertes"
             className="text-xs font-semibold text-primary hover:underline"
           >
-            Voir toutes les alertes ({items.length})
+            {t("superviseurDashboard.alerts.viewAll", { count: items.length })}
           </Link>
         </div>
       )}

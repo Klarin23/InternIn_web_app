@@ -1,4 +1,5 @@
 "use client";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 import { useParams, useRouter } from "next/navigation";
 import { FiArrowLeft, FiLoader } from "react-icons/fi";
@@ -7,6 +8,7 @@ import OffreForm from "@/components/features/offres-entreprise/OffreForm";
 import { useOffreEntreprise } from "@/lib/queries/useCreateOffre";
 
 export default function EditerOffrePage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { offreId } = useParams();
   const { data: offre, isLoading, isError } = useOffreEntreprise(offreId);
@@ -15,7 +17,7 @@ export default function EditerOffrePage() {
     <>
       <AppHeader
         breadcrumb={[
-          { label: "Offres de stage" },
+          { label: t("entrepriseSpace.offers.breadcrumb") },
           { label: "Modifier l'offre" },
         ]}
       />
@@ -25,7 +27,7 @@ export default function EditerOffrePage() {
           className="mb-5 flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-primary"
         >
           <FiArrowLeft className="h-4 w-4" />
-          Retour à mes offres
+          {t("entrepriseSpace.offers.backToOffers")}
         </button>
 
         {isLoading && (

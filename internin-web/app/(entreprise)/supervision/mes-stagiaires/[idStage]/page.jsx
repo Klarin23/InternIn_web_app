@@ -3,7 +3,7 @@
 import { SupervisionProvider } from "@/lib/supervision/SupervisionContext";
 import DetailPage from "@/app/(superviseur)/mes-stagiaires/[idStage]/page";
 
-export default function EntrepriseDetailStagiairePage({ params, searchParams } = {}) {
+export default function EntrepriseDetailStagiairePage() {
   return (
     <SupervisionProvider
       basePath="/supervision/mes-stagiaires"
@@ -12,7 +12,7 @@ export default function EntrepriseDetailStagiairePage({ params, searchParams } =
       roleLabel="Entreprise"
       isEntreprise
     >
-      <DetailPage params={params} searchParams={searchParams} />
+      <DetailPage />
     </SupervisionProvider>
   );
 }

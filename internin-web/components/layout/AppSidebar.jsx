@@ -10,6 +10,7 @@ import { useAuthStore } from "@/lib/store/useAuthStore";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { markAdminSectionSeen } from "@/lib/admin/adminSeen";
 
 function NavLink({
   href,
@@ -57,6 +58,13 @@ function NavLink({
         />
       )}
 
+      {/* Icône : léger pivot + zoom au survol (transform CSS, pas de JS) */}
+      <Icon className="h-4.5 w-4.5 shrink-0 transition-transform duration-200 ease-out group-hover:-rotate-6 group-hover:scale-110" />
+
+      {/* Dot nouveauté — devant le libellé du menu */}
+
+      <span className="flex-1">{label}</span>
+
       {dot && (
         <span
           className="h-2 w-2 shrink-0 animate-blink rounded-full"
@@ -65,10 +73,6 @@ function NavLink({
         />
       )}
 
-      {/* Icône : léger pivot + zoom au survol (transform CSS, pas de JS) */}
-      <Icon className="h-4.5 w-4.5 shrink-0 transition-transform duration-200 ease-out group-hover:-rotate-6 group-hover:scale-110" />
-
-      <span className="flex-1">{label}</span>
 
       {badge > 0 && (
         <span
@@ -106,8 +110,26 @@ export default function AppSidebar({
   const { t } = useTranslation();
   const { mobileNavOpen, closeMobileNav } = useUiStore();
   const clearSession = useAuthStore((state) => state.clearSession);
+  const userId = useAuthStore((state) => state.user?.idUtilisateur);
   const queryClient = useQueryClient();
   const libelleRole = roleLabel ?? t("sidebar.brand");
+
+  /** Map href admin → ressource "seen" (dots menu) */
+  function markSeenForHref(href) {
+    if (!userId || !href) return;
+    const map = {
+      "/gestion-stages": "stages",
+      "/gestion-conventions": "conventions",
+      "/verifications/offres-finales": "offres",
+      "/gestion-entreprises": "entreprises",
+      "/gestion-universites": "universites",
+      "/centre-controle": "controle",
+      "/centre-securite": "securite",
+      "/signalements": "signalements",
+    };
+    const resource = map[href];
+    if (resource) markAdminSectionSeen(userId, resource);
+  }
 
   function handleLogout() {
     clearSession();
@@ -137,7 +159,6 @@ export default function AppSidebar({
             style={{ backgroundColor: "var(--sidebar-primary)" }}
           >
             {orgCard.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={orgCard.logoUrl}
                 alt=""
@@ -159,7 +180,7 @@ export default function AppSidebar({
       )}
 
       {/* Zone de navigation : seule cette partie défile si la liste de liens dépasse */}
-      <nav className="flex-1 space-y-1 overflow-y-auto p-4">
+      <nav className="sidebar-scroll flex-1 space-y-1 overflow-y-auto p-4">
         {(() => {
           const hasSections = items.some((i) => i.section);
           if (!hasSections) {
@@ -173,16 +194,23 @@ export default function AppSidebar({
                     key={item.href}
                     {...item}
                     isActive={pathname === item.href || (item.href !== "/tableau-de-bord" && pathname?.startsWith(item.href))}
-                    onClick={onLinkClick}
+                    onClick={() => {
+                      markSeenForHref(item.href);
+                      onLinkClick?.();
+                    }}
                   />
                 ))}
               </>
             );
           }
           const SECTION_LABELS = {
-            gestion: "Gestion",
-            supervision: "Supervision",
-            entreprise: "Entreprise",
+            pilotage: t("sidebarSections.pilotage"),
+            gestion: t("sidebarSections.gestion"),
+            supervision: t("sidebarSections.supervision"),
+            entreprise: t("sidebarSections.entreprise"),
+            surveillance: t("sidebarSections.surveillance"),
+            tracabilite: t("sidebarSections.tracabilite"),
+            configuration: t("sidebarSections.configuration"),
           };
           const order = [];
           const groups = {};
@@ -204,7 +232,10 @@ export default function AppSidebar({
                   key={item.href}
                   {...item}
                   isActive={pathname === item.href || (item.href !== "/tableau-de-bord" && pathname?.startsWith(item.href))}
-                  onClick={onLinkClick}
+                  onClick={() => {
+                    markSeenForHref(item.href);
+                    onLinkClick?.();
+                  }}
                 />
               ))}
             </div>

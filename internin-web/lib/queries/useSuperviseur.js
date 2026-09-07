@@ -3,6 +3,7 @@ import {
   getTableauDeBordSuperviseurRequest,
   getCalendrierSupervisionRequest,
   listMesStagiairesRequest,
+  rappelerEvaluationSuperviseurRequest,
   getDetailStagiaireRequest,
   getProgressionRequest,
   updateProgressionManuelleRequest,
@@ -125,8 +126,18 @@ export function useAjouterTache(idStage) {
   const token = useAuthStore((state) => state.token);
   const invalidate = useInvalidateProgression(idStage);
   return useMutation({
-    mutationFn: (description) =>
-      ajouterTacheRequest(idStage, description, token),
+    mutationFn: (input) => {
+      // Compat : string seule OU { description, idObjectif }
+      if (typeof input === "string") {
+        return ajouterTacheRequest(idStage, input, token, null);
+      }
+      return ajouterTacheRequest(
+        idStage,
+        input?.description,
+        token,
+        input?.idObjectif || null,
+      );
+    },
     onSuccess: invalidate,
   });
 }
@@ -264,5 +275,17 @@ export function useModifierEvaluation(idStage) {
     mutationFn: ({ idEvaluation, payload }) =>
       modifierEvaluationRequest(idStage, idEvaluation, payload, token),
     onSuccess: invalidate,
+  });
+}
+
+export function useRappelerEvaluationSuperviseur() {
+  const token = useAuthStore((s) => s.token);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (idStage) =>
+      rappelerEvaluationSuperviseurRequest(idStage, token),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["mesStagiaires"] });
+    },
   });
 }

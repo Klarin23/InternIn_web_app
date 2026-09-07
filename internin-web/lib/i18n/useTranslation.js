@@ -7,6 +7,7 @@ import en from "./locales/en.json";
 const DICTIONNAIRES = { fr, en };
 
 function resoudreCle(dictionnaire, cle) {
+  if (cle == null || typeof cle !== "string" || !cle) return undefined;
   return cle
     .split(".")
     .reduce(
@@ -24,16 +25,20 @@ function interpoler(chaine, params) {
   );
 }
 
+export function translate(cle, locale, params) {
+  const valeur =
+    resoudreCle(DICTIONNAIRES[locale], cle) ??
+    resoudreCle(DICTIONNAIRES.fr, cle) ??
+    cle;
+  return typeof valeur === "string" ? interpoler(valeur, params) : valeur;
+}
+
 export function useTranslation() {
   const locale = useI18nStore((state) => state.locale);
   const setLocale = useI18nStore((state) => state.setLocale);
 
   function t(cle, params) {
-    const valeur =
-      resoudreCle(DICTIONNAIRES[locale], cle) ??
-      resoudreCle(DICTIONNAIRES.fr, cle) ??
-      cle;
-    return typeof valeur === "string" ? interpoler(valeur, params) : valeur;
+    return translate(cle, locale, params);
   }
 
   return { t, locale, setLocale };

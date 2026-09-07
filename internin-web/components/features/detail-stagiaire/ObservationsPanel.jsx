@@ -4,12 +4,14 @@ import { useState } from "react";
 import { FiSend, FiTrash2, FiLoader } from "react-icons/fi";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import {
   useAjouterObservation,
   useSupprimerObservation,
 } from "@/lib/queries/useSuperviseur";
 
 export default function ObservationsPanel({ idStage, observations }) {
+  const { t, locale } = useTranslation();
   const [contenu, setContenu] = useState("");
   const ajouter = useAjouterObservation(idStage);
   const supprimer = useSupprimerObservation(idStage);
@@ -20,22 +22,22 @@ export default function ObservationsPanel({ idStage, observations }) {
   }
 
   return (
-    <div className="rounded-md border border-border bg-card p-5">
+    <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
       <h2 className="mb-4 text-base font-semibold text-foreground">
-        Observations du superviseur
+        {t("mesStagiaires.progression.observationsTitle")}
       </h2>
 
       <div className="mb-4 space-y-2">
         <Textarea
-          placeholder="Ajouter une observation sur le stagiaire..."
+          placeholder={t("mesStagiaires.progression.addObservation")}
           value={contenu}
           onChange={(e) => setContenu(e.target.value)}
-          className="min-h-[80px] rounded-sm"
+          className="min-h-[80px] rounded-lg"
         />
         <Button
           type="button"
           size="sm"
-          className="h-9 rounded-sm px-3 text-xs"
+          className="h-9 rounded-lg px-3 text-xs"
           disabled={!contenu.trim() || ajouter.isPending}
           onClick={handleAjouter}
         >
@@ -44,7 +46,7 @@ export default function ObservationsPanel({ idStage, observations }) {
           ) : (
             <>
               <FiSend className="h-3.5 w-3.5" />
-              Publier
+              {t("mesStagiaires.progression.publish")}
             </>
           )}
         </Button>
@@ -52,7 +54,7 @@ export default function ObservationsPanel({ idStage, observations }) {
 
       {observations.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Aucune observation pour l&apos;instant.
+          {t("mesStagiaires.progression.noObservationsYet")}
         </p>
       ) : (
         <ul className="space-y-3 border-t border-border/60 pt-4">
@@ -64,7 +66,7 @@ export default function ObservationsPanel({ idStage, observations }) {
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-foreground">{o.contenu}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  {new Date(o.dateCreation).toLocaleDateString("fr-FR", {
+                  {new Date(o.dateCreation).toLocaleDateString(locale === "en" ? "en-GB" : "fr-FR", {
                     day: "2-digit",
                     month: "short",
                     year: "numeric",
@@ -76,8 +78,8 @@ export default function ObservationsPanel({ idStage, observations }) {
               <button
                 type="button"
                 onClick={() => supprimer.mutate(o.idObservation)}
-                className="rounded-sm p-1.5 text-muted-foreground opacity-0 hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                aria-label="Supprimer l'observation"
+                className="rounded-lg p-1.5 text-muted-foreground opacity-0 hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                aria-label={t("mesStagiaires.progression.deleteObservation")}
               >
                 <FiTrash2 className="h-3.5 w-3.5" />
               </button>

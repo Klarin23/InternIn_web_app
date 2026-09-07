@@ -1,9 +1,16 @@
 import { z } from "zod";
+import { parseStrictDateTime } from "../../utils/dateValidation.js";
 
 export const createEntretienSchema = z
   .object({
     idCandidature: z.string().min(1, "Candidature invalide"),
-    dateHeure: z.string().min(1, "La date et l'heure sont requises"),
+    dateHeure: z
+      .string()
+      .min(1, "La date et l'heure sont requises")
+      .refine((v) => parseStrictDateTime(v) != null, {
+        message:
+          "Date/heure invalide. Utilisez une date calendaire réelle avec heure (AAAA-MM-JJTHH:mm).",
+      }),
     modeEntretien: z.enum(["video", "telephone", "presentiel"]),
     // Champ réutilisé selon le mode :
     // - video      → lien Meet / Zoom / Teams (obligatoire)
@@ -46,7 +53,12 @@ export const annulerEntretienSchema = z.object({
 });
 
 export const demanderReprogrammationSchema = z.object({
-  dateHeureProposee: z.string().min(1, "Proposez une nouvelle date et heure"),
+  dateHeureProposee: z
+    .string()
+    .min(1, "Proposez une nouvelle date et heure")
+    .refine((v) => parseStrictDateTime(v) != null, {
+      message: "Date/heure proposée invalide (date calendaire réelle requise).",
+    }),
   retourEntretien: z
     .string()
     .min(1, "Merci de préciser la raison de votre demande"),

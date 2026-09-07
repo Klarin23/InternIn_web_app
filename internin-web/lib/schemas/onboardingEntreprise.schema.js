@@ -2,6 +2,11 @@
 // celui du stagiaire pour garder chaque parcours indépendant et lisible.
 
 import { z } from "zod";
+import {
+  checkExternalUrl,
+  checkLinkedInUrl,
+  zUrlField,
+} from "@/lib/utils/urlValidation";
 
 export const entrepriseStep1Schema = z.object({
   nomEntreprise: z.string().min(1, "Le nom de l'entreprise est requis"),
@@ -13,16 +18,12 @@ export const entrepriseStep1Schema = z.object({
   ville: z.string().min(1, "La ville est requise"),
 });
 
-const optionalUrl = z
-  .string()
-  .optional()
-  .refine((val) => !val || /^https?:\/\/.+/.test(val), {
-    message: "L'URL doit commencer par http:// ou https://",
-  });
+const optionalUrl = zUrlField(checkExternalUrl)(z.string().optional());
+const optionalLinkedinUrl = zUrlField(checkLinkedInUrl)(z.string().optional());
 
 export const entrepriseStep2Schema = z.object({
   siteWeb: optionalUrl,
-  linkedinUrl: optionalUrl,
+  linkedinUrl: optionalLinkedinUrl,
   logoUrl: z.string().optional(), // rempli automatiquement après upload, pas saisi à la main
 });
 

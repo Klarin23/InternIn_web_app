@@ -3,13 +3,67 @@
 
 import { eq, and, getTableColumns } from "drizzle-orm";
 import { db } from "../../db/index.js";
+import { resolveEntrepriseContextOrThrow } from "../equipe/equipe.permissions.js";
 import {
   utilisateurs,
   entreprises,
   contactsEntreprise,
 } from "../../db/schema.js";
+import {
+  isAutoValidationEnabled,
+  ELEMENT_ENTREPRISES,
+} from "../../utils/autoValidation.js";
 
 export async function completeEntrepriseOnboarding(idUtilisateur, payload) {
+  // Défense en profondeur : ne jamais faire confiance au seul middleware de route.
+  // Un stagiaire ne doit pas pouvoir créer un profil entreprises même si la route
+  // était appelée depuis un autre handler.
+  const [user] = await db
+    .select({
+      typeUtilisateur: utilisateurs.typeUtilisateur,
+      statutCompte: utilisateurs.statutCompte,
+    })
+    .from(utilisateurs)
+    .where(eq(utilisateurs.idUtilisateur, idUtilisateur))
+    .limit(1);
+
+  if (!user) {
+    const err = new Error("Utilisateur introuvable");
+    err.status = 404;
+    throw err;
+  }
+
+  if (user.typeUtilisateur !== "entreprise") {
+    console.warn(
+      "[SECURITY] ENTERPRISE_ONBOARDING_DENIED",
+      JSON.stringify({
+        idUtilisateur,
+        typeUtilisateur: user.typeUtilisateur,
+      }),
+    );
+    const err = new Error("Accès non autorisé pour ce rôle");
+    err.status = 403;
+    throw err;
+  }
+
+  // Un profil entreprise ne peut être créé qu'une seule fois par compte.
+  const [existing] = await db
+    .select({ idEntreprise: entreprises.idEntreprise })
+    .from(entreprises)
+    .where(eq(entreprises.idUtilisateur, idUtilisateur))
+    .limit(1);
+  if (existing) {
+    const err = new Error("Profil entreprise déjà créé");
+    err.status = 409;
+    throw err;
+  }
+
+  // Ignorer toute tentative d'auto-attribution de rôle via le body.
+  if (payload && Object.prototype.hasOwnProperty.call(payload, "typeUtilisateur")) {
+    delete payload.typeUtilisateur;
+  }
+
+  const autoVerif = await isAutoValidationEnabled(ELEMENT_ENTREPRISES);
   return db.transaction(async (tx) => {
     // 1. Création du profil entreprise
     const [entreprise] = await tx
@@ -27,9 +81,8 @@ export async function completeEntrepriseOnboarding(idUtilisateur, payload) {
         aPropos: payload.aPropos,
         mission: payload.mission || null,
         cultureEntreprise: payload.cultureEntreprise || null,
-        // Toute nouvelle entreprise démarre "en_attente" : un administrateur
-        // devra la vérifier avant qu'elle puisse publier des offres (cf. PRD)
-        statutVerification: "en_attente",
+        statutVerification: autoVerif ? "verifiee" : "en_attente",
+        dateVerification: autoVerif ? new Date() : null,
       })
       .returning();
 
@@ -65,10 +118,13 @@ const CHAMPS_COMPLETUDE = [
 ];
 
 export async function getEntrepriseProfile(idUtilisateur) {
+  // Propriétaire uniquement : une ligne entreprises + typeUtilisateur=entreprise.
+  // Un stagiaire avec une ligne orpheline ne doit pas obtenir le profil.
   const [entreprise] = await db
     .select({
       ...getTableColumns(entreprises),
       email: utilisateurs.email,
+      typeUtilisateur: utilisateurs.typeUtilisateur,
     })
     .from(entreprises)
     .innerJoin(
@@ -77,11 +133,23 @@ export async function getEntrepriseProfile(idUtilisateur) {
     )
     .where(eq(entreprises.idUtilisateur, idUtilisateur));
 
-  if (!entreprise) {
+  if (!entreprise || entreprise.typeUtilisateur !== "entreprise") {
+    if (entreprise && entreprise.typeUtilisateur !== "entreprise") {
+      console.warn(
+        "[SECURITY] ENTERPRISE_CONTEXT_ACCESS_DENIED",
+        JSON.stringify({
+          idUtilisateur,
+          typeUtilisateur: entreprise.typeUtilisateur,
+          reason: "getEntrepriseProfile_type_mismatch",
+        }),
+      );
+    }
     const err = new Error("Profil entreprise introuvable");
     err.status = 404;
     throw err;
   }
+  // Ne pas exposer typeUtilisateur dans la réponse profil
+  delete entreprise.typeUtilisateur;
 
   const [contactPrincipal] = await db
     .select({ telephone: contactsEntreprise.telephone })
@@ -104,15 +172,16 @@ export async function getEntrepriseProfile(idUtilisateur) {
     ...entreprise,
     telephone: contactPrincipal?.telephone || null,
     scoreCompletude,
-    champsManquants: champsManquants.map((c) => c.label),
+    champsManquants: champsManquants.map((c) => c.champ),
   };
 }
 
 export async function updateEntrepriseProfile(idUtilisateur, payload) {
+  const { entreprise: ctxEnt } = await resolveEntrepriseContextOrThrow(idUtilisateur);
   const [entreprise] = await db
     .update(entreprises)
     .set(payload)
-    .where(eq(entreprises.idUtilisateur, idUtilisateur))
+    .where(eq(entreprises.idEntreprise, ctxEnt.idEntreprise))
     .returning();
 
   if (!entreprise) {
@@ -124,10 +193,11 @@ export async function updateEntrepriseProfile(idUtilisateur, payload) {
 }
 
 export async function updateEntrepriseLogo(idUtilisateur, logoUrl) {
+  const { entreprise: ctxEnt } = await resolveEntrepriseContextOrThrow(idUtilisateur);
   const [entreprise] = await db
     .update(entreprises)
     .set({ logoUrl })
-    .where(eq(entreprises.idUtilisateur, idUtilisateur))
+    .where(eq(entreprises.idEntreprise, ctxEnt.idEntreprise))
     .returning();
 
   if (!entreprise) {

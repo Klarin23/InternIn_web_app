@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { motion } from "framer-motion";
 
 // Couleurs d'avatar réparties par index pour varier visuellement, comme
@@ -16,13 +18,14 @@ const AVATAR_COLORS = [
   "#8B5CF6",
 ];
 
-const STATUT_LABELS = {
-  soumise: "Nouveau",
-  consultee: "En cours",
-  preselectionnee: "Entretien",
-  rejetee: "Refusé",
-  retiree: "Retiré",
-  acceptee: "Accepté",
+const STATUT_LABEL_KEYS = {
+  soumise: "entrepriseSpace.candidatures.statusNew",
+  consultee: "entrepriseSpace.candidatures.statusInProgress",
+  preselectionnee: "entrepriseSpace.candidatures.statusInProgress",
+  entretien: "entrepriseSpace.candidatures.statusInterview",
+  rejetee: "entrepriseSpace.candidatures.statusRejected",
+  retiree: "entrepriseSpace.candidatures.statusWithdrawn",
+  acceptee: "entrepriseSpace.candidatures.statusAccepted",
 };
 const STATUT_COLORS = {
   soumise: "bg-primary/10 text-primary",
@@ -36,9 +39,9 @@ const STATUT_COLORS = {
 // Repère prioritaire sur l'entretien en cours, affiché à la place du statut
 // de candidature classique quand une action/attention entreprise est requise.
 const ENTRETIEN_LABELS = {
-  planifie: "En attente",
-  reprogramme: "Reprogrammation demandée",
-  valide: "En attente de confirmation",
+  planifie: "entrepriseSpace.candidatures.interviewPending",
+  reprogramme: "entrepriseSpace.candidatures.interviewRescheduleRequested",
+  valide: "entrepriseSpace.candidatures.interviewAwaitingConfirm",
 };
 const ENTRETIEN_COLORS = {
   planifie: "bg-[#FEF3C7] text-[#B45309]",
@@ -53,6 +56,7 @@ export default function CandidatureRow({
   entretienASignaler,
   estNouvelle = false,
 }) {
+  const { t, locale } = useTranslation();
   const couleur = AVATAR_COLORS[index % AVATAR_COLORS.length];
   const score = candidature.scoreCompletudeProfil ?? 0;
   const date = new Date(candidature.dateCandidature).toLocaleDateString(
@@ -117,13 +121,13 @@ export default function CandidatureRow({
           <span
             className={`rounded-full px-2.5 py-1 text-xs font-semibold ${ENTRETIEN_COLORS[entretienASignaler.statut]}`}
           >
-            {ENTRETIEN_LABELS[entretienASignaler.statut]}
+            {ENTRETIEN_LABELS[entretienASignaler.statut] ? t(ENTRETIEN_LABELS[entretienASignaler.statut]) : entretienASignaler.statut}
           </span>
         ) : (
           <span
             className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUT_COLORS[candidature.statut]}`}
           >
-            {STATUT_LABELS[candidature.statut]}
+            {(STATUT_LABEL_KEYS[candidature.statut] ? t(STATUT_LABEL_KEYS[candidature.statut]) : candidature.statut)}
           </span>
         )}
       </span>

@@ -40,6 +40,7 @@ export default function Hero({
   floatCards: floatCardsProp,
   stats: statsProp,
   titleClassName,
+  secondaryCtaClassName,
 }) {
   const { t } = useTranslation();
   const i18n = i18nKey ? t(i18nKey) : undefined;
@@ -105,7 +106,7 @@ export default function Hero({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: "easeOut" }}
           >
-            <span className="inline-flex items-center rounded-full border border-[#F7B500]/35 bg-[#fdfdfd] px-3.5 py-1.5 text-sm font-semibold text-[#faa20b]">
+            <span className="inline-flex items-center rounded-full px-3.5 py-1.5 text-sm font-semibold text-[#faa20b]">
               {eyebrow}
             </span>
 
@@ -139,7 +140,7 @@ export default function Hero({
                     hidden: { opacity: 0, y: 16 },
                     visible: { opacity: 1, y: 0 },
                   }}
-                  className="flex items-center gap-2.5 text-sm font-medium text-foreground/90"
+                  className="flex items-center gap-2.5 text-sm font-medium text-muted-foreground/80"
                 >
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
                   {text}
@@ -165,7 +166,10 @@ export default function Hero({
               >
                 <Button
                   asChild
-                  className="h-12 rounded-sm border border-[#E8A800] bg-[#fac73a] px-5 text-sm font-semibold text-[#ffffff] shadow-none hover:bg-[#E8A800] hover:text-[#f8f8f8]"
+                  className={
+                    secondaryCtaClassName ??
+                    "h-12 rounded-sm border border-[#faa20b] bg-[#faa20be3] px-5 text-sm font-semibold text-[#ffffff] shadow-none hover:bg-[#E8A800] hover:text-[#f8f8f8]"
+                  }
                 >
                   <Link href={secondaryCta.href}>{secondaryCta.label}</Link>
                 </Button>

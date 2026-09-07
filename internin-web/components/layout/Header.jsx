@@ -14,7 +14,6 @@ export default function Header() {
 
   const LIENS_NAV = [
     { href: "/", label: t("nav.home") },
-    { href: "/#comment-ca-marche", label: t("nav.howItWorks") },
     { href: "/etudiants", label: t("nav.students") },
     { href: "/entreprises", label: t("nav.companies") },
     { href: "/universites", label: t("nav.universities") },

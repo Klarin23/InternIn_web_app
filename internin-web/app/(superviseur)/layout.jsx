@@ -9,6 +9,7 @@ import { useAuthReady } from "@/lib/auth/useAuthReady";
 import { useMonProfilEquipe } from "@/lib/queries/useEquipe";
 import { useSuperviseurNavItems } from "@/lib/navigation/useNavItems";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import MaintenanceGate from "@/components/features/system/MaintenanceGate";
 
 export default function SuperviseurLayout({ children }) {
   const router = useRouter();
@@ -16,12 +17,10 @@ export default function SuperviseurLayout({ children }) {
   const navItems = useSuperviseurNavItems();
   const { data: profil } = useMonProfilEquipe();
   const { t } = useTranslation();
-
   const hydrated = useAuthReady();
 
   useEffect(() => {
     if (!hydrated) return;
-
     if (!token || !user) {
       router.replace("/connexion");
     } else if (user.typeUtilisateur !== "membre_entreprise") {
@@ -30,7 +29,6 @@ export default function SuperviseurLayout({ children }) {
   }, [hydrated, user, token, router]);
 
   if (!hydrated) return null;
-
   if (!user || user.typeUtilisateur !== "membre_entreprise") return null;
 
   const initials = profil?.nom
@@ -42,19 +40,26 @@ export default function SuperviseurLayout({ children }) {
         .toUpperCase()
     : user.email?.slice(0, 2).toUpperCase();
 
+  const nomEntreprise =
+    profil?.nomEntreprise || t("roles.supervisorFallback") || "Entreprise";
+
   return (
-    <div className="role-superviseur flex h-screen overflow-hidden bg-muted/30">
+    <div className="role-entreprise flex h-screen overflow-hidden bg-muted/30">
       <AppSidebar
         items={navItems}
         roleLabel={t("roles.supervisorSpace")}
+        orgCard={{
+          name: nomEntreprise,
+          subtitle: profil?.roleEquipe || t("roles.supervisorSpace"),
+        }}
         userFooter={{
           initials,
           name: profil?.nom || user.email,
-          subtitle: profil?.nomEntreprise || t("roles.supervisorFallback"),
+          subtitle: nomEntreprise,
         }}
       />
       <PullToRefresh className="h-screen flex-1 overflow-y-auto">
-        {children}
+        <MaintenanceGate>{children}</MaintenanceGate>
       </PullToRefresh>
     </div>
   );

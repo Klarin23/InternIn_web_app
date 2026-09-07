@@ -67,6 +67,7 @@ export default function ProchainEntretienCard({ entretien }) {
           <p className="flex items-center gap-2">
             <FiCalendar className="h-3.5 w-3.5 flex-shrink-0" />
             {date.toLocaleDateString(dateLocale, {
+              timeZone: "Africa/Douala",
               weekday: "long",
               day: "numeric",
               month: "long",
@@ -76,6 +77,7 @@ export default function ProchainEntretienCard({ entretien }) {
           <p className="flex items-center gap-2">
             <FiClock className="h-3.5 w-3.5 flex-shrink-0" />
             {date.toLocaleTimeString(dateLocale, {
+              timeZone: "Africa/Douala",
               hour: "2-digit",
               minute: "2-digit",
             })}

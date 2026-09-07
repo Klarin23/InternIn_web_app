@@ -1,6 +1,16 @@
-import { eq, and, desc, gte, inArray, sql, ilike } from "drizzle-orm";
+import { listScopesForRole } from "./adminRbac.js";
+import { invalidateMaintenanceCache } from "../../middlewares/maintenance.middleware.js";
+import { eq, and, or, desc, gte, inArray, sql, ilike } from "drizzle-orm";
 import { db } from "../../db/index.js";
+import {
+  enrichWithDelaiTraitement,
+  getDelaiTraitementHeures,
+  computeDelaiMeta,
+} from "../../utils/delaiTraitement.js";
+import { invalidateEmailPreferenceCache } from "../../utils/email.js";
+import { incrementerVersionJeton } from "../../utils/versionJeton.js";
 import { creerNotification } from "../notifications/notifications.service.js";
+import { logAdminAction } from "./auditAdmin.service.js";
 import {
   entreprises,
   universites,
@@ -9,19 +19,28 @@ import {
   entretiens,
   candidatures,
   offresStage,
+  stages,
   litigesReclamations,
   utilisateurs,
   documents,
   stagiaires,
   contactsEntreprise,
   parametresPlateforme,
+  sessionsUtilisateur,
+  membresEquipe,
+  partenariatsUniversiteEntreprise,
 } from "../../db/schema.js";
 
 export async function listEntreprisesEnAttente() {
-  return db
+  const rows = await db
     .select()
     .from(entreprises)
     .where(eq(entreprises.statutVerification, "en_attente"));
+  return enrichWithDelaiTraitement(
+    rows,
+    (r) => r.dateCreation,
+    () => true,
+  );
 }
 
 const nbDocuments = sql`count(${documents.idDocument})`.mapWith(Number);
@@ -35,6 +54,16 @@ export async function listToutesEntreprises(recherche) {
   if (recherche) {
     conditions.push(ilike(entreprises.nomEntreprise, `%${recherche}%`));
   }
+
+  const nbOffresSql = sql`(
+    select count(*)::int from offres_stage os
+    where os.id_entreprise = ${entreprises.idEntreprise}
+  )`.mapWith(Number);
+
+  const nbStagesSql = sql`(
+    select count(*)::int from stages st
+    where st.id_entreprise = ${entreprises.idEntreprise}
+  )`.mapWith(Number);
 
   const rows = await db
     .select({
@@ -54,10 +83,13 @@ export async function listToutesEntreprises(recherche) {
       pays: entreprises.pays,
       statutVerification: entreprises.statutVerification,
       dateVerification: entreprises.dateVerification,
+      motifRejetVerification: entreprises.motifRejetVerification,
       dateCreation: entreprises.dateCreation,
       email: utilisateurs.email,
       statutCompte: utilisateurs.statutCompte,
       nbDocuments,
+      nbOffres: nbOffresSql,
+      nbStages: nbStagesSql,
     })
     .from(entreprises)
     .innerJoin(
@@ -83,13 +115,18 @@ export async function listToutesEntreprises(recherche) {
       entreprises.pays,
       entreprises.statutVerification,
       entreprises.dateVerification,
+      entreprises.motifRejetVerification,
       entreprises.dateCreation,
       utilisateurs.email,
       utilisateurs.statutCompte,
     )
     .orderBy(entreprises.dateCreation);
 
-  return rows;
+  return enrichWithDelaiTraitement(
+    rows,
+    (r) => r.dateCreation,
+    (r) => r.statutVerification === "en_attente",
+  );
 }
 
 // Documents déposés par l'entreprise (justificatifs Kbis, etc.) — consultés
@@ -141,14 +178,24 @@ export async function changerStatutCompteEntreprise(
     .where(eq(utilisateurs.idUtilisateur, entreprise.idUtilisateur))
     .returning();
 
+  // Toute modification de statut invalide les access JWT existants.
+  // Le backend reste l'autorité sur suspension/révocation; le proxy web ne
+  // fait qu'un contrôle précoce en consultant /auth/me.
+  if (utilisateur) await incrementerVersionJeton(utilisateur.idUtilisateur);
+
   return utilisateur;
 }
 
 export async function listUniversitesEnAttente() {
-  return db
+  const rows = await db
     .select()
     .from(universites)
     .where(eq(universites.statutVerification, "en_attente"));
+  return enrichWithDelaiTraitement(
+    rows,
+    (r) => r.dateCreation,
+    () => true,
+  );
 }
 
 // Page de gestion complète "Universités" de la console admin (liste + filtre
@@ -158,7 +205,14 @@ export async function listUniversitesEnAttente() {
 export async function listToutesUniversites(recherche) {
   const conditions = [];
   if (recherche) {
-    conditions.push(ilike(universites.nomUniversite, `%${recherche}%`));
+    const terme = `%${recherche}%`;
+    conditions.push(
+      or(
+        ilike(universites.nomUniversite, terme),
+        ilike(universites.emailOfficiel, terme),
+        ilike(universites.pays, terme),
+      ),
+    );
   }
 
   const rows = await db
@@ -190,9 +244,13 @@ export async function listToutesUniversites(recherche) {
       universites.dateCreation,
       utilisateurs.statutCompte,
     )
-    .orderBy(universites.dateCreation);
+    .orderBy(desc(universites.dateCreation));
 
-  return rows;
+  return enrichWithDelaiTraitement(
+    rows,
+    (r) => r.dateCreation,
+    (r) => r.statutVerification === "en_attente",
+  );
 }
 
 // Suspend ou réactive le compte d'une université (agit sur statutCompte de
@@ -218,6 +276,9 @@ export async function changerStatutCompteUniversite(
     .where(eq(utilisateurs.idUtilisateur, universite.idUtilisateur))
     .returning();
 
+  // Une suspension/réactivation doit aussi invalider les JWT déjà émis.
+  if (utilisateur) await incrementerVersionJeton(utilisateur.idUtilisateur);
+
   return utilisateur;
 }
 
@@ -225,6 +286,7 @@ export async function verifierEntreprise(
   idUtilisateurAdmin,
   idEntreprise,
   statutVerification,
+  { motif, commentaire } = {},
 ) {
   const [admin] = await db
     .select()
@@ -237,13 +299,53 @@ export async function verifierEntreprise(
     throw err;
   }
 
+  const [avant] = await db
+    .select({
+      idEntreprise: entreprises.idEntreprise,
+      statutVerification: entreprises.statutVerification,
+      nomEntreprise: entreprises.nomEntreprise,
+    })
+    .from(entreprises)
+    .where(eq(entreprises.idEntreprise, idEntreprise));
+
+  if (!avant) {
+    const err = new Error("Entreprise introuvable");
+    err.status = 404;
+    throw err;
+  }
+
+  // Motif obligatoire uniquement pour un rejet
+  const motifClean =
+    typeof motif === "string" && motif.trim() ? motif.trim() : null;
+  const commentaireClean =
+    typeof commentaire === "string" && commentaire.trim()
+      ? commentaire.trim()
+      : null;
+
+  if (statutVerification === "rejetee" && (!motifClean || motifClean.length < 5)) {
+    const err = new Error("Motif requis (min. 5 caractères) pour un rejet");
+    err.status = 400;
+    throw err;
+  }
+
+  // Autoriser le rejet même si déjà vérifiée (correction d'une validation accidentelle)
+  // et la (re)validation si précédemment rejetée / en attente.
+  const updatePayload = {
+    statutVerification,
+    dateVerification: new Date(),
+    adminVerificateurId: admin.idAdmin,
+  };
+
+  if (statutVerification === "rejetee") {
+    updatePayload.motifRejetVerification = motifClean;
+  } else if (statutVerification === "verifiee") {
+    // Effacer un éventuel motif de rejet précédent
+    updatePayload.motifRejetVerification = null;
+  }
+
   const [entreprise] = await db
     .update(entreprises)
-    .set({
-      statutVerification,
-      dateVerification: new Date(),
-      adminVerificateurId: admin.idAdmin,
-    })
+    .set(updatePayload)
     .where(eq(entreprises.idEntreprise, idEntreprise))
     .returning();
 
@@ -253,25 +355,122 @@ export async function verifierEntreprise(
     throw err;
   }
 
+  const isRejet = statutVerification === "rejetee";
+  const messageRejet = motifClean
+    ? `Votre dossier de vérification n'a pas été validé. Motif : ${motifClean}`
+    : "Votre dossier de vérification n'a pas été validé. Contactez le support pour plus d'informations.";
+
   await creerNotification({
     idUtilisateur: entreprise.idUtilisateur,
-    type:
-      statutVerification === "verifiee"
-        ? "entreprise_verifiee"
-        : "entreprise_rejetee",
-    titre:
-      statutVerification === "verifiee"
-        ? "Entreprise vérifiée"
-        : "Vérification refusée",
-    message:
-      statutVerification === "verifiee"
-        ? "Votre entreprise a été vérifiée. Vous pouvez maintenant publier des offres de stage."
-        : "Votre dossier de vérification n'a pas été validé. Contactez le support pour plus d'informations.",
+    type: isRejet ? "entreprise_rejetee" : "entreprise_verifiee",
+    titre: isRejet ? "Vérification refusée" : "Entreprise vérifiée",
+    message: isRejet
+      ? messageRejet
+      : "Votre entreprise a été vérifiée. Vous pouvez maintenant publier des offres de stage.",
     lien: "/offres-entreprise",
   });
 
+  await logAdminAction({
+    idAdministrateur: idUtilisateurAdmin,
+    typeEntite: "entreprise",
+    idEntite: idEntreprise,
+    action: isRejet ? "rejeter_entreprise" : "verifier_entreprise",
+    ancienStatut: avant.statutVerification,
+    nouveauStatut: statutVerification,
+    motif: isRejet
+      ? motifClean
+      : commentaireClean || `Vérification de ${avant.nomEntreprise || idEntreprise}`,
+  });
 
   return entreprise;
+}
+
+/**
+ * Actions groupées sur les entreprises (vérifier / rejeter / suspendre / réactiver).
+ * Traite chaque id indépendamment ; les échecs n'interrompent pas le lot.
+ */
+export async function actionsMasseEntreprises(
+  idUtilisateurAdmin,
+  { action, ids, motif } = {},
+) {
+  const actionsValides = ["verifier", "rejeter", "suspendre", "reactiver"];
+  if (!actionsValides.includes(action)) {
+    const err = new Error(
+      `Action invalide (attendu : ${actionsValides.join(", ")})`,
+    );
+    err.status = 400;
+    throw err;
+  }
+
+  const idList = Array.isArray(ids)
+    ? [...new Set(ids.filter((id) => typeof id === "string" && id.length > 0))]
+    : [];
+  if (idList.length === 0) {
+    const err = new Error("Aucune entreprise sélectionnée");
+    err.status = 400;
+    throw err;
+  }
+  if (idList.length > 100) {
+    const err = new Error("Maximum 100 entreprises par action groupée");
+    err.status = 400;
+    throw err;
+  }
+
+  if (action === "rejeter") {
+    const motifClean = typeof motif === "string" ? motif.trim() : "";
+    if (motifClean.length < 5) {
+      const err = new Error("Motif requis (min. 5 caractères) pour un rejet");
+      err.status = 400;
+      throw err;
+    }
+  }
+
+  const resultats = [];
+  let traitees = 0;
+  let echecs = 0;
+
+  for (const idEntreprise of idList) {
+    try {
+      if (action === "verifier") {
+        await verifierEntreprise(idUtilisateurAdmin, idEntreprise, "verifiee");
+      } else if (action === "rejeter") {
+        await verifierEntreprise(idUtilisateurAdmin, idEntreprise, "rejetee", {
+          motif: motif.trim(),
+        });
+      } else if (action === "suspendre") {
+        await changerStatutCompteEntreprise(idEntreprise, "suspendu");
+        await logAdminAction({
+          idAdministrateur: idUtilisateurAdmin,
+          typeEntite: "entreprise",
+          idEntite: idEntreprise,
+          action: "suspendre",
+          nouveauStatut: "suspendu",
+          motif: "Action groupée — suspension",
+        });
+      } else if (action === "reactiver") {
+        await changerStatutCompteEntreprise(idEntreprise, "actif");
+        await logAdminAction({
+          idAdministrateur: idUtilisateurAdmin,
+          typeEntite: "entreprise",
+          idEntite: idEntreprise,
+          action: "reactiver",
+          nouveauStatut: "actif",
+          motif: "Action groupée — réactivation",
+        });
+      }
+      traitees += 1;
+      resultats.push({ idEntreprise, ok: true });
+    } catch (err) {
+      echecs += 1;
+      resultats.push({
+        idEntreprise,
+        ok: false,
+        error: err?.message || "Erreur",
+      });
+    }
+  }
+
+  return { action, traitees, echecs, resultats };
 }
 
 export async function verifierUniversite(
@@ -328,6 +527,7 @@ async function fetchStagiairesUtilisateurs() {
       emailVerifie: utilisateurs.emailVerifie,
       statutCompte: utilisateurs.statutCompte,
       dateCreation: utilisateurs.dateCreation,
+      derniereConnexion: utilisateurs.derniereConnexion,
     })
     .from(stagiaires)
     .innerJoin(
@@ -345,6 +545,7 @@ async function fetchStagiairesUtilisateurs() {
     emailVerifie: r.emailVerifie,
     statutCompte: r.statutCompte,
     dateCreation: r.dateCreation,
+    derniereConnexion: r.derniereConnexion,
     statutVerification: null,
   }));
 }
@@ -363,6 +564,7 @@ async function fetchEntreprisesUtilisateurs() {
       emailVerifie: utilisateurs.emailVerifie,
       statutCompte: utilisateurs.statutCompte,
       dateCreation: utilisateurs.dateCreation,
+      derniereConnexion: utilisateurs.derniereConnexion,
       statutVerification: entreprises.statutVerification,
     })
     .from(entreprises)
@@ -387,6 +589,7 @@ async function fetchEntreprisesUtilisateurs() {
     emailVerifie: r.emailVerifie,
     statutCompte: r.statutCompte,
     dateCreation: r.dateCreation,
+    derniereConnexion: r.derniereConnexion,
     statutVerification: r.statutVerification,
   }));
 }
@@ -401,6 +604,7 @@ async function fetchUniversitesUtilisateurs() {
       emailVerifie: utilisateurs.emailVerifie,
       statutCompte: utilisateurs.statutCompte,
       dateCreation: utilisateurs.dateCreation,
+      derniereConnexion: utilisateurs.derniereConnexion,
     })
     .from(universites)
     .innerJoin(
@@ -417,42 +621,204 @@ async function fetchUniversitesUtilisateurs() {
     emailVerifie: r.emailVerifie,
     statutCompte: r.statutCompte,
     dateCreation: r.dateCreation,
+    derniereConnexion: r.derniereConnexion,
   }));
 }
 
-export async function listTousUtilisateurs({ recherche, role } = {}) {
+
+/**
+ * Superviseurs = comptes utilisateurs type membre_entreprise
+ * rattachés à membres_equipe avec roleEquipe = "superviseur"
+ * et idUtilisateur non null (compte réellement activé).
+ */
+async function fetchSuperviseursUtilisateurs() {
+  const rows = await db
+    .select({
+      idUtilisateur: utilisateurs.idUtilisateur,
+      membreNom: membresEquipe.nom,
+      email: utilisateurs.email,
+      emailVerifie: utilisateurs.emailVerifie,
+      statutCompte: utilisateurs.statutCompte,
+      dateCreation: utilisateurs.dateCreation,
+      derniereConnexion: utilisateurs.derniereConnexion,
+      nomEntreprise: entreprises.nomEntreprise,
+      idEntreprise: entreprises.idEntreprise,
+      roleEquipe: membresEquipe.roleEquipe,
+      statutMembre: membresEquipe.statutMembre,
+      dateActivation: membresEquipe.dateActivation,
+      dateEnvoiInvitation: membresEquipe.dateEnvoiInvitation,
+    })
+    .from(membresEquipe)
+    .innerJoin(
+      utilisateurs,
+      eq(membresEquipe.idUtilisateur, utilisateurs.idUtilisateur),
+    )
+    .innerJoin(
+      entreprises,
+      eq(membresEquipe.idEntreprise, entreprises.idEntreprise),
+    )
+    .where(eq(membresEquipe.roleEquipe, "superviseur"));
+
+  return rows.map((r) => ({
+    idUtilisateur: r.idUtilisateur,
+    nom: r.membreNom || r.email,
+    email: r.email,
+    role: "superviseur",
+    organisation: r.nomEntreprise || "—",
+    idEntreprise: r.idEntreprise,
+    emailVerifie: r.emailVerifie,
+    statutCompte: r.statutCompte,
+    dateCreation: r.dateCreation,
+    derniereConnexion: r.derniereConnexion,
+    statutVerification: null,
+    statutMembre: r.statutMembre,
+    roleEquipe: r.roleEquipe,
+    dateActivation: r.dateActivation,
+    dateEnvoiInvitation: r.dateEnvoiInvitation,
+  }));
+}
+
+export async function listTousUtilisateurs({ recherche, role, statut } = {}) {
   const rolesVoulus = role
     ? [role]
-    : ["stagiaire", "entreprise", "universite"];
+    : ["stagiaire", "entreprise", "universite", "superviseur"];
 
-  const [stagiairesRows, entreprisesRows, universitesRows] =
+  const [stagiairesRows, entreprisesRows, universitesRows, superviseursRows] =
     await Promise.all([
       rolesVoulus.includes("stagiaire") ? fetchStagiairesUtilisateurs() : [],
       rolesVoulus.includes("entreprise") ? fetchEntreprisesUtilisateurs() : [],
       rolesVoulus.includes("universite") ? fetchUniversitesUtilisateurs() : [],
+      rolesVoulus.includes("superviseur") ? fetchSuperviseursUtilisateurs() : [],
     ]);
 
-  // Dédoublonnage par sécurité (ex. si un jour une entreprise avait deux
-  // contacts principaux par erreur, on ne veut pas de ligne en double).
   const parId = new Map();
-  for (const u of [...stagiairesRows, ...entreprisesRows, ...universitesRows]) {
+  for (const u of [
+    ...stagiairesRows,
+    ...entreprisesRows,
+    ...universitesRows,
+    ...superviseursRows,
+  ]) {
     parId.set(u.idUtilisateur, u);
   }
   let tous = Array.from(parId.values());
 
+  if (statut) {
+    tous = tous.filter((u) => u.statutCompte === statut);
+  }
+
   if (recherche) {
-    const terme = recherche.toLowerCase();
+    const terme = recherche.toLowerCase().trim();
     tous = tous.filter(
       (u) =>
-        u.nom.toLowerCase().includes(terme) ||
-        u.email.toLowerCase().includes(terme) ||
-        u.organisation.toLowerCase().includes(terme),
+        (u.nom || "").toLowerCase().includes(terme) ||
+        (u.email || "").toLowerCase().includes(terme) ||
+        (u.organisation || "").toLowerCase().includes(terme) ||
+        (u.idUtilisateur || "").toLowerCase().includes(terme),
     );
   }
 
   tous.sort((a, b) => new Date(b.dateCreation) - new Date(a.dateCreation));
   return tous;
 }
+
+/** KPI agrégés SQL — pas de données fictives. */
+export async function getUtilisateursAdminStats() {
+  const byType = await db
+    .select({
+      typeUtilisateur: utilisateurs.typeUtilisateur,
+      count: sql`count(*)`.mapWith(Number),
+    })
+    .from(utilisateurs)
+    .where(
+      inArray(utilisateurs.typeUtilisateur, [
+        "stagiaire",
+        "entreprise",
+        "universite",
+      ]),
+    )
+    .groupBy(utilisateurs.typeUtilisateur);
+
+  const byStatut = await db
+    .select({
+      statutCompte: utilisateurs.statutCompte,
+      count: sql`count(*)`.mapWith(Number),
+    })
+    .from(utilisateurs)
+    .where(
+      inArray(utilisateurs.typeUtilisateur, [
+        "stagiaire",
+        "entreprise",
+        "universite",
+      ]),
+    )
+    .groupBy(utilisateurs.statutCompte);
+
+  const [{ count: nonVerifies }] = await db
+    .select({ count: sql`count(*)`.mapWith(Number) })
+    .from(utilisateurs)
+    .where(
+      and(
+        inArray(utilisateurs.typeUtilisateur, [
+          "stagiaire",
+          "entreprise",
+          "universite",
+        ]),
+        eq(utilisateurs.emailVerifie, false),
+      ),
+    );
+
+  const typeMap = Object.fromEntries(
+    (byType || []).map((r) => [r.typeUtilisateur, r.count]),
+  );
+  const statutMap = Object.fromEntries(
+    (byStatut || []).map((r) => [r.statutCompte, r.count]),
+  );
+
+  const [{ count: nbSuperviseurs }] = await db
+    .select({ count: sql`count(*)`.mapWith(Number) })
+    .from(membresEquipe)
+    .innerJoin(
+      utilisateurs,
+      eq(membresEquipe.idUtilisateur, utilisateurs.idUtilisateur),
+    )
+    .where(eq(membresEquipe.roleEquipe, "superviseur"));
+
+  const byStatutSup = await db
+    .select({
+      statutCompte: utilisateurs.statutCompte,
+      count: sql`count(*)`.mapWith(Number),
+    })
+    .from(membresEquipe)
+    .innerJoin(
+      utilisateurs,
+      eq(membresEquipe.idUtilisateur, utilisateurs.idUtilisateur),
+    )
+    .where(eq(membresEquipe.roleEquipe, "superviseur"))
+    .groupBy(utilisateurs.statutCompte);
+
+  for (const r of byStatutSup || []) {
+    statutMap[r.statutCompte] = (statutMap[r.statutCompte] || 0) + (r.count || 0);
+  }
+
+  const total =
+    (typeMap.stagiaire || 0) +
+    (typeMap.entreprise || 0) +
+    (typeMap.universite || 0) +
+    (nbSuperviseurs || 0);
+
+  return {
+    total,
+    actifs: statutMap.actif || 0,
+    suspendus: statutMap.suspendu || 0,
+    inactifs: statutMap.inactif || 0,
+    stagiaires: typeMap.stagiaire || 0,
+    entreprises: typeMap.entreprise || 0,
+    universites: typeMap.universite || 0,
+    superviseurs: nbSuperviseurs || 0,
+    emailNonVerifie: nonVerifies || 0,
+  };
+}
+
 
 // Suspend ou réactive n'importe quel type de compte (agit directement sur
 // utilisateurs.statutCompte via idUtilisateur — contrairement aux fonctions
@@ -501,7 +867,21 @@ export async function changerStatutCompteUtilisateur(idUtilisateurAdmin, idUtili
     .where(eq(utilisateurs.idUtilisateur, idUtilisateur))
     .returning();
 
-  
+  // Le changement de statut révoque immédiatement tous les access JWT
+  // précédemment émis pour ce compte.
+  if (utilisateur) await incrementerVersionJeton(utilisateur.idUtilisateur);
+
+  try {
+    await logAdminAction({
+      idAdministrateur: idUtilisateurAdmin,
+      action: `UTILISATEUR_STATUT_${String(statutCompte || "").toUpperCase()}`,
+      typeEntite: "utilisateur",
+      idEntite: idUtilisateur,
+      motif: `type=${cible.typeUtilisateur};nouveau_statut=${statutCompte}`,
+    });
+  } catch {
+    /* audit non bloquant */
+  }
 
   return utilisateur;
 }
@@ -511,7 +891,11 @@ export async function getAdminProfile(idUtilisateur) {
     .select({ nom: administrateurs.nom, roleAdmin: administrateurs.roleAdmin })
     .from(administrateurs)
     .where(eq(administrateurs.idUtilisateur, idUtilisateur));
-  return admin || null;
+  if (!admin) return null;
+  return {
+    ...admin,
+    scopes: listScopesForRole(admin.roleAdmin),
+  };
 }
 
 const count = sql`count(*)`.mapWith(Number);
@@ -724,6 +1108,24 @@ export async function getStatsGlobales() {
     universitesEnAttente.length +
     signalementsOuverts;
 
+  // SLA : dossiers encore en attente au-delà du délai de traitement admin
+  const delaiHeures = await getDelaiTraitementHeures();
+  const [offresPendingRows] = await Promise.all([
+    db
+      .select({ dateCreation: offresFinales.dateCreation })
+      .from(offresFinales)
+      .where(eq(offresFinales.statutValidationPlateforme, "en_attente")),
+  ]);
+  const offresEnRetard = offresPendingRows.filter(
+    (r) => computeDelaiMeta(r.dateCreation, delaiHeures, true).enRetard,
+  ).length;
+  const entreprisesEnRetard = entreprisesEnAttente.filter(
+    (r) => computeDelaiMeta(r.dateCreation, delaiHeures, true).enRetard,
+  ).length;
+  const universitesEnRetard = universitesEnAttente.filter(
+    (r) => computeDelaiMeta(r.dateCreation, delaiHeures, true).enRetard,
+  ).length;
+
   return {
     offresEnAttente: offresFinalesEnAttente,
     entitesNonVerifiees: {
@@ -739,6 +1141,13 @@ export async function getStatsGlobales() {
     offresParStatut,
     actionsRequises,
     activiteRecente,
+    delaiTraitementHeures: delaiHeures,
+    dossiersEnRetard: {
+      total: offresEnRetard + entreprisesEnRetard + universitesEnRetard,
+      offresFinales: offresEnRetard,
+      entreprises: entreprisesEnRetard,
+      universites: universitesEnRetard,
+    },
   };
 }
 
@@ -753,14 +1162,495 @@ export async function getParametres() {
   return crees;
 }
 
-export async function updateParametres(champs) {
+export async function updateParametres(champs, idUtilisateurAdmin = null) {
   const parametres = await getParametres();
+
+  // Normaliser dates maintenance si présentes
+  const payload = { ...champs };
+  if ("maintenanceDebut" in payload) {
+    payload.maintenanceDebut = payload.maintenanceDebut
+      ? new Date(payload.maintenanceDebut)
+      : null;
+  }
+  if ("maintenanceFin" in payload) {
+    payload.maintenanceFin = payload.maintenanceFin
+      ? new Date(payload.maintenanceFin)
+      : null;
+  }
 
   const [maj] = await db
     .update(parametresPlateforme)
-    .set({ ...champs, dateMaj: new Date() })
+    .set({ ...payload, dateMaj: new Date() })
     .where(eq(parametresPlateforme.idParametres, parametres.idParametres))
     .returning();
 
+  // Appliquer immédiatement le flag e-mails transactionnels
+  try {
+    invalidateEmailPreferenceCache();
+  } catch {
+    /* ignore */
+  }
+
+  // Audit léger (console + journal si table présente)
+  try {
+    const keys = Object.keys(champs || {});
+    if (idUtilisateurAdmin && keys.length) {
+      // journal optionnel — ignore si non importé
+      if (typeof journalActionsAdmin !== "undefined") {
+        await db.insert(journalActionsAdmin).values({
+          idAdministrateur: idUtilisateurAdmin,
+          typeEntite: "parametres",
+          idEntite: parametres.idParametres,
+          action: "modification_parametres",
+          ancienStatut: null,
+          nouveauStatut: null,
+          motif: keys.join(", "),
+          dateCreation: new Date(),
+        });
+      }
+    }
+  } catch (_) {
+    /* audit best-effort */
+  }
+
   return maj;
+}
+
+async function resolveUserContext(idUtilisateur) {
+  const [u] = await db
+    .select({
+      idUtilisateur: utilisateurs.idUtilisateur,
+      email: utilisateurs.email,
+      typeUtilisateur: utilisateurs.typeUtilisateur,
+      emailVerifie: utilisateurs.emailVerifie,
+      statutCompte: utilisateurs.statutCompte,
+      derniereConnexion: utilisateurs.derniereConnexion,
+      dateCreation: utilisateurs.dateCreation,
+      dateMaj: utilisateurs.dateMaj,
+    })
+    .from(utilisateurs)
+    .where(eq(utilisateurs.idUtilisateur, idUtilisateur));
+  if (!u) {
+    const err = new Error("Utilisateur introuvable");
+    err.status = 404;
+    throw err;
+  }
+  if (u.typeUtilisateur === "administrateur") {
+    const err = new Error("Compte administrateur non géré sur cette page");
+    err.status = 403;
+    throw err;
+  }
+  return u;
+}
+
+export async function getUtilisateurAdminDetail(idUtilisateur) {
+  const u = await resolveUserContext(idUtilisateur);
+  let profil = null;
+  let stats = {};
+
+  if (u.typeUtilisateur === "stagiaire") {
+    const [s] = await db
+      .select({
+        idStagiaire: stagiaires.idStagiaire,
+        prenom: stagiaires.prenom,
+        nom: stagiaires.nom,
+        telephone: stagiaires.telephone,
+        ville: stagiaires.ville,
+        pays: stagiaires.pays,
+        photoProfilUrl: stagiaires.photoProfilUrl,
+        scoreCompletudeProfil: stagiaires.scoreCompletudeProfil,
+        statutStage: stagiaires.statutStage,
+        nomUniversite: universites.nomUniversite,
+      })
+      .from(stagiaires)
+      .leftJoin(universites, eq(stagiaires.idUniversite, universites.idUniversite))
+      .where(eq(stagiaires.idUtilisateur, idUtilisateur));
+    profil = s || null;
+    if (s) {
+      const [[c], [st]] = await Promise.all([
+        db
+          .select({ count: sql`count(*)`.mapWith(Number) })
+          .from(candidatures)
+          .where(eq(candidatures.idStagiaire, s.idStagiaire)),
+        db
+          .select({ count: sql`count(*)`.mapWith(Number) })
+          .from(stages)
+          .where(eq(stages.idStagiaire, s.idStagiaire)),
+      ]);
+      stats = {
+        nbCandidatures: c?.count ?? 0,
+        nbStages: st?.count ?? 0,
+        scoreCompletude: s.scoreCompletudeProfil ?? 0,
+      };
+    }
+  } else if (u.typeUtilisateur === "entreprise") {
+    const [e] = await db
+      .select({
+        idEntreprise: entreprises.idEntreprise,
+        nomEntreprise: entreprises.nomEntreprise,
+        secteurActivite: entreprises.secteurActivite,
+        ville: entreprises.ville,
+        pays: entreprises.pays,
+        logoUrl: entreprises.logoUrl,
+        statutVerification: entreprises.statutVerification,
+      })
+      .from(entreprises)
+      .where(eq(entreprises.idUtilisateur, idUtilisateur));
+    profil = e || null;
+    if (e) {
+      const [[o], [st]] = await Promise.all([
+        db
+          .select({ count: sql`count(*)`.mapWith(Number) })
+          .from(offresStage)
+          .where(eq(offresStage.idEntreprise, e.idEntreprise)),
+        db
+          .select({ count: sql`count(*)`.mapWith(Number) })
+          .from(stages)
+          .where(eq(stages.idEntreprise, e.idEntreprise)),
+      ]);
+      stats = { nbOffres: o?.count ?? 0, nbStages: st?.count ?? 0 };
+    }
+  } else if (u.typeUtilisateur === "universite") {
+    const [uni] = await db
+      .select({
+        idUniversite: universites.idUniversite,
+        nomUniversite: universites.nomUniversite,
+        pays: universites.pays,
+        statutVerification: universites.statutVerification,
+      })
+      .from(universites)
+      .where(eq(universites.idUtilisateur, idUtilisateur));
+    profil = uni || null;
+  } else if (u.typeUtilisateur === "membre_entreprise") {
+    const [m] = await db
+      .select({
+        idMembre: membresEquipe.idMembre,
+        nom: membresEquipe.nom,
+        emailMembre: membresEquipe.email,
+        roleEquipe: membresEquipe.roleEquipe,
+        statutMembre: membresEquipe.statutMembre,
+        dateActivation: membresEquipe.dateActivation,
+        dateEnvoiInvitation: membresEquipe.dateEnvoiInvitation,
+        idEntreprise: entreprises.idEntreprise,
+        nomEntreprise: entreprises.nomEntreprise,
+      })
+      .from(membresEquipe)
+      .innerJoin(
+        entreprises,
+        eq(membresEquipe.idEntreprise, entreprises.idEntreprise),
+      )
+      .where(eq(membresEquipe.idUtilisateur, idUtilisateur))
+      .limit(1);
+    profil = m
+      ? {
+          ...m,
+          isSuperviseur: m.roleEquipe === "superviseur",
+        }
+      : null;
+  }
+
+  return { ...u, profil, stats };
+}
+
+export async function listUtilisateurDocumentsAdmin(idUtilisateur) {
+  await resolveUserContext(idUtilisateur);
+  return db
+    .select({
+      idDocument: documents.idDocument,
+      typeDocument: documents.typeDocument,
+      nomFichier: documents.nomFichier,
+      urlFichier: documents.urlFichier,
+      dateUpload: documents.dateUpload,
+    })
+    .from(documents)
+    .where(eq(documents.idUtilisateur, idUtilisateur))
+    .orderBy(desc(documents.dateUpload));
+}
+
+export async function listUtilisateurCandidaturesAdmin(idUtilisateur) {
+  const u = await resolveUserContext(idUtilisateur);
+  if (u.typeUtilisateur !== "stagiaire") return [];
+  const [s] = await db
+    .select({ idStagiaire: stagiaires.idStagiaire })
+    .from(stagiaires)
+    .where(eq(stagiaires.idUtilisateur, idUtilisateur));
+  if (!s) return [];
+  return db
+    .select({
+      idCandidature: candidatures.idCandidature,
+      statut: candidatures.statut,
+      dateCandidature: candidatures.dateCandidature,
+      titreOffre: offresStage.titre,
+      nomEntreprise: entreprises.nomEntreprise,
+    })
+    .from(candidatures)
+    .innerJoin(offresStage, eq(candidatures.idOffre, offresStage.idOffre))
+    .innerJoin(entreprises, eq(offresStage.idEntreprise, entreprises.idEntreprise))
+    .where(eq(candidatures.idStagiaire, s.idStagiaire))
+    .orderBy(desc(candidatures.dateCandidature));
+}
+
+export async function listUtilisateurStagesAdmin(idUtilisateur) {
+  const u = await resolveUserContext(idUtilisateur);
+  if (u.typeUtilisateur === "stagiaire") {
+    const [s] = await db
+      .select({ idStagiaire: stagiaires.idStagiaire })
+      .from(stagiaires)
+      .where(eq(stagiaires.idUtilisateur, idUtilisateur));
+    if (!s) return [];
+    return db
+      .select({
+        idStage: stages.idStage,
+        statut: stages.statut,
+        dateDebut: stages.dateDebut,
+        dateFinPrevue: stages.dateFinPrevue,
+        nomEntreprise: entreprises.nomEntreprise,
+      })
+      .from(stages)
+      .innerJoin(entreprises, eq(stages.idEntreprise, entreprises.idEntreprise))
+      .where(eq(stages.idStagiaire, s.idStagiaire))
+      .orderBy(desc(stages.dateDebut));
+  }
+  if (u.typeUtilisateur === "entreprise") {
+    const [e] = await db
+      .select({ idEntreprise: entreprises.idEntreprise })
+      .from(entreprises)
+      .where(eq(entreprises.idUtilisateur, idUtilisateur));
+    if (!e) return [];
+    return db
+      .select({
+        idStage: stages.idStage,
+        statut: stages.statut,
+        dateDebut: stages.dateDebut,
+        dateFinPrevue: stages.dateFinPrevue,
+        prenom: stagiaires.prenom,
+        nom: stagiaires.nom,
+      })
+      .from(stages)
+      .innerJoin(stagiaires, eq(stages.idStagiaire, stagiaires.idStagiaire))
+      .where(eq(stages.idEntreprise, e.idEntreprise))
+      .orderBy(desc(stages.dateDebut));
+  }
+  return [];
+}
+
+export async function listUtilisateurSignalementsAdmin(idUtilisateur) {
+  await resolveUserContext(idUtilisateur);
+  // Signalements où l'utilisateur est plaignant
+  return db
+    .select({
+      idLitige: litigesReclamations.idLitige,
+      typeLitige: litigesReclamations.typeLitige,
+      description: litigesReclamations.description,
+      statut: litigesReclamations.statut,
+      dateCreation: litigesReclamations.dateCreation,
+      dateResolution: litigesReclamations.dateResolution,
+    })
+    .from(litigesReclamations)
+    .where(eq(litigesReclamations.idUtilisateurPlaignant, idUtilisateur))
+    .orderBy(desc(litigesReclamations.dateCreation));
+}
+
+export async function listUtilisateurSessionsAdmin(idUtilisateur) {
+  await resolveUserContext(idUtilisateur);
+  return db
+    .select({
+      idSession: sessionsUtilisateur.idSession,
+      adresseIp: sessionsUtilisateur.adresseIp,
+      dateExpiration: sessionsUtilisateur.dateExpiration,
+      dateCreation: sessionsUtilisateur.dateCreation,
+    })
+    .from(sessionsUtilisateur)
+    .where(eq(sessionsUtilisateur.idUtilisateur, idUtilisateur))
+    .orderBy(desc(sessionsUtilisateur.dateCreation));
+}
+
+
+// ---------------------------------------------------------------------------
+// Détail admin entreprise — stats & listes (compteurs + onglets)
+// ---------------------------------------------------------------------------
+
+async function assertEntrepriseExists(idEntreprise) {
+  const [row] = await db
+    .select({ idEntreprise: entreprises.idEntreprise })
+    .from(entreprises)
+    .where(eq(entreprises.idEntreprise, idEntreprise));
+  if (!row) {
+    const err = new Error("Entreprise introuvable");
+    err.status = 404;
+    throw err;
+  }
+  return row;
+}
+
+/** Compteurs agrégés pour le panneau détail admin. */
+export async function getEntrepriseAdminStats(idEntreprise) {
+  await assertEntrepriseExists(idEntreprise);
+
+  const [[offres], [stagesRow], [membres], [partenariats], [signalements], [docs]] =
+    await Promise.all([
+      db
+        .select({ count: sql`count(*)`.mapWith(Number) })
+        .from(offresStage)
+        .where(eq(offresStage.idEntreprise, idEntreprise)),
+      db
+        .select({ count: sql`count(*)`.mapWith(Number) })
+        .from(stages)
+        .where(eq(stages.idEntreprise, idEntreprise)),
+      db
+        .select({ count: sql`count(*)`.mapWith(Number) })
+        .from(membresEquipe)
+        .where(eq(membresEquipe.idEntreprise, idEntreprise)),
+      db
+        .select({ count: sql`count(*)`.mapWith(Number) })
+        .from(partenariatsUniversiteEntreprise)
+        .where(eq(partenariatsUniversiteEntreprise.idEntreprise, idEntreprise)),
+      db
+        .select({ count: sql`count(*)`.mapWith(Number) })
+        .from(litigesReclamations)
+        .innerJoin(stages, eq(litigesReclamations.idStage, stages.idStage))
+        .where(eq(stages.idEntreprise, idEntreprise)),
+      db
+        .select({
+          count: sql`count(*)`.mapWith(Number),
+        })
+        .from(documents)
+        .innerJoin(
+          entreprises,
+          eq(documents.idUtilisateur, entreprises.idUtilisateur),
+        )
+        .where(eq(entreprises.idEntreprise, idEntreprise)),
+    ]);
+
+  // Répartition des offres par statut (utile pour le détail)
+  const offresParStatutRows = await db
+    .select({
+      statut: offresStage.statut,
+      count: sql`count(*)`.mapWith(Number),
+    })
+    .from(offresStage)
+    .where(eq(offresStage.idEntreprise, idEntreprise))
+    .groupBy(offresStage.statut);
+
+  const offresParStatut = Object.fromEntries(
+    (offresParStatutRows || []).map((r) => [r.statut, r.count]),
+  );
+
+  return {
+    nbOffres: offres?.count ?? 0,
+    nbStages: stagesRow?.count ?? 0,
+    nbMembres: membres?.count ?? 0,
+    nbPartenariats: partenariats?.count ?? 0,
+    nbSignalements: signalements?.count ?? 0,
+    nbDocuments: docs?.count ?? 0,
+    offresParStatut,
+  };
+}
+
+/** Liste des offres de stage d'une entreprise (onglet Offres). */
+export async function listEntrepriseOffresAdmin(idEntreprise) {
+  await assertEntrepriseExists(idEntreprise);
+
+  return db
+    .select({
+      idOffre: offresStage.idOffre,
+      titre: offresStage.titre,
+      departement: offresStage.departement,
+      secteurActivite: offresStage.secteurActivite,
+      modeTravail: offresStage.modeTravail,
+      remunerationType: offresStage.remunerationType,
+      statut: offresStage.statut,
+      datePublication: offresStage.datePublication,
+      dateLimiteCandidature: offresStage.dateLimiteCandidature,
+      dureeStage: offresStage.dureeStage,
+      nombrePostes: offresStage.nombrePostes,
+      dateCreation: offresStage.dateCreation,
+    })
+    .from(offresStage)
+    .where(eq(offresStage.idEntreprise, idEntreprise))
+    .orderBy(desc(offresStage.dateCreation));
+}
+
+/** Liste des stages liés à l'entreprise. */
+export async function listEntrepriseStagesAdmin(idEntreprise) {
+  await assertEntrepriseExists(idEntreprise);
+
+  return db
+    .select({
+      idStage: stages.idStage,
+      dateDebut: stages.dateDebut,
+      dateFinPrevue: stages.dateFinPrevue,
+      dateFinReelle: stages.dateFinReelle,
+      statut: stages.statut,
+      progressionPourcentage: stages.progressionPourcentage,
+      prenom: stagiaires.prenom,
+      nom: stagiaires.nom,
+      dateCreation: stages.dateCreation,
+    })
+    .from(stages)
+    .innerJoin(stagiaires, eq(stages.idStagiaire, stagiaires.idStagiaire))
+    .where(eq(stages.idEntreprise, idEntreprise))
+    .orderBy(desc(stages.dateCreation));
+}
+
+/** Membres d'équipe de l'entreprise. */
+export async function listEntrepriseEquipeAdmin(idEntreprise) {
+  await assertEntrepriseExists(idEntreprise);
+
+  return db
+    .select({
+      idMembre: membresEquipe.idMembre,
+      roleEquipe: membresEquipe.roleEquipe,
+      estAdminPrincipal: membresEquipe.estAdminPrincipal,
+      statutMembre: membresEquipe.statutMembre,
+      email: utilisateurs.email,
+      dateCreation: membresEquipe.dateCreation,
+    })
+    .from(membresEquipe)
+    .leftJoin(
+      utilisateurs,
+      eq(membresEquipe.idUtilisateur, utilisateurs.idUtilisateur),
+    )
+    .where(eq(membresEquipe.idEntreprise, idEntreprise))
+    .orderBy(desc(membresEquipe.dateCreation));
+}
+
+/** Partenariats université ↔ entreprise. */
+export async function listEntreprisePartenariatsAdmin(idEntreprise) {
+  await assertEntrepriseExists(idEntreprise);
+
+  return db
+    .select({
+      idPartenariat: partenariatsUniversiteEntreprise.idPartenariat,
+      statut: partenariatsUniversiteEntreprise.statut,
+      dateCreation: partenariatsUniversiteEntreprise.dateEnvoi,
+      nomUniversite: universites.nomUniversite,
+      idUniversite: universites.idUniversite,
+    })
+    .from(partenariatsUniversiteEntreprise)
+    .leftJoin(
+      universites,
+      eq(partenariatsUniversiteEntreprise.idUniversite, universites.idUniversite),
+    )
+    .where(eq(partenariatsUniversiteEntreprise.idEntreprise, idEntreprise))
+    .orderBy(desc(partenariatsUniversiteEntreprise.dateEnvoi));
+}
+
+/** Signalements / litiges liés à l'entreprise. */
+export async function listEntrepriseSignalementsAdmin(idEntreprise) {
+  await assertEntrepriseExists(idEntreprise);
+
+  return db
+    .select({
+      idLitige: litigesReclamations.idLitige,
+      type: litigesReclamations.typeLitige,
+      statut: litigesReclamations.statut,
+      description: litigesReclamations.description,
+      dateCreation: litigesReclamations.dateCreation,
+      idStage: litigesReclamations.idStage,
+    })
+    .from(litigesReclamations)
+    .innerJoin(stages, eq(litigesReclamations.idStage, stages.idStage))
+    .where(eq(stages.idEntreprise, idEntreprise))
+    .orderBy(desc(litigesReclamations.dateCreation));
 }

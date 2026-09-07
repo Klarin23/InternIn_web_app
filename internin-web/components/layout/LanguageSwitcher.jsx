@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiCheck, FiChevronDown } from "react-icons/fi";
+import { Globe } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const LANGUES = [
-  { code: "fr", drapeau: "🇫🇷", labelCle: "languageSwitcher.french" },
-  { code: "en", drapeau: "🇬🇧", labelCle: "languageSwitcher.english" },
+  { code: "fr", labelCle: "languageSwitcher.french", short: "FR" },
+  { code: "en", labelCle: "languageSwitcher.english", short: "EN" },
 ];
 
 export default function LanguageSwitcher({ align = "right" }) {
@@ -30,7 +31,7 @@ export default function LanguageSwitcher({ align = "right" }) {
         aria-expanded={ouvert}
         className="flex h-9 items-center gap-1.5 rounded-full px-2.5 text-sm font-medium text-muted-foreground transition hover:bg-muted"
       >
-        <span aria-hidden="true">🌐</span>
+        <Globe className="h-3.5 w-3.5" aria-hidden />
         <span className="uppercase">{langueCourante.code}</span>
         <motion.span
           animate={{ rotate: ouvert ? 180 : 0 }}
@@ -66,8 +67,11 @@ export default function LanguageSwitcher({ align = "right" }) {
                     onClick={() => choisirLangue(langue.code)}
                     className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm text-foreground transition hover:bg-muted"
                   >
-                    <span aria-hidden="true" className="text-base">
-                      {langue.drapeau}
+                    <span
+                      aria-hidden
+                      className="flex h-5 w-5 items-center justify-center rounded bg-muted text-[10px] font-bold text-muted-foreground"
+                    >
+                      {langue.short}
                     </span>
                     <span className="flex-1">{t(langue.labelCle)}</span>
                     {estActive && (

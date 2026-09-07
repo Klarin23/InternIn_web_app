@@ -1,30 +1,43 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { motion } from "framer-motion";
-import { FiMapPin, FiCalendar } from "react-icons/fi";
+import { FiMapPin, FiCalendar, FiAlertCircle, FiArrowRight } from "react-icons/fi";
 import { calculerAge } from "@/lib/utils/calculerAge";
+
+const ENTRETIEN_ACTION_LABELS = {
+  reprogramme: "entrepriseSpace.candidatures.interviewRescheduleRequested",
+  planifie: "entrepriseSpace.candidatures.interviewAwaitingReply",
+  valide: "entrepriseSpace.candidatures.interviewAwaitingConfirm",
+};
 
 export default function KanbanCard({
   candidature,
   onOpen,
   estNouvelle = false,
+  entretienASignaler = null,
+  dragDisabled = false,
 }) {
+  const { t, locale } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: candidature.idCandidature,
+      disabled: dragDisabled,
     });
 
   const dragStyle = {
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.4 : 1,
-    touchAction: "none",
+    touchAction: dragDisabled ? "auto" : "none",
+    cursor: dragDisabled ? "pointer" : undefined,
   };
 
   const age = calculerAge(candidature.dateNaissance);
   const date = new Date(candidature.dateCandidature).toLocaleDateString(
-    "fr-FR",
+    locale === "en" ? "en-GB" : "fr-FR",
     {
       day: "2-digit",
       month: "short",
@@ -33,6 +46,8 @@ export default function KanbanCard({
   const competencesAffichees = (candidature.competences || []).slice(0, 3);
   const competencesRestantes =
     (candidature.competences || []).length - competencesAffichees.length;
+
+  const actionRequise = entretienASignaler?.statut === "reprogramme";
 
   return (
     <motion.div
@@ -44,7 +59,7 @@ export default function KanbanCard({
       transition={{ duration: 0.35, ease: "easeOut" }}
       className="relative"
     >
-      {estNouvelle && (
+      {estNouvelle && !actionRequise && (
         <motion.span
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -60,13 +75,26 @@ export default function KanbanCard({
         </motion.span>
       )}
 
+      {actionRequise && (
+        <span className="absolute -right-1.5 -top-1.5 z-10 inline-flex items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white shadow">
+          <FiAlertCircle className="h-3 w-3" aria-hidden />
+          Action requise
+        </span>
+      )}
+
       <div
         ref={setNodeRef}
         style={dragStyle}
         {...listeners}
         {...attributes}
         onClick={() => onOpen(candidature)}
-        className="cursor-grab rounded-md border border-border bg-card p-3.5 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing"
+        className={`rounded-md border bg-card p-3.5 shadow-sm transition-shadow hover:shadow-md ${
+          dragDisabled ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
+        } ${
+          actionRequise
+            ? "border-amber-300 ring-1 ring-amber-200/60 dark:border-amber-700 dark:ring-amber-900/40"
+            : "border-border"
+        }`}
       >
         <div className="mb-2.5 flex items-center gap-2.5">
           <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-xs font-bold text-primary-foreground">
@@ -86,7 +114,7 @@ export default function KanbanCard({
               {candidature.prenom} {candidature.nom}
               {age && (
                 <span className="ml-1 font-normal text-muted-foreground">
-                  · {age} ans
+                  · {t("entrepriseSpace.candidatures.yearsOld", { age })}
                 </span>
               )}
             </p>
@@ -136,6 +164,29 @@ export default function KanbanCard({
                 +{competencesRestantes}
               </span>
             )}
+          </div>
+        )}
+
+        {entretienASignaler && (
+          <div
+            className={`mt-2.5 rounded-md px-2 py-1.5 text-[11px] font-medium ${
+              actionRequise
+                ? "bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200"
+                : "bg-muted/60 text-muted-foreground"
+            }`}
+          >
+            <span className="flex items-center justify-between gap-1">
+              <span>
+                {(ENTRETIEN_ACTION_LABELS[entretienASignaler.statut] ? t(ENTRETIEN_ACTION_LABELS[entretienASignaler.statut]) : null) ||
+                  t("entrepriseSpace.candidatures.interviewFollowUp")}
+              </span>
+              {actionRequise && (
+                <span className="inline-flex items-center gap-0.5 font-semibold text-amber-700 dark:text-amber-300">
+                  Traiter
+                  <FiArrowRight className="h-3 w-3" aria-hidden />
+                </span>
+              )}
+            </span>
           </div>
         )}
       </div>

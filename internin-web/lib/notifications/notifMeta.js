@@ -1,35 +1,130 @@
 export const NOTIF_META = {
-  candidature_recue: { tone: "info", label: "Voir les candidats" },
-  candidature_preselectionnee: { tone: "success", label: "Voir la candidature" },
-  candidature_rejetee: { tone: "error", label: "Voir les candidatures" },
-  candidature_consultee: { tone: "info", label: "Voir" },
-  entretien: { tone: "message", label: "Voir l'entretien" },
-  entreprise_verifiee: { tone: "success", label: "Mon espace" },
-  entreprise_rejetee: { tone: "error", label: "Mon profil" },
-  universite_verifiee: { tone: "success", label: "Mon espace" },
-  universite_rejetee: { tone: "error", label: "Mon profil" },
-  convention_validee_universite: { tone: "success", label: "Voir le stage" },
-  evaluation: { tone: "warning", label: "Évaluer" },
-  journal: { tone: "warning", label: "Vérifier" },
-  message: { tone: "message", label: "Ouvrir" },
-  systeme: { tone: "system", label: "Voir" },
+  candidature_recue: {
+    tone: "info",
+    labelKey: "notifications.actions.viewCandidates",
+  },
+  candidature_preselectionnee: {
+    tone: "success",
+    labelKey: "notifications.actions.viewApplication",
+  },
+  candidature_rejetee: {
+    tone: "error",
+    labelKey: "notifications.actions.viewApplications",
+  },
+  candidature_consultee: {
+    tone: "info",
+    labelKey: "notifications.actions.view",
+  },
+  candidature_retiree_confirmation: {
+    tone: "info",
+    labelKey: "notifications.actions.viewApplications",
+  },
+  entretien_replanifie: {
+    tone: "warning",
+    labelKey: "notifications.actions.confirmDate",
+  },
+  entretien_planifie: {
+    tone: "message",
+    labelKey: "notifications.actions.viewInterview",
+  },
+  entretien_annule: {
+    tone: "error",
+    labelKey: "notifications.actions.viewInterview",
+  },
+  entretien: {
+    tone: "message",
+    labelKey: "notifications.actions.viewInterview",
+  },
+  entreprise_verifiee: {
+    tone: "success",
+    labelKey: "notifications.actions.mySpace",
+  },
+  entreprise_rejetee: {
+    tone: "error",
+    labelKey: "notifications.actions.myProfile",
+  },
+  universite_verifiee: {
+    tone: "success",
+    labelKey: "notifications.actions.mySpace",
+  },
+  universite_rejetee: {
+    tone: "error",
+    labelKey: "notifications.actions.myProfile",
+  },
+  convention_validee_universite: {
+    tone: "success",
+    labelKey: "notifications.actions.viewStage",
+  },
+  evaluation: {
+    tone: "warning",
+    labelKey: "notifications.actions.evaluate",
+  },
+  evaluation_soumise: {
+    tone: "warning",
+    labelKey: "notifications.actions.view",
+  },
+  journal: {
+    tone: "warning",
+    labelKey: "notifications.actions.verify",
+  },
+  message: {
+    tone: "message",
+    labelKey: "notifications.actions.open",
+  },
+  systeme: {
+    tone: "system",
+    labelKey: "notifications.actions.view",
+  },
+  offre_finale_approuvee: {
+    tone: "success",
+    labelKey: "notifications.actions.viewApplications",
+  },
+  offre_finale_recue: {
+    tone: "success",
+    labelKey: "notifications.actions.viewApplications",
+  },
+  stage_termine: {
+    tone: "success",
+    labelKey: "notifications.actions.view",
+  },
+  stage_programme: {
+    tone: "info",
+    labelKey: "notifications.actions.viewStage",
+  },
+  stage_demarre: {
+    tone: "success",
+    labelKey: "notifications.actions.viewStage",
+  },
+  proposition_stage: {
+    tone: "info",
+    labelKey: "notifications.actions.view",
+  },
+  proposition_recue: {
+    tone: "info",
+    labelKey: "notifications.actions.view",
+  },
 };
 
 export function getNotifMeta(type = "") {
-  const t = String(type || "").toLowerCase();
-  for (const [key, meta] of Object.entries(NOTIF_META)) {
-    if (t.includes(key) || t === key) return meta;
+  const key = String(type || "").toLowerCase();
+  if (NOTIF_META[key]) return NOTIF_META[key];
+  for (const [k, meta] of Object.entries(NOTIF_META)) {
+    if (key.includes(k) || key === k) return meta;
   }
-  if (t.includes("rejet") || t.includes("refus"))
-    return { tone: "error", label: "Voir" };
-  if (t.includes("valid") || t.includes("accept") || t.includes("verif"))
-    return { tone: "success", label: "Voir" };
-  if (t.includes("entretien")) return NOTIF_META.entretien;
-  if (t.includes("candidature")) return { tone: "info", label: "Voir" };
-  if (t.includes("evaluation")) return NOTIF_META.evaluation;
-  if (t.includes("journal")) return NOTIF_META.journal;
-  if (t.includes("message")) return NOTIF_META.message;
-  return { tone: "info", label: "Ouvrir" };
+  if (key.includes("rejet") || key.includes("refus")) {
+    return { tone: "error", labelKey: "notifications.actions.view" };
+  }
+  if (key.includes("valid") || key.includes("accept") || key.includes("verif")) {
+    return { tone: "success", labelKey: "notifications.actions.view" };
+  }
+  if (key.includes("entretien")) return NOTIF_META.entretien;
+  if (key.includes("candidature")) {
+    return { tone: "info", labelKey: "notifications.actions.view" };
+  }
+  if (key.includes("evaluation")) return NOTIF_META.evaluation;
+  if (key.includes("journal")) return NOTIF_META.journal;
+  if (key.includes("message")) return NOTIF_META.message;
+  return { tone: "info", labelKey: "notifications.actions.open" };
 }
 
 export const TONE_CLASS = {
@@ -44,6 +139,7 @@ export const TONE_CLASS = {
   system: "bg-muted text-muted-foreground ring-border",
 };
 
+/** Couleurs des points indicateurs (badge / liste notifications) */
 export const TONE_DOT = {
   error: "bg-destructive",
   warning: "bg-amber-500",
@@ -53,23 +149,28 @@ export const TONE_DOT = {
   system: "bg-muted-foreground",
 };
 
-export function formatNotifDate(date, t) {
+export function formatNotifDate(date, t, locale = "fr") {
   if (!date) return "";
-  const diffMs = Date.now() - new Date(date).getTime();
-  const minutes = Math.round(diffMs / 60000);
-  if (minutes < 1) return t?.("header.justNow") || "À l'instant";
-  if (minutes < 60)
-    return t?.("header.minutesAgo", { n: minutes }) || `Il y a ${minutes} min`;
-  const heures = Math.round(minutes / 60);
-  if (heures < 24)
-    return t?.("header.hoursAgo", { n: heures }) || `Il y a ${heures} h`;
-  const jours = Math.round(heures / 24);
-  if (jours === 1) return "Hier";
-  if (jours < 7)
-    return t?.("header.daysAgo", { n: jours }) || `Il y a ${jours} jours`;
-  return new Date(date).toLocaleDateString("fr-FR", {
-    day: "numeric",
+  const d = new Date(date);
+  const now = new Date();
+  const diffMs = now - d;
+  const mins = Math.floor(diffMs / 60000);
+  const hours = Math.floor(diffMs / 3600000);
+  const days = Math.floor(diffMs / 86400000);
+  if (t) {
+    if (mins < 1) return t("header.justNow");
+    if (mins < 60) return t("header.minutesAgo", { n: mins });
+    if (hours < 24) return t("header.hoursAgo", { n: hours });
+    if (days < 7) return t("header.daysAgo", { n: days });
+  }
+  const loc = locale === "en" ? "en-GB" : "fr-FR";
+  return d.toLocaleDateString(loc, {
+    day: "2-digit",
     month: "short",
     year: "numeric",
   });
+}
+
+export function formatNotifDateLocale(date, locale = "fr", t) {
+  return formatNotifDate(date, t, locale);
 }

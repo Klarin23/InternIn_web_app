@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { useState } from "react";
 import { FiLock, FiSend, FiLoader } from "react-icons/fi";
 import {
@@ -17,6 +19,7 @@ function formatDate(date) {
 }
 
 export default function NotesPrivees({ idCandidature }) {
+  const { t } = useTranslation();
   const { data: notes, isLoading } = useNotesCandidature(idCandidature);
   const ajouterNote = useAjouterNote(idCandidature);
   const [contenu, setContenu] = useState("");
@@ -30,7 +33,7 @@ export default function NotesPrivees({ idCandidature }) {
     <div>
       <p className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
         <FiLock className="h-3 w-3" />
-        Visibles uniquement par votre équipe — jamais par le candidat
+        {t("entrepriseSpace.candidatures.notesVisibility")}
       </p>
 
       <div className="mb-3 flex gap-2">
@@ -40,7 +43,7 @@ export default function NotesPrivees({ idCandidature }) {
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleEnvoyer();
           }}
-          placeholder="Écrire une note interne... (Ctrl+Entrée pour envoyer)"
+          placeholder={t("entrepriseSpace.candidatures.notePlaceholder")}
           rows={2}
           className="flex-1 resize-none rounded-sm border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
         />
@@ -59,10 +62,10 @@ export default function NotesPrivees({ idCandidature }) {
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Chargement...</p>
+        <p className="text-sm text-muted-foreground">{t("entrepriseSpace.candidatures.loading")}</p>
       ) : !notes || notes.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Aucune note pour le moment.
+          {t("entrepriseSpace.candidatures.notesEmpty")}
         </p>
       ) : (
         <div className="space-y-2.5">
@@ -75,7 +78,7 @@ export default function NotesPrivees({ idCandidature }) {
                 {n.contenu}
               </p>
               <p className="mt-1.5 text-[11px] text-muted-foreground">
-                {n.nomMembre || "Membre de l'équipe"} ·{" "}
+                {n.nomMembre || t("entrepriseSpace.candidatures.teamMember")} ·{" "}
                 {formatDate(n.dateCreation)}
               </p>
             </div>

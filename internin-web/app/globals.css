@@ -177,6 +177,9 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --info: #3b82f6;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -244,20 +247,106 @@ html.dark .marketing-theme {
 }
 
 .role-admin {
-  /* Écart volontaire n°3 : couleur d'identité "console admin", mise à jour
-     pour correspondre à la maquette Tableau de bord (indigo/violet plutôt
-     que le gris initialement choisi, qui manquait de contraste sur la
-     sidebar sombre commune à tous les rôles). */
+  /* Identité Admin : indigo #4F46E5 — seul accent de la sidebar (état actif).
+     Couleurs sémantiques (success/warning/info/destructive) = contenu uniquement.
+     Ne pas colorer chaque entrée du menu. */
   --primary: #4f46e5;
   --primary-foreground: #ffffff;
   --ring: #4f46e5;
   --sidebar-primary: #4f46e5;
   --sidebar-primary-foreground: #ffffff;
+  /* Sémantique explicite (hérite de :root si absentes en dark) */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --info: #3b82f6;
+  --destructive: #ef4444;
 }
 
-.role-superviseur{
-  --primary: #d97706;
-  --primary-foreground: #ffffff;
-  --ring: #d97706;
-  --sidebar-primary-foreground: #ffffff;
+/* Superviseur = compte dérivé entreprise → mêmes couleurs */
+.role-superviseur {
+  --primary: #5B3DF5;
+  --primary-foreground: #FFFFFF;
+  --ring: #5B3DF5;
+  --sidebar-primary: #5B3DF5;
+  --sidebar-primary-foreground: #FFFFFF;
+}
+
+/* =====================================================================
+   SCROLLBAR — zone de navigation de la sidebar (menu latéral)
+   La sidebar est sombre et commune à tous les rôles, avec une couleur
+   d'accent qui change selon --sidebar-primary (violet en entreprise,
+   bleu en université, etc.). On reprend cette même logique ici : la
+   scrollbar reste discrète au repos et se teinte de la couleur du rôle
+   au survol, plutôt que d'utiliser la barre grise par défaut du
+   navigateur qui jure avec le fond sombre du menu.
+   ===================================================================== */
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+
+.sidebar-scroll:hover {
+  scrollbar-color: var(--sidebar-primary) transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.14);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: var(--sidebar-primary);
+}
+
+
+/* =====================================================================
+   SCROLLBAR — dialog « Faire une offre finale » (et réutilisable ciblé)
+   Classe dédiée : ne pas appliquer sur body/html. Compatible light/dark.
+   ===================================================================== */
+.internin-custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--muted-foreground) 35%, transparent)
+    color-mix(in oklab, var(--muted) 40%, transparent);
+}
+
+.internin-custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.internin-custom-scrollbar::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.internin-custom-scrollbar::-webkit-scrollbar-track {
+  background: color-mix(in oklab, var(--muted) 50%, transparent);
+  border-radius: 9999px;
+  margin-block: 4px;
+}
+
+.internin-custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: color-mix(in oklab, var(--muted-foreground) 35%, transparent);
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.2s ease;
+}
+
+.internin-custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, var(--primary) 55%, var(--muted-foreground));
+}
+
+.internin-custom-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
 }

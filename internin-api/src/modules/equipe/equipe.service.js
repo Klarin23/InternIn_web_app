@@ -1,8 +1,9 @@
-import { eq, and, or, ilike, ne, desc } from "drizzle-orm";
-import { randomBytes } from "node:crypto";
+import { resolveEntrepriseContext, hasEntreprisePermission } from "../../utils/entrepriseContext.js";
+import { eq, and, or, ilike, ne, desc, sql } from "drizzle-orm";
+import { randomBytes, createHash } from "node:crypto";
 import { db } from "../../db/index.js";
 import { hashPassword } from "../../utils/password.js";
-import { signToken } from "../../utils/jwt.js";
+import { signAccessToken, incrementerVersionJeton } from "../../utils/versionJeton.js";
 import {
   CLES_PERMISSIONS,
   PERMISSIONS_PAR_DEFAUT_ROLE,
@@ -25,6 +26,24 @@ import {
 } from "../../db/schema.js";
 import { EXPIRATION_INVITATION_JOURS_DEFAUT } from "./equipe.constants.js";
 import { sendInvitationEmail } from "../../utils/email.js";
+
+/** Les jetons d'invitation sont des secrets à forte entropie : seule leur
+ * empreinte SHA-256 est persistée en base. Le jeton brut n'est conservé que
+ * le temps nécessaire à la construction/envoi du lien d'invitation. */
+function hashInvitationToken(token) {
+  return createHash("sha256").update(token, "utf8").digest("hex");
+}
+
+function genererInvitationToken() {
+  const rawToken = randomBytes(32).toString("hex");
+  return { rawToken, hashedToken: hashInvitationToken(rawToken) };
+}
+
+function membreSansSecretInvitation(membre) {
+  if (!membre) return membre;
+  const { tokenInvitation: _token, ...sansToken } = membre;
+  return sansToken;
+}
 
 // -----------------------------------------------------------------------
 // Helpers internes
@@ -155,7 +174,15 @@ async function getEntrepriseOrThrow(idUtilisateurEntreprise) {
 // Le membre "administrateur principal" représente le compte propriétaire de
 // l'entreprise. Il est créé paresseusement au premier accès au menu Équipe
 // plutôt qu'à l'onboarding, pour ne pas toucher au flux d'inscription existant.
-async function getOrCreateAdminPrincipal(idEntreprise, idUtilisateur) {
+/**
+ * Retourne le membre "administrateur principal" de l'entreprise.
+ * Création paresseuse UNIQUEMENT pour le propriétaire réel du compte
+ * entreprise (entreprises.id_utilisateur).
+ *
+ * Un membre d'équipe ne doit JAMAIS pouvoir s'auto-promouvoir en
+ * administrateur principal en appelant listMembres / inviterMembre / etc.
+ */
+async function getOrCreateAdminPrincipal(idEntreprise, idUtilisateurAppelant) {
   const [existant] = await db
     .select()
     .from(membresEquipe)
@@ -167,10 +194,36 @@ async function getOrCreateAdminPrincipal(idEntreprise, idUtilisateur) {
     );
   if (existant) return existant;
 
+  // Seul le propriétaire réel de l'entreprise peut être matérialisé
+  // comme administrateur principal.
+  const [entreprise] = await db
+    .select({
+      idEntreprise: entreprises.idEntreprise,
+      idUtilisateur: entreprises.idUtilisateur,
+    })
+    .from(entreprises)
+    .where(eq(entreprises.idEntreprise, idEntreprise));
+
+  if (!entreprise) {
+    const err = new Error("Profil entreprise introuvable");
+    err.status = 404;
+    throw err;
+  }
+
+  const idProprietaire = entreprise.idUtilisateur;
+
+  // Si l'appelant n'est pas le propriétaire, on ne crée rien :
+  // le propriétaire n'a peut-être pas encore ouvert le menu Équipe.
+  // Les membres continuent de fonctionner via resolveEntrepriseContext
+  // (isProprietaire=false, permissions de leur rôle).
+  if (idUtilisateurAppelant !== idProprietaire) {
+    return null;
+  }
+
   const [utilisateur] = await db
     .select({ email: utilisateurs.email })
     .from(utilisateurs)
-    .where(eq(utilisateurs.idUtilisateur, idUtilisateur));
+    .where(eq(utilisateurs.idUtilisateur, idProprietaire));
 
   const [contactPrincipal] = await db
     .select({ nom: contactsEntreprise.nom })
@@ -182,21 +235,35 @@ async function getOrCreateAdminPrincipal(idEntreprise, idUtilisateur) {
       ),
     );
 
-  const [membre] = await db
-    .insert(membresEquipe)
-    .values({
-      idEntreprise,
-      idUtilisateur,
-      nom: contactPrincipal?.nom || "Administrateur",
-      email: utilisateur?.email || "",
-      roleEquipe: "administrateur_principal",
-      estAdminPrincipal: true,
-      statutMembre: "actif",
-      dateActivation: new Date(),
-    })
-    .returning();
-
-  return membre;
+  // Course possible si double appel simultané du propriétaire :
+  // on tolère l'échec unique et on relit.
+  try {
+    const [membre] = await db
+      .insert(membresEquipe)
+      .values({
+        idEntreprise,
+        idUtilisateur: idProprietaire,
+        nom: contactPrincipal?.nom || "Administrateur",
+        email: utilisateur?.email || "",
+        roleEquipe: "administrateur_principal",
+        estAdminPrincipal: true,
+        statutMembre: "actif",
+        dateActivation: new Date(),
+      })
+      .returning();
+    return membre;
+  } catch {
+    const [retry] = await db
+      .select()
+      .from(membresEquipe)
+      .where(
+        and(
+          eq(membresEquipe.idEntreprise, idEntreprise),
+          eq(membresEquipe.estAdminPrincipal, true),
+        ),
+      );
+    return retry || null;
+  }
 }
 
 async function getParametresOuDefaut(idEntreprise) {
@@ -272,18 +339,45 @@ export async function listMembres(
     conditions.push(eq(membresEquipe.statutMembre, statut));
   }
 
-  return db
+  const membres = await db
     .select()
     .from(membresEquipe)
     .where(and(...conditions))
     .orderBy(desc(membresEquipe.estAdminPrincipal), membresEquipe.nom);
+
+  return membres.map(membreSansSecretInvitation);
 }
 
 // -----------------------------------------------------------------------
 // Invitations
 // -----------------------------------------------------------------------
 
+
+/**
+ * Vérifie côté service (défense en profondeur) que l'appelant peut gérer l'équipe.
+ * Ne fait pas confiance au frontend : reconstruit le contexte depuis la BDD.
+ */
+async function assertPeutGererEquipe(idUtilisateur) {
+  const ctx = await resolveEntrepriseContext(idUtilisateur);
+  if (!ctx) {
+    const err = new Error("Accès refusé");
+    err.status = 403;
+    throw err;
+  }
+  if (ctx.isProprietaire || ctx.isAdminPrincipal) return ctx;
+  if (!hasEntreprisePermission(ctx, "equipe.gerer")) {
+    const err = new Error(
+      "Vous n'avez pas la permission de gérer l'équipe.",
+    );
+    err.status = 403;
+    throw err;
+  }
+  return ctx;
+}
+
 export async function inviterMembre(idUtilisateurEntreprise, payload) {
+  await assertPeutGererEquipe(idUtilisateurEntreprise);
+
   const entreprise = await getEntrepriseOrThrow(idUtilisateurEntreprise);
   const admin = await getOrCreateAdminPrincipal(
     entreprise.idEntreprise,
@@ -328,6 +422,7 @@ export async function inviterMembre(idUtilisateurEntreprise, payload) {
     dateExpiration.getDate() + parametres.expirationInvitationJours,
   );
 
+  const { rawToken, hashedToken } = genererInvitationToken();
   let membre;
   try {
     [membre] = await db
@@ -339,7 +434,7 @@ export async function inviterMembre(idUtilisateurEntreprise, payload) {
         roleEquipe: payload.roleEquipe,
         permissionsPersonnalisees: payload.permissionsPersonnalisees || null,
         statutMembre: "invite",
-        tokenInvitation: randomBytes(32).toString("hex"),
+        tokenInvitation: hashedToken,
         dateEnvoiInvitation: new Date(),
         dateExpirationInvitation: dateExpiration,
       })
@@ -361,7 +456,7 @@ export async function inviterMembre(idUtilisateurEntreprise, payload) {
     await sendInvitationEmail({
       email: membre.email,
       nom: membre.nom,
-      token: membre.tokenInvitation,
+      token: rawToken,
       nomEntreprise: entreprise.nomEntreprise,
       roleEquipe: membre.roleEquipe,
       dateExpiration: membre.dateExpirationInvitation,
@@ -376,15 +471,17 @@ export async function inviterMembre(idUtilisateurEntreprise, payload) {
 
   await enregistrerActivite(
     entreprise.idEntreprise,
-    admin.idMembre,
+    admin?.idMembre,
     "invitation_envoyee",
-    `${payload.nom} (${payload.email}) invité en tant que ${payload.roleEquipe}`,
+    JSON.stringify({ name: payload.nom, email: payload.email }),
   );
 
-  return membre;
+  return membreSansSecretInvitation(membre);
 }
 
 export async function renvoyerInvitation(idUtilisateurEntreprise, idMembre) {
+  await assertPeutGererEquipe(idUtilisateurEntreprise);
+
   const entreprise = await getEntrepriseOrThrow(idUtilisateurEntreprise);
   const admin = await getOrCreateAdminPrincipal(
     entreprise.idEntreprise,
@@ -407,10 +504,11 @@ export async function renvoyerInvitation(idUtilisateurEntreprise, idMembre) {
     dateExpiration.getDate() + parametres.expirationInvitationJours,
   );
 
+  const { rawToken, hashedToken } = genererInvitationToken();
   const [miseAJour] = await db
     .update(membresEquipe)
     .set({
-      tokenInvitation: randomBytes(32).toString("hex"),
+      tokenInvitation: hashedToken,
       dateEnvoiInvitation: new Date(),
       dateExpirationInvitation: dateExpiration,
       nombreRenvoisInvitation: (membre.nombreRenvoisInvitation || 0) + 1,
@@ -422,7 +520,7 @@ export async function renvoyerInvitation(idUtilisateurEntreprise, idMembre) {
       await sendInvitationEmail({
         email: miseAJour.email,
         nom: miseAJour.nom,
-        token: miseAJour.tokenInvitation,
+        token: rawToken,
         nomEntreprise: entreprise.nomEntreprise,
         roleEquipe: miseAJour.roleEquipe,
         dateExpiration: miseAJour.dateExpirationInvitation,
@@ -436,15 +534,17 @@ export async function renvoyerInvitation(idUtilisateurEntreprise, idMembre) {
 
   await enregistrerActivite(
     entreprise.idEntreprise,
-    admin.idMembre,
+    admin?.idMembre,
     "invitation_renvoyee",
-    `Invitation renvoyée à ${membre.nom} (${membre.email})`,
+    JSON.stringify({ name: membre.nom, email: membre.email }),
   );
 
-  return miseAJour;
+  return membreSansSecretInvitation(miseAJour);
 }
 
 export async function annulerInvitation(idUtilisateurEntreprise, idMembre) {
+  await assertPeutGererEquipe(idUtilisateurEntreprise);
+
   const entreprise = await getEntrepriseOrThrow(idUtilisateurEntreprise);
   const admin = await getOrCreateAdminPrincipal(
     entreprise.idEntreprise,
@@ -465,9 +565,9 @@ export async function annulerInvitation(idUtilisateurEntreprise, idMembre) {
 
   await enregistrerActivite(
     entreprise.idEntreprise,
-    admin.idMembre,
+    admin?.idMembre,
     "invitation_annulee",
-    `Invitation annulée pour ${membre.nom} (${membre.email})`,
+    JSON.stringify({ name: membre.nom, email: membre.email }),
   );
 
   return { deleted: true };
@@ -478,6 +578,8 @@ export async function annulerInvitation(idUtilisateurEntreprise, idMembre) {
 // -----------------------------------------------------------------------
 
 export async function updateMembre(idUtilisateurEntreprise, idMembre, payload) {
+  await assertPeutGererEquipe(idUtilisateurEntreprise);
+
   const entreprise = await getEntrepriseOrThrow(idUtilisateurEntreprise);
   const admin = await getOrCreateAdminPrincipal(
     entreprise.idEntreprise,
@@ -520,20 +622,42 @@ export async function updateMembre(idUtilisateurEntreprise, idMembre, payload) {
     permissionsPersonnalisees: permissionsCiblePayload,
   });
 
+  // Whitelist stricte : interdire estAdminPrincipal, idEntreprise, idUtilisateur, tokens…
+  const safeUpdate = {};
+  if (payload.nom !== undefined) safeUpdate.nom = payload.nom;
+  if (payload.roleEquipe !== undefined) {
+    if (payload.roleEquipe === "administrateur_principal") {
+      const err = new Error(
+        "Vous ne pouvez pas attribuer le rôle d'administrateur principal.",
+      );
+      err.status = 403;
+      throw err;
+    }
+    safeUpdate.roleEquipe = payload.roleEquipe;
+  }
+  if (payload.permissionsPersonnalisees !== undefined) {
+    safeUpdate.permissionsPersonnalisees = payload.permissionsPersonnalisees;
+  }
+
   const [miseAJour] = await db
     .update(membresEquipe)
-    .set(payload)
+    .set(safeUpdate)
     .where(eq(membresEquipe.idMembre, idMembre))
     .returning();
 
+  // Révocation JWT : rôle / permissions d'équipe modifiés
+  if (membre.idUtilisateur) {
+    await incrementerVersionJeton(membre.idUtilisateur);
+  }
+
   await enregistrerActivite(
     entreprise.idEntreprise,
-    admin.idMembre,
+    admin?.idMembre,
     "permissions_modifiees",
-    `Rôle/permissions mis à jour pour ${membre.nom}`,
+    JSON.stringify({ name: membre.nom }),
   );
 
-  return miseAJour;
+  return membreSansSecretInvitation(miseAJour);
 }
 
 export async function updateStatutMembre(
@@ -541,6 +665,8 @@ export async function updateStatutMembre(
   idMembre,
   statutMembre,
 ) {
+  await assertPeutGererEquipe(idUtilisateurEntreprise);
+
   const entreprise = await getEntrepriseOrThrow(idUtilisateurEntreprise);
   const admin = await getOrCreateAdminPrincipal(
     entreprise.idEntreprise,
@@ -577,14 +703,19 @@ export async function updateStatutMembre(
     .where(eq(membresEquipe.idMembre, idMembre))
     .returning();
 
+  // Désactivation → révoquer les JWT du membre
+  if (statutMembre === "desactive" && membre.idUtilisateur) {
+    await incrementerVersionJeton(membre.idUtilisateur);
+  }
+
   await enregistrerActivite(
     entreprise.idEntreprise,
-    admin.idMembre,
+    admin?.idMembre,
     statutMembre === "actif" ? "membre_active" : "membre_desactive",
-    `${membre.nom} (${membre.email})`,
+    JSON.stringify({ name: membre.nom, email: membre.email }),
   );
 
-  return miseAJour;
+  return membreSansSecretInvitation(miseAJour);
 }
 
 // -----------------------------------------------------------------------
@@ -694,9 +825,9 @@ export async function affecterSuperviseur(
 
   await enregistrerActivite(
     entreprise.idEntreprise,
-    admin.idMembre,
+    admin?.idMembre,
     "stagiaire_affecte",
-    `${membre.nom} affecté au suivi du stage ${idStage}`,
+    JSON.stringify({ name: membre.nom, stageId: idStage }),
   );
 
   return affectation;
@@ -730,9 +861,9 @@ export async function retirerAffectation(idUtilisateurEntreprise, idStage) {
 
   await enregistrerActivite(
     entreprise.idEntreprise,
-    admin.idMembre,
+    admin?.idMembre,
     "affectation_retiree",
-    `Affectation retirée pour le stage ${idStage}`,
+    JSON.stringify({ stageId: idStage }),
   );
 
   return { deleted: true };
@@ -776,6 +907,8 @@ export async function getParametresEquipe(idUtilisateurEntreprise) {
 }
 
 export async function updateParametresEquipe(idUtilisateurEntreprise, payload) {
+  await assertPeutGererEquipe(idUtilisateurEntreprise);
+
   const entreprise = await getEntrepriseOrThrow(idUtilisateurEntreprise);
   const admin = await getOrCreateAdminPrincipal(
     entreprise.idEntreprise,
@@ -804,7 +937,7 @@ export async function updateParametresEquipe(idUtilisateurEntreprise, payload) {
 
   await enregistrerActivite(
     entreprise.idEntreprise,
-    admin.idMembre,
+    admin?.idMembre,
     "parametres_equipe_modifies",
     null,
   );
@@ -829,6 +962,7 @@ export async function getInvitationParToken(token) {
       roleEquipe: membresEquipe.roleEquipe,
       statutMembre: membresEquipe.statutMembre,
       dateExpirationInvitation: membresEquipe.dateExpirationInvitation,
+      tokenInvitation: membresEquipe.tokenInvitation,
       nomEntreprise: entreprises.nomEntreprise,
     })
     .from(membresEquipe)
@@ -836,7 +970,12 @@ export async function getInvitationParToken(token) {
       entreprises,
       eq(entreprises.idEntreprise, membresEquipe.idEntreprise),
     )
-    .where(eq(membresEquipe.tokenInvitation, token));
+    .where(
+      or(
+        eq(membresEquipe.tokenInvitation, hashInvitationToken(token)),
+        eq(membresEquipe.tokenInvitation, token), // compatibilité des invitations legacy
+      ),
+    );
 
   if (!membre || membre.statutMembre !== "invite") {
     const err = new Error("Invitation introuvable ou déjà utilisée.");
@@ -854,45 +993,97 @@ export async function getInvitationParToken(token) {
     throw err;
   }
 
-  const { statutMembre, dateExpirationInvitation, ...infosPubliques } = membre;
+  if (membre.tokenInvitation === token) {
+    await db
+      .update(membresEquipe)
+      .set({ tokenInvitation: hashInvitationToken(token) })
+      .where(eq(membresEquipe.idMembre, membre.idMembre));
+  }
+
+  const { statutMembre, dateExpirationInvitation, tokenInvitation: _token, ...infosPubliques } = membre;
   return infosPubliques;
 }
 
 export async function accepterInvitation(token, motDePasse) {
-  const [membre] = await db
-    .select()
-    .from(membresEquipe)
-    .where(eq(membresEquipe.tokenInvitation, token));
-
-  if (!membre || membre.statutMembre !== "invite") {
-    const err = new Error("Invitation introuvable ou déjà utilisée.");
-    err.status = 404;
-    throw err;
-  }
-  if (
-    membre.dateExpirationInvitation &&
-    membre.dateExpirationInvitation < new Date()
-  ) {
-    const err = new Error(
-      "Cette invitation a expiré. Demandez-en une nouvelle.",
-    );
-    err.status = 410;
-    throw err;
-  }
-
-  const [compteExistant] = await db
-    .select()
-    .from(utilisateurs)
-    .where(eq(utilisateurs.email, membre.email));
-  if (compteExistant) {
-    const err = new Error("Un compte existe déjà avec cette adresse email.");
-    err.status = 409;
-    throw err;
-  }
-
+  // Le hash du mot de passe peut être calculé hors transaction : il ne
+  // modifie aucun état BDD. Toutes les mutations métier, elles, restent dans
+  // une seule transaction afin qu'une acceptation soit indivisible.
   const motDePasseHash = await hashPassword(motDePasse);
+  const hashedToken = hashInvitationToken(token);
 
   const nouvelUtilisateur = await db.transaction(async (tx) => {
+    // Première lecture pour identifier le membre. Le verrou est pris ensuite
+    // dans la même transaction, puis l'état est relu après le verrouillage.
+    // Cela évite que deux acceptations concurrentes utilisent la même
+    // invitation avant que l'une d'elles ne passe à "actif".
+    const [membreCible] = await tx
+      .select({ idMembre: membresEquipe.idMembre })
+      .from(membresEquipe)
+      .where(
+        or(
+          eq(membresEquipe.tokenInvitation, hashedToken),
+          eq(membresEquipe.tokenInvitation, token), // compatibilité legacy
+        ),
+      );
+
+    if (!membreCible) {
+      const err = new Error("Invitation introuvable ou déjà utilisée.");
+      err.status = 404;
+      throw err;
+    }
+
+    await tx.execute(
+      sql`SELECT id_membre FROM membres_equipe WHERE id_membre = ${membreCible.idMembre} FOR UPDATE`,
+    );
+
+    // Relecture après acquisition du verrou : sous READ COMMITTED, cette
+    // requête voit l'état éventuellement modifié par la transaction qui
+    // détenait le verrou juste avant nous.
+    const [membre] = await tx
+      .select()
+      .from(membresEquipe)
+      .where(eq(membresEquipe.idMembre, membreCible.idMembre));
+
+    if (!membre || membre.statutMembre !== "invite") {
+      const err = new Error("Invitation introuvable ou déjà utilisée.");
+      err.status = 404;
+      throw err;
+    }
+
+    if (
+      membre.dateExpirationInvitation &&
+      membre.dateExpirationInvitation < new Date()
+    ) {
+      const err = new Error(
+        "Cette invitation a expiré. Demandez-en une nouvelle.",
+      );
+      err.status = 410;
+      throw err;
+    }
+
+    // Les invitations legacy qui contiennent encore le token brut sont
+    // migrées vers le hash dans la même transaction que l'acceptation.
+    if (membre.tokenInvitation === token) {
+      await tx
+        .update(membresEquipe)
+        .set({ tokenInvitation: hashedToken })
+        .where(eq(membresEquipe.idMembre, membre.idMembre));
+    }
+
+    // Le contrôle d'unicité de l'e-mail doit également être effectué dans la
+    // transaction : aucune décision métier liée à l'acceptation ne doit être
+    // prise à partir d'une lecture extérieure à celle-ci.
+    const [compteExistant] = await tx
+      .select({ idUtilisateur: utilisateurs.idUtilisateur })
+      .from(utilisateurs)
+      .where(eq(utilisateurs.email, membre.email));
+
+    if (compteExistant) {
+      const err = new Error("Un compte existe déjà avec cette adresse email.");
+      err.status = 409;
+      throw err;
+    }
+
     const [utilisateur] = await tx
       .insert(utilisateurs)
       .values({
@@ -904,7 +1095,7 @@ export async function accepterInvitation(token, motDePasse) {
       })
       .returning();
 
-    await tx
+    const [membreActive] = await tx
       .update(membresEquipe)
       .set({
         idUtilisateur: utilisateur.idUtilisateur,
@@ -913,23 +1104,37 @@ export async function accepterInvitation(token, motDePasse) {
         tokenInvitation: null,
         dateExpirationInvitation: null,
       })
-      .where(eq(membresEquipe.idMembre, membre.idMembre));
+      .where(
+        and(
+          eq(membresEquipe.idMembre, membre.idMembre),
+          eq(membresEquipe.statutMembre, "invite"),
+        ),
+      )
+      .returning();
+
+    // Garde supplémentaire : si l'invariant n'a pas été respecté, on force
+    // l'échec de toute la transaction plutôt que de créer un compte orphelin.
+    if (!membreActive) {
+      const err = new Error("Cette invitation a déjà été utilisée.");
+      err.status = 409;
+      throw err;
+    }
+
+    // L'activité fait partie de la même transaction : aucune trace
+    // "invitation_acceptee" ne peut survivre à un rollback du compte ou du
+    // membre.
+    await tx.insert(activitesEquipe).values({
+      idEntreprise: membre.idEntreprise,
+      idMembre: membre.idMembre,
+      action: "invitation_acceptee",
+      details: `${membre.nom} (${membre.email}) a rejoint l'équipe`,
+    });
 
     return utilisateur;
   });
 
-  await enregistrerActivite(
-    membre.idEntreprise,
-    membre.idMembre,
-    "invitation_acceptee",
-    `${membre.nom} (${membre.email}) a rejoint l'équipe`,
-  );
-
   const { motDePasseHash: _omit, ...utilisateurSansHash } = nouvelUtilisateur;
-  const token_ = signToken({
-    idUtilisateur: nouvelUtilisateur.idUtilisateur,
-    typeUtilisateur: nouvelUtilisateur.typeUtilisateur,
-  });
+  const token_ = signAccessToken(nouvelUtilisateur);
 
   return { user: utilisateurSansHash, token: token_ };
 }
@@ -938,6 +1143,24 @@ export async function accepterInvitation(token, motDePasse) {
 // afficher son nom/rôle dans la barre latérale, et par le module
 // "superviseur" pour résoudre idMembre à partir du JWT).
 export async function getMonProfil(idUtilisateur) {
+  // Propriétaire de l entreprise
+  const [entrepriseProprio] = await db
+    .select()
+    .from(entreprises)
+    .where(eq(entreprises.idUtilisateur, idUtilisateur));
+  if (entrepriseProprio) {
+    return {
+      idMembre: null,
+      nom: entrepriseProprio.nomEntreprise,
+      email: null,
+      roleEquipe: "administrateur_principal",
+      estAdminPrincipal: true,
+      nomEntreprise: entrepriseProprio.nomEntreprise,
+      permissions: [...CLES_PERMISSIONS],
+      isProprietaire: true,
+    };
+  }
+
   const [membre] = await db
     .select({
       idMembre: membresEquipe.idMembre,
@@ -945,7 +1168,9 @@ export async function getMonProfil(idUtilisateur) {
       email: membresEquipe.email,
       roleEquipe: membresEquipe.roleEquipe,
       estAdminPrincipal: membresEquipe.estAdminPrincipal,
+      permissionsPersonnalisees: membresEquipe.permissionsPersonnalisees,
       nomEntreprise: entreprises.nomEntreprise,
+      statutMembre: membresEquipe.statutMembre,
     })
     .from(membresEquipe)
     .innerJoin(
@@ -959,5 +1184,22 @@ export async function getMonProfil(idUtilisateur) {
     err.status = 404;
     throw err;
   }
-  return membre;
+
+  const permissions = membre.estAdminPrincipal
+    ? [...CLES_PERMISSIONS]
+    : membre.permissionsPersonnalisees ??
+      PERMISSIONS_PAR_DEFAUT_ROLE[membre.roleEquipe] ??
+      [];
+
+  return {
+    idMembre: membre.idMembre,
+    nom: membre.nom,
+    email: membre.email,
+    roleEquipe: membre.roleEquipe,
+    estAdminPrincipal: membre.estAdminPrincipal,
+    nomEntreprise: membre.nomEntreprise,
+    statutMembre: membre.statutMembre,
+    permissions,
+    isProprietaire: false,
+  };
 }

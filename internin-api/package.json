@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
+    "test": "node --env-file=.env.test node_modules/vitest/vitest.mjs run",
+    "test:watch": "node --env-file=.env.test node_modules/vitest/vitest.mjs",
     "db:generate": "drizzle-kit generate --config=drizzle.config.js",
     "db:migrate": "drizzle-kit migrate --config=drizzle.config.js",
     "db:push": "drizzle-kit push --config=drizzle.config.js",
@@ -13,7 +15,14 @@
     "db:seed": "node src/db/seed.js",
     "db:seed-offres": "node src/db/seedOffres.js",
     "db:seed-admin": "node src/db/seedAdmin.js",
-    "db:reset-test-data": "node src/db/resetTestData.js"
+    "db:reset-test-data": "node src/db/resetTestData.js",
+    "db:reset-dev-data": "node src/db/resetDevTestData.js",
+    "db:check": "node script/check-drizzle-migrations.js",
+    "db:migrate-invitation-tokens": "node script/migrate-invitation-tokens.js",
+    "test:realtime-horizontal": "node script/test-realtime-horizontal.js",
+    "job:sync-stages": "node script/sync-stages-statuts.js",
+    "test:stage-sync-lock": "node script/test-stage-sync-lock.js",
+    "db:migrate-etats-vue": "node script/migrate-etats-vue.js"
   },
   "keywords": [],
   "author": "",
@@ -35,11 +44,14 @@
     "nodemailer": "^9.0.3",
     "pdfkit": "^0.19.1",
     "pg": "^8.22.0",
+    "qrcode": "^1.5.4",
     "resend": "^6.18.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.10",
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2",
+    "vitest": "^4.1.11"
   }
 }

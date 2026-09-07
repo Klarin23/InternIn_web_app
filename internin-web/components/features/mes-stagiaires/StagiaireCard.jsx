@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useSupervisionContext } from "@/lib/supervision/SupervisionContext";
+import { useRappelerEvaluationSuperviseur } from "@/lib/queries/useSuperviseur";
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   FiCalendar,
@@ -11,12 +14,13 @@ import {
   FiCheckSquare,
   FiAlertTriangle,
   FiArrowUpRight,
+  FiUserCheck,
 } from "react-icons/fi";
 
-const STATUT_LABELS = {
-  actif: "En cours",
-  termine: "Terminé",
-  interrompu: "Interrompu",
+const STATUT_LABEL_KEYS = {
+  actif: "mesStagiaires.status.active",
+  termine: "mesStagiaires.status.completed",
+  interrompu: "mesStagiaires.status.interrupted",
 };
 
 const STATUT_STYLES = {
@@ -48,9 +52,9 @@ const AVATAR_COLORS = [
   "#8B5CF6",
 ];
 
-function formatDate(dateStr) {
+function formatDate(dateStr, locale = "fr") {
   if (!dateStr) return null;
-  return new Date(dateStr).toLocaleDateString("fr-FR", {
+  return new Date(dateStr).toLocaleDateString(locale === "en" ? "en-GB" : "fr-FR", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -62,26 +66,28 @@ function ProgressBar({ value }) {
   const reduceMotion = useReducedMotion();
 
   useEffect(() => {
-    if (reduceMotion) {
-      setWidth(value);
-      return;
-    }
+    if (reduceMotion) return;
     const id = requestAnimationFrame(() => setWidth(value));
     return () => cancelAnimationFrame(id);
   }, [value, reduceMotion]);
+
+  const display = reduceMotion ? value : width;
 
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
       <div
         className="h-full rounded-full bg-primary transition-[width] duration-700 ease-out"
-        style={{ width: `${Math.min(100, Math.max(0, width))}%` }}
+        style={{ width: `${Math.min(100, Math.max(0, display))}%` }}
       />
     </div>
   );
 }
 
 export default function StagiaireCard({ stagiaire, index }) {
-  const { basePath } = useSupervisionContext();
+  const { t, locale } = useTranslation();
+  const { basePath, isEntreprise } = useSupervisionContext();
+  const rappelMut = useRappelerEvaluationSuperviseur();
+  const [rappelMsg, setRappelMsg] = useState(null);
   const couleur = AVATAR_COLORS[index % AVATAR_COLORS.length];
   const initiales =
     `${stagiaire.prenom?.charAt(0) || ""}${stagiaire.nom?.charAt(0) || ""}`.toUpperCase();
@@ -145,12 +151,12 @@ export default function StagiaireCard({ stagiaire, index }) {
               {stagiaire.alerte && (
                 <span className="inline-flex items-center gap-1 rounded-md border border-destructive/20 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold text-destructive">
                   <FiAlertTriangle className="h-3 w-3" />
-                  Action requise
+                  {t("mesStagiaires.card.actionRequired")}
                 </span>
               )}
             </div>
             <p className="mt-0.5 truncate text-xs text-muted-foreground">
-              {stagiaire.formation || "Formation non renseignée"}
+              {stagiaire.formation || t("mesStagiaires.card.noEducation")}
               {stagiaire.universite ? ` · ${stagiaire.universite}` : ""}
             </p>
           </div>
@@ -166,9 +172,25 @@ export default function StagiaireCard({ stagiaire, index }) {
           )}
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <FiCalendar className="h-3.5 w-3.5 shrink-0" />
-            {formatDate(stagiaire.dateDebut)} →{" "}
-            {formatDate(stagiaire.dateFinPrevue)}
+            {formatDate(stagiaire.dateDebut, locale)} →{" "}
+            {formatDate(stagiaire.dateFinPrevue, locale)}
           </p>
+          {stagiaire.superviseurAssigne ? (
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <FiUserCheck className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <span>
+                Superviseur :{" "}
+                <span className="font-medium text-foreground">
+                  {stagiaire.superviseurAssigne}
+                </span>
+              </span>
+            </p>
+          ) : (
+            <p className="flex items-center gap-1.5 text-xs text-amber-700/90 dark:text-amber-400/90">
+              <FiUserCheck className="h-3.5 w-3.5 shrink-0" />
+              {t("mesStagiaires.card.noSupervisor")}
+            </p>
+          )}
         </div>
 
         {/* Badge statut + % */}
@@ -177,7 +199,7 @@ export default function StagiaireCard({ stagiaire, index }) {
             className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${statut.badge}`}
           >
             <span className={`h-1.5 w-1.5 rounded-full ${statut.dot}`} />
-            {STATUT_LABELS[stagiaire.statutStage] || stagiaire.statutStage}
+            {t(STATUT_LABEL_KEYS[stagiaire.statutStage] || "mesStagiaires.status.active")}
           </span>
           <span className="text-xs font-semibold tabular-nums text-foreground">
             {stagiaire.progression}%
@@ -192,12 +214,12 @@ export default function StagiaireCard({ stagiaire, index }) {
           <ProgressBar value={stagiaire.progression ?? 0} />
         </div>
 
-        {/* Objectifs / Tâches */}
+        {/* {t("mesStagiaires.card.objectives")} / {t("mesStagiaires.card.tasks")} */}
         <div className="mb-4 grid grid-cols-2 gap-2">
           <div className="rounded-lg border border-border/60 bg-muted/40 px-2.5 py-2">
             <div className="mb-0.5 flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
               <FiTarget className="h-3 w-3 text-primary" />
-              Objectifs
+              {t("mesStagiaires.card.objectives")}
             </div>
             <p className="text-sm font-semibold tabular-nums text-foreground">
               {stagiaire.objectifsAtteints}
@@ -209,7 +231,7 @@ export default function StagiaireCard({ stagiaire, index }) {
           <div className="rounded-lg border border-border/60 bg-muted/40 px-2.5 py-2">
             <div className="mb-0.5 flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
               <FiCheckSquare className="h-3 w-3 text-secondary" />
-              Tâches
+              {t("mesStagiaires.card.tasks")}
             </div>
             <p className="text-sm font-semibold tabular-nums text-foreground">
               {stagiaire.tachesTerminees}
@@ -224,9 +246,48 @@ export default function StagiaireCard({ stagiaire, index }) {
         <p className="mt-auto flex items-center gap-1.5 text-xs text-muted-foreground">
           <FiClock className="h-3.5 w-3.5 shrink-0" />
           {stagiaire.derniereActivite
-            ? `Dernière évaluation le ${formatDate(stagiaire.derniereActivite)}`
-            : "Aucune évaluation soumise"}
+            ? t("mesStagiaires.card.lastEvaluation", { date: formatDate(stagiaire.derniereActivite, locale) })
+            : t("mesStagiaires.card.noEvaluation")}
         </p>
+
+        {/* Entreprise : rappel superviseur si évaluation en retard */}
+        {isEntreprise && stagiaire.alerte && stagiaire.superviseurAssigne && (
+          <div className="mt-3 border-t border-border/60 pt-3">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="w-full text-xs"
+              disabled={rappelMut.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setRappelMsg(null);
+                rappelMut.mutate(stagiaire.idStage, {
+                  onSuccess: (data) => {
+                    setRappelMsg(
+                      data?.message || t("mesStagiaires.card.reminderSent"),
+                    );
+                  },
+                  onError: (err) => {
+                    setRappelMsg(
+                      err?.message || t("mesStagiaires.card.reminderError"),
+                    );
+                  },
+                });
+              }}
+            >
+              {rappelMut.isPending
+                ? t("mesStagiaires.card.sending")
+                : t("mesStagiaires.card.remindSupervisor")}
+            </Button>
+            {rappelMsg && (
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                {rappelMsg}
+              </p>
+            )}
+          </div>
+        )}
       </Link>
     </motion.div>
   );

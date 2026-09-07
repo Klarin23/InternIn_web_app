@@ -1,4 +1,6 @@
 "use client";
+
+import { useTranslation } from "@/lib/i18n/useTranslation";
 // Carte de section réutilisée par toutes les sections de "Mon profil".
 // Refonte visuelle : légère animation d'entrée + micro-interaction au
 // survol, icône de section optionnelle. API strictement compatible avec
@@ -15,6 +17,7 @@ export default function ProfilSectionCard({
   onEdit,
   children,
 }) {
+  const { t } = useTranslation();
   const shouldReduceMotion = useReducedMotion();
 
   return (
@@ -38,7 +41,7 @@ export default function ProfilSectionCard({
             className="flex items-center gap-1.5 rounded-sm px-2.5 py-1.5 text-xs font-medium text-primary transition-colors duration-150 hover:bg-primary/10"
           >
             <FiEdit2 className="h-3.5 w-3.5" />
-            Modifier
+            {t("stagiaireSpace.profile.edit")}
           </button>
         )}
       </div>

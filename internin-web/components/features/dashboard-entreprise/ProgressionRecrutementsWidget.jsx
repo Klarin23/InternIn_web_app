@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import Link from "next/link";
 import { FiTarget } from "react-icons/fi";
 
@@ -7,6 +9,7 @@ export default function ProgressionRecrutementsWidget({
   offres,
   candidatures,
 }) {
+  const { t, locale } = useTranslation();
   const liste = (offres || [])
     .filter((o) => o.statut === "publie" && o.nombrePostes > 0)
     .map((o) => {
@@ -23,19 +26,19 @@ export default function ProgressionRecrutementsWidget({
     .slice(0, 5);
 
   return (
-    <div className="rounded-md border border-border bg-card bg-linear-to-br from-primary/[0.04] via-transparent to-transparent p-5">
+    <div className="rounded-2xl border border-border bg-card shadow-sm bg-linear-to-br from-primary/[0.04] via-transparent to-transparent p-5">
       <div className="mb-4 flex items-center gap-2.5">
         <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
           <FiTarget className="h-4.5 w-4.5" />
         </div>
         <h5 className="text-sm font-semibold text-foreground">
-          Progression des recrutements
+          {t("entrepriseSpace.dashboard.recruitmentProgress")}
         </h5>
       </div>
 
       {liste.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
-          Aucune offre active en cours de recrutement
+          {t("entrepriseSpace.dashboard.noActiveRecruitment")}
         </p>
       ) : (
         <div className="space-y-4">
@@ -56,7 +59,7 @@ export default function ProgressionRecrutementsWidget({
                 />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                {o.selectionnes}/{o.nombrePostes} candidats sélectionnés
+                {t("entrepriseSpace.dashboard.candidatesSelected", { selected: o.selectionnes, total: o.nombrePostes })}
               </p>
             </div>
           ))}
@@ -67,7 +70,7 @@ export default function ProgressionRecrutementsWidget({
         href="/offres-entreprise"
         className="mt-4 block text-center text-xs font-semibold text-primary hover:underline"
       >
-        Voir toutes les offres
+        {t("entrepriseSpace.dashboard.viewAllOffers")}
       </Link>
     </div>
   );

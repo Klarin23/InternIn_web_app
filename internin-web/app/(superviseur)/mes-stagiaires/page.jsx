@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   FiUsers,
@@ -16,23 +17,23 @@ import {
 import AppHeader from "@/components/layout/AppHeader";
 import StagiaireCard from "@/components/features/mes-stagiaires/StagiaireCard";
 import VueComparative from "@/components/features/mes-stagiaires/VueComparative";
-import { SupervisionProvider } from "@/lib/supervision/SupervisionContext";
+import { SupervisionProvider, useSupervisionContext } from "@/lib/supervision/SupervisionContext";
 import { useMesStagiaires } from "@/lib/queries/useSuperviseur";
 import { cn } from "@/lib/utils";
 
 const JOURS_ALERTE_FIN_STAGE = 30;
 
 const FILTRES = [
-  { valeur: "tous", label: "Tous" },
-  { valeur: "en_cours", label: "En cours" },
-  { valeur: "bientot_termine", label: "Bientôt terminé" },
-  { valeur: "termine", label: "Terminé" },
+  { valeur: "tous", labelKey: "mesStagiaires.filters.all" },
+  { valeur: "en_cours", labelKey: "mesStagiaires.filters.inProgress" },
+  { valeur: "bientot_termine", labelKey: "mesStagiaires.filters.endingSoon" },
+  { valeur: "termine", labelKey: "mesStagiaires.filters.completed" },
 ];
 
 const OPTIONS_TRI = [
-  { valeur: "nom", label: "Nom (A→Z)" },
-  { valeur: "progression", label: "Progression" },
-  { valeur: "activite", label: "Dernière activité" },
+  { valeur: "nom", labelKey: "mesStagiaires.sort.name" },
+  { valeur: "progression", labelKey: "mesStagiaires.sort.progress" },
+  { valeur: "activite", labelKey: "mesStagiaires.sort.activity" },
 ];
 
 function estBientotTermine(s) {
@@ -74,6 +75,7 @@ function SkeletonCards() {
 }
 
 function MesStagiairesPageContent() {
+  const { t, locale } = useTranslation();
   const { data: stagiaires, isLoading } = useMesStagiaires();
   const [vueActive, setVueActive] = useState("liste");
   const [recherche, setRecherche] = useState("");
@@ -139,19 +141,19 @@ function MesStagiairesPageContent() {
       className: "text-primary bg-primary/10",
     },
     {
-      label: "En cours",
+      label: t("mesStagiaires.stats.inProgress"),
       value: stats.enCours,
       icon: FiBriefcase,
       className: "text-secondary bg-secondary/10",
     },
     {
-      label: "Bientôt terminés",
+      label: t("mesStagiaires.stats.endingSoon"),
       value: stats.bientot,
       icon: FiClock,
       className: "text-amber-700 bg-amber-500/15 dark:text-amber-400",
     },
     {
-      label: "Terminés",
+      label: t("mesStagiaires.stats.completed"),
       value: stats.termines,
       icon: FiCheckCircle,
       className: "text-emerald-700 bg-emerald-500/10 dark:text-emerald-400",
@@ -161,8 +163,8 @@ function MesStagiairesPageContent() {
   return (
     <>
       <AppHeader
-        breadcrumb={[{ label: "Mes stagiaires" }]}
-        subtitle="Stagiaires que vous encadrez actuellement"
+        breadcrumb={[{ label: t("mesStagiaires.page.title") }]}
+        subtitle={t("mesStagiaires.page.subtitle")}
         refreshKeys={["mesStagiaires"]}
       />
 
@@ -213,11 +215,10 @@ function MesStagiairesPageContent() {
             <div className="mb-6 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                  Mes stagiaires
+                  {t("mesStagiaires.page.title")}
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {stats.total} stagiaire{stats.total > 1 ? "s" : ""} sous votre
-                  supervision
+                  {t(stats.total !== 1 ? "mesStagiaires.page.countOther" : "mesStagiaires.page.countOne", { count: stats.total })}
                 </p>
                 {!isLoading && stats.total > 0 && (
                   <div className="mt-4 flex flex-wrap gap-2">
@@ -249,12 +250,12 @@ function MesStagiairesPageContent() {
                 <select
                   value={tri}
                   onChange={(e) => setTri(e.target.value)}
-                  aria-label="Trier les stagiaires"
+                  aria-label={t("mesStagiaires.sort.aria")}
                   className="h-11 w-full appearance-none rounded-xl border border-border bg-card pl-9 pr-8 text-sm text-foreground shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 sm:w-56"
                 >
                   {OPTIONS_TRI.map((o) => (
                     <option key={o.valeur} value={o.valeur}>
-                      Trier par : {o.label}
+                      {t("mesStagiaires.sort.label")} : {t(o.labelKey)}
                     </option>
                   ))}
                 </select>
@@ -268,7 +269,7 @@ function MesStagiairesPageContent() {
                   type="text"
                   value={recherche}
                   onChange={(e) => setRecherche(e.target.value)}
-                  placeholder="Rechercher un stagiaire..."
+                  placeholder={t("mesStagiaires.search.placeholder")}
                   className="h-11 w-full rounded-xl border border-border bg-card pl-10 pr-10 text-sm text-foreground shadow-sm placeholder:text-muted-foreground transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
                 <AnimatePresence>
@@ -292,7 +293,7 @@ function MesStagiairesPageContent() {
                 <div
                   className="inline-flex min-w-min gap-1 rounded-xl border border-border bg-muted/40 p-1"
                   role="tablist"
-                  aria-label="Filtrer les stagiaires"
+                  aria-label={t("mesStagiaires.filters.aria")}
                 >
                   {FILTRES.map((f) => {
                     const actif = filtre === f.valeur;
@@ -317,7 +318,7 @@ function MesStagiairesPageContent() {
                             transition={{ duration: 0.2, ease: "easeOut" }}
                           />
                         )}
-                        {f.label}
+                        {t(f.labelKey)}
                         <span
                           className={`ml-1.5 tabular-nums ${
                             actif
@@ -342,10 +343,10 @@ function MesStagiairesPageContent() {
                   <FiUsers className="h-6 w-6" />
                 </div>
                 <p className="text-sm font-semibold text-foreground">
-                  Aucun stagiaire affecté
+                  {t("mesStagiaires.empty.title")}
                 </p>
                 <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                  Les stagiaires qui vous seront attribués apparaîtront ici.
+                  {t("mesStagiaires.empty.description")}
                 </p>
               </div>
             )}
@@ -356,17 +357,17 @@ function MesStagiairesPageContent() {
                   <FiSearch className="h-6 w-6" />
                 </div>
                 <p className="text-sm font-semibold text-foreground">
-                  Aucun résultat pour ces critères
+                  {t("mesStagiaires.empty.noResults")}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Essayez de modifier la recherche ou le filtre actif.
+                  {t("mesStagiaires.empty.noResultsHint")}
                 </p>
                 <button
                   type="button"
                   onClick={resetFiltres}
                   className="mt-4 rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-foreground shadow-sm transition hover:bg-muted"
                 >
-                  Effacer les filtres
+                  {t("mesStagiaires.filters.clear")}
                 </button>
               </div>
             )}
@@ -396,10 +397,20 @@ function MesStagiairesPageContent() {
 }
 
 
-export default function MesStagiairesPage() {
+function MesStagiairesPageWithContext() {
+  // Ne pas ré-envelopper si on est déjà sous un Provider Entreprise
+  // (évite d'écraser basePath → liens progression/journal en 404).
+  const ctx = useSupervisionContext();
+  if (ctx?.isEntreprise) {
+    return <MesStagiairesPageContent />;
+  }
   return (
     <SupervisionProvider>
       <MesStagiairesPageContent />
     </SupervisionProvider>
   );
+}
+
+export default function MesStagiairesPage() {
+  return <MesStagiairesPageWithContext />;
 }

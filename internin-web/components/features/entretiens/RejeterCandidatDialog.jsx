@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { useState } from "react";
 import { FiXCircle, FiLoader, FiAlertCircle, FiMail } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
@@ -13,6 +15,7 @@ import {
 import { useRejeterCandidature } from "@/lib/queries/useCandidaturesEntreprise";
 
 export default function RejeterCandidatDialog({ idEntretien, candidatNom }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const mutation = useRejeterCandidature();
 
@@ -35,7 +38,7 @@ export default function RejeterCandidatDialog({ idEntretien, candidatNom }) {
       </DialogTrigger>
       <DialogContent className="rounded-md sm:max-w-[440px]">
         <DialogHeader>
-          <DialogTitle>Rejeter la candidature — {candidatNom}</DialogTitle>
+          <DialogTitle>{t("entrepriseSpace.candidatures.rejectTitle", { name: candidatNom })}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
@@ -75,7 +78,7 @@ export default function RejeterCandidatDialog({ idEntretien, candidatNom }) {
               {mutation.isPending ? (
                 <FiLoader className="h-4 w-4 animate-spin" />
               ) : (
-                "Confirmer le rejet"
+                t("entrepriseSpace.candidatures.confirmReject")
               )}
             </Button>
           </div>

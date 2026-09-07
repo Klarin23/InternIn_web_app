@@ -1,11 +1,7 @@
 import { z } from "zod";
+import { checkExternalUrl, zUrlField } from "@/lib/utils/urlValidation";
 
-const optionalUrl = z
-  .string()
-  .optional()
-  .refine((val) => !val || /^https?:\/\/.+/.test(val), {
-    message: "L'URL doit commencer par http:// ou https://",
-  });
+const optionalUrl = zUrlField(checkExternalUrl)(z.string().optional());
 
 export const universiteStep1Schema = z.object({
   nomUniversite: z.string().min(1, "Le nom de l'établissement est requis"),

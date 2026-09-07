@@ -3,14 +3,13 @@
 import { FiCheck } from "react-icons/fi";
 import { cn } from "@/lib/utils";
 import { OFFRE_FORM_STEPS } from "./offreForm.constants";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
-// Progression visuelle en haut du formulaire (point 1 et 17 du cahier des
-// charges). Compacte sur mobile : seuls le numéro et le libellé de l'étape
-// active restent visibles, avec une barre de progression fine.
 export default function OffreFormStepper({ currentStep }) {
+  const { t } = useTranslation();
+
   return (
     <div className="mb-2">
-      {/* Desktop / tablette : étapes horizontales avec libellés */}
       <ol className="hidden items-center gap-2 sm:flex">
         {OFFRE_FORM_STEPS.map((step, index) => {
           const isDone = step.id < currentStep;
@@ -39,7 +38,7 @@ export default function OffreFormStepper({ currentStep }) {
                         : "text-muted-foreground",
                   )}
                 >
-                  {step.label}
+                  {t(step.labelKey)}
                 </span>
               </div>
               {index < OFFRE_FORM_STEPS.length - 1 && (
@@ -55,12 +54,14 @@ export default function OffreFormStepper({ currentStep }) {
         })}
       </ol>
 
-      {/* Mobile : simple compteur + barre de progression */}
       <div className="sm:hidden">
         <div className="mb-1.5 flex items-center justify-between text-xs">
           <span className="font-medium text-foreground">
-            Étape {currentStep}/{OFFRE_FORM_STEPS.length} ·{" "}
-            {OFFRE_FORM_STEPS[currentStep - 1].label}
+            {t("entrepriseSpace.offers.step", {
+              current: currentStep,
+              total: OFFRE_FORM_STEPS.length,
+            })}{" "}
+            · {t(OFFRE_FORM_STEPS[currentStep - 1].labelKey)}
           </span>
         </div>
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">

@@ -17,8 +17,8 @@ import { useUiStore } from "@/lib/store/useUiStore";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import ThemeToggle from "./ThemeToggle";
 import LanguageSwitcher from "./LanguageSwitcher";
-import RefreshButton from "@/components/refresh/RefreshButton";
 import NotificationsCenter from "./NotificationsCenter";
+import { SecurityHeaderIndicator } from "@/components/features/admin/SecurityAlertBanner";
 import GlobalSearch from "./GlobalSearch";
 import { useAutoRefresh, AUTO_REFRESH_INTERVALS } from "@/hooks/useAutoRefresh";
 
@@ -46,7 +46,7 @@ export default function AppHeader({
   const hasRefresh = Array.isArray(refreshKeys) && refreshKeys.length > 0;
   useAutoRefresh(hasRefresh ? refreshKeys : [], autoRefreshInterval);
 
-  const crumbs = breadcrumb || [{ label: title }];
+  const crumbs = breadcrumb || (title ? [{ label: title }] : []);
   const initials = avatarLabel || user?.email?.slice(0, 2).toUpperCase() || "?";
 
   function handleLogout() {
@@ -56,7 +56,7 @@ export default function AppHeader({
   }
 
   return (
-    <header className="sticky top-0 z-30 flex min-h-[72px] items-center justify-between gap-4 border-b border-border bg-card px-4 py-3 md:px-6 transition-colors duration-300">
+    <header className="sticky top-0 z-30 flex min-h-[56px] items-center justify-between gap-4 border-b border-border bg-card/95 px-4 py-2.5 backdrop-blur-sm md:px-6 transition-colors duration-300">
       <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
@@ -67,35 +67,38 @@ export default function AppHeader({
           <FiMenu className="h-5 w-5" />
         </button>
         <div className="min-w-0">
-          <nav className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
-            {crumbs.map((c, i) => (
-              <span key={i} className="flex items-center gap-1.5 truncate">
-                {i > 0 && <span className="text-muted-foreground">/</span>}
-                <span
-                  className={
-                    i === crumbs.length - 1
-                      ? subtitle
-                        ? "truncate text-xl font-bold text-foreground"
-                        : "truncate font-semibold text-foreground"
-                      : "truncate text-muted-foreground"
-                  }
-                >
-                  {c.label}
-                </span>
-              </span>
-            ))}
-            {hasRefresh && (
-              <RefreshButton
-                queryKeys={refreshKeys}
-                className="flex-row items-center gap-2"
-              />
-            )}
-          </nav>
-          {subtitle && (
-            <p className="mt-0.5 truncate text-sm text-muted-foreground">
-              {subtitle}
-            </p>
-          )}
+          {crumbs.length > 0 && crumbs.some((c) => c?.label) ? (
+            <>
+              <nav
+                className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
+                aria-label="Breadcrumb"
+              >
+                {crumbs.map((c, i) => (
+                  <span key={i} className="flex items-center gap-1.5 truncate">
+                    {i > 0 && (
+                      <span className="font-normal tracking-normal text-muted-foreground/70">
+                        /
+                      </span>
+                    )}
+                    <span
+                      className={
+                        i === crumbs.length - 1
+                          ? "truncate text-foreground"
+                          : "truncate"
+                      }
+                    >
+                      {c.label}
+                    </span>
+                  </span>
+                ))}
+              </nav>
+              {subtitle && (
+                <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                  {subtitle}
+                </p>
+              )}
+            </>
+          ) : null}
         </div>
       </div>
 
@@ -131,6 +134,7 @@ export default function AppHeader({
 
         <LanguageSwitcher />
         <ThemeToggle />
+        <SecurityHeaderIndicator />
         <NotificationsCenter />
 
         <div className="relative">

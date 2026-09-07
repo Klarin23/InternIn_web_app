@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import {
   FiInbox,
   FiEye,
@@ -12,6 +14,7 @@ import StatCard from "@/components/features/dashboard-entreprise/StatCard";
 import { Stagger, StaggerItem } from "@/components/motion/Stagger";
 
 export default function CandidaturesDashboard({ candidatures, entretiens }) {
+  const { t } = useTranslation();
   const compte = (statut) =>
     (candidatures || []).filter((c) => c.statut === statut).length;
 
@@ -23,38 +26,38 @@ export default function CandidaturesDashboard({ candidatures, entretiens }) {
     {
       icon: FiInbox,
       value: compte("soumise"),
-      label: "Nouvelles candidatures",
+      label: t("entrepriseSpace.candidatures.statNew"),
       color: "bg-primary/10 text-primary",
       highlight: true,
     },
     {
       icon: FiEye,
       value: compte("consultee"),
-      label: "Profils consultés",
+      label: t("entrepriseSpace.candidatures.statViewed"),
       color: "bg-info/10 text-blue-700",
     },
     {
       icon: FiStar,
       value: compte("preselectionnee"),
-      label: "Présélectionnés",
+      label: t("entrepriseSpace.candidatures.statPreselected"),
       color: "bg-accent/40 text-amber-700",
     },
     {
       icon: FiCalendar,
       value: entretiensPlanifies,
-      label: "Entretiens programmés",
+      label: t("entrepriseSpace.candidatures.statInterviews"),
       color: "bg-[#EDE9FE] text-[#6D28D9]",
     },
     {
       icon: FiCheckCircle,
       value: compte("acceptee"),
-      label: "Acceptés",
+      label: t("entrepriseSpace.candidatures.statAccepted"),
       color: "bg-success/10 text-green-700",
     },
     {
       icon: FiXCircle,
       value: compte("rejetee"),
-      label: "Refusés",
+      label: t("entrepriseSpace.candidatures.statRejected"),
       color: "bg-destructive/10 text-destructive",
     },
   ];

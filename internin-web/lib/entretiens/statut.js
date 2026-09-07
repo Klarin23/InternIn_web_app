@@ -3,6 +3,8 @@
 // juste centralisés pour être réutilisés par le header, les cartes, le
 // drawer et l'historique.
 
+import { zonedDateKey, APP_TIME_ZONE } from "./planification";
+
 import {
   FiClock,
   FiCheckCircle,
@@ -62,6 +64,7 @@ export { STATUT_CONFIG };
 
 export function formatDateJour(date, locale = "fr") {
   const s = date.toLocaleDateString(locale, {
+    timeZone: APP_TIME_ZONE,
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -71,6 +74,7 @@ export function formatDateJour(date, locale = "fr") {
 }
 export function formatHeure(date, locale = "fr") {
   return date.toLocaleTimeString(locale, {
+    timeZone: APP_TIME_ZONE,
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -79,8 +83,11 @@ export function formatHeure(date, locale = "fr") {
 export function formatJourRelatif(date, maintenant, locale = "fr-FR", t) {
   const auj = new Date(maintenant);
 
+  const dateKey = zonedDateKey(date);
+  const nowKey = zonedDateKey(auj);
   const diffJours = Math.round(
-    (new Date(date.toDateString()) - new Date(auj.toDateString())) / 86_400_000,
+    (Date.parse(`${dateKey}T00:00:00Z`) - Date.parse(`${nowKey}T00:00:00Z`)) /
+      86_400_000,
   );
 
   if (diffJours === 0) {
@@ -124,9 +131,10 @@ export function formatCompteARebours(date, maintenant, t) {
 export function formatAnnonceEntretien(date, maintenant, locale = "fr", t) {
   if (date.getTime() <= maintenant) return null;
 
+  const dateKey = zonedDateKey(date);
+  const nowKey = zonedDateKey(new Date(maintenant));
   const diffJours = Math.round(
-    (new Date(date.toDateString()) -
-      new Date(new Date(maintenant).toDateString())) /
+    (Date.parse(`${dateKey}T00:00:00Z`) - Date.parse(`${nowKey}T00:00:00Z`)) /
       86_400_000,
   );
   const heure = formatHeure(date, locale);
@@ -151,6 +159,10 @@ export function formatAnnonceEntretien(date, maintenant, locale = "fr", t) {
 
 export const FILTRES_ENTRETIEN = [
   {
+    valeur: "toutes",
+    labelKey: "interviews.filters.all",
+  },
+  {
     valeur: "a_venir",
     labelKey: "interviews.filters.upcoming",
   },
@@ -167,9 +179,28 @@ export const FILTRES_ENTRETIEN = [
     labelKey: "interviews.filters.cancelled",
   },
   {
-    valeur: "toutes",
-    labelKey: "interviews.filters.all",
+    valeur: "offres_en_attente",
+    labelKey: "interviews.filters.awaitingCandidate",
   },
+  {
+    valeur: "offres_acceptees",
+    labelKey: "interviews.filters.acceptedOffers",
+  },
+  {
+    valeur: "offres_refusees",
+    labelKey: "interviews.filters.refusedOffers",
+  },
+];
+
+/** Filtres pour lesquels on affiche un compteur entre parenthèses */
+export const FILTRES_AVEC_COMPTEUR = [
+  "a_venir",
+  "aujourdhui",
+  "termines",
+  "annules",
+  "offres_en_attente",
+  "offres_acceptees",
+  "offres_refusees",
 ];
 
 export function matchFiltreEntretien(entretien, filtre, maintenant) {
@@ -178,12 +209,30 @@ export function matchFiltreEntretien(entretien, filtre, maintenant) {
   if (filtre === "aujourdhui") {
     return (
       !STATUTS_PASSES.includes(entretien.statut) &&
-      new Date(entretien.dateHeure).toDateString() ===
-        new Date(maintenant).toDateString()
+      zonedDateKey(entretien.dateHeure) === zonedDateKey(maintenant)
     );
   }
   if (filtre === "termines") return entretien.statut === "termine";
   if (filtre === "annules") return entretien.statut === "annule";
+  if (filtre === "offres_en_attente") {
+    return (
+      entretien.statutValidationPlateforme === "approuve" &&
+      (entretien.statutReponseStagiaire === "en_attente" ||
+        !entretien.statutReponseStagiaire)
+    );
+  }
+  if (filtre === "offres_acceptees") {
+    return (
+      entretien.statutValidationPlateforme === "approuve" &&
+      entretien.statutReponseStagiaire === "acceptee"
+    );
+  }
+  if (filtre === "offres_refusees") {
+    return (
+      entretien.statutValidationPlateforme === "approuve" &&
+      entretien.statutReponseStagiaire === "refusee"
+    );
+  }
   return true;
 }
 
@@ -217,4 +266,19 @@ export function buildLienGoogleCalendar(entretien) {
   }
 
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+
+/**
+ * Un entretien nécessite une action de l'étudiant lorsqu'il est en attente
+ * de validation (statut "planifie") — y compris après une replanification
+ * par l'entreprise (le backend repasse le statut à "planifie").
+ */
+export function entretienNecessiteActionStagiaire(entretien) {
+  return entretien?.statut === "planifie";
+}
+
+export function compterEntretiensATraiterStagiaire(entretiens) {
+  if (!Array.isArray(entretiens)) return 0;
+  return entretiens.filter(entretienNecessiteActionStagiaire).length;
 }

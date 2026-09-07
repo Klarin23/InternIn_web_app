@@ -11,8 +11,10 @@ import {
 } from "react-icons/fi";
 import { useUploadLogoEntreprise } from "@/lib/queries/useEntrepriseProfile";
 import { toast } from "@/lib/store/useToastStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function EntrepriseProfilHeader({ profil, onModifier }) {
+  const { t } = useTranslation();
   const fileInputRef = useRef(null);
   const uploadLogo = useUploadLogoEntreprise();
 
@@ -20,7 +22,7 @@ export default function EntrepriseProfilHeader({ profil, onModifier }) {
     const file = e.target.files?.[0];
     if (!file) return;
     uploadLogo.mutate(file, {
-      onError: (err) => toast.error(err.message || "Échec de l'envoi du logo"),
+      onError: (err) => toast.error(err.message || t("profilEntreprise.header.logoUploadError")),
     });
     e.target.value = "";
   }
@@ -32,10 +34,10 @@ export default function EntrepriseProfilHeader({ profil, onModifier }) {
       initial={{ opacity: 0, y: -12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="rounded-md border border-border bg-gradient-to-br from-primary/[0.05] via-transparent to-transparent p-6"
+      className="rounded-md border border-border bg-linear-to-br from-primary/5 via-transparent to-transparent p-6"
     >
       <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
-        <div className="group relative flex-shrink-0">
+        <div className="group relative shrink-0">
           <motion.div
             whileHover={{ scale: 1.04 }}
             transition={{ duration: 0.18 }}
@@ -56,7 +58,7 @@ export default function EntrepriseProfilHeader({ profil, onModifier }) {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadLogo.isPending}
-            aria-label="Changer le logo de l'entreprise"
+            aria-label={t("profilEntreprise.header.changeLogo")}
             className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card text-foreground opacity-0 shadow-sm transition-opacity duration-150 hover:bg-muted group-hover:opacity-100 focus-visible:opacity-100"
           >
             {uploadLogo.isPending ? (
@@ -82,17 +84,17 @@ export default function EntrepriseProfilHeader({ profil, onModifier }) {
             {estVerifiee && (
               <span className="flex items-center gap-1 rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-green-700">
                 <FiCheckCircle className="h-3.5 w-3.5" />
-                Entreprise vérifiée
+                {t("profilEntreprise.header.verified")}
               </span>
             )}
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            {profil.secteurActivite || "Secteur non renseigné"}
+            {profil.secteurActivite || t("profilEntreprise.header.industryNotProvided")}
           </p>
           <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
             <FiMapPin className="h-3.5 w-3.5" />
             {[profil.ville, profil.pays].filter(Boolean).join(", ") ||
-              "Localisation non renseignée"}
+              t("profilEntreprise.header.locationNotProvided")}
           </p>
           {profil.aPropos && (
             <p className="mt-2 line-clamp-2 max-w-2xl text-sm text-foreground">
@@ -106,10 +108,10 @@ export default function EntrepriseProfilHeader({ profil, onModifier }) {
           onClick={onModifier}
           whileHover={{ y: -1 }}
           whileTap={{ scale: 0.97 }}
-          className="group flex flex-shrink-0 items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+          className="group flex shrink-0 items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
         >
           <FiEdit2 className="h-4 w-4 transition-transform duration-150 group-hover:rotate-6" />
-          Modifier le profil
+          {t("profilEntreprise.header.editProfile")}
         </motion.button>
       </div>
     </motion.div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { FiTrash2, FiLoader, FiAward } from "react-icons/fi";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import {
   Select,
   SelectContent,
@@ -19,6 +20,7 @@ export default function CompetencesAcquisesPanel({
   idStage,
   competencesAcquises,
 }) {
+  const { t } = useTranslation();
   const [selection, setSelection] = useState("");
   const { data: catalogue } = useCompetences();
   const ajouter = useAjouterCompetenceAcquise(idStage);
@@ -37,18 +39,16 @@ export default function CompetencesAcquisesPanel({
   }
 
   return (
-    <div className="rounded-md border border-border bg-card p-5">
-      <h2 className="mb-4 text-base font-semibold text-foreground">
-        Compétences acquises
-      </h2>
+    <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
+      <h2 className="mb-4 text-base font-semibold text-foreground">{t("mesStagiaires.progression.skills")}</h2>
 
       <Select
         value={selection}
         onValueChange={handleSelection}
         disabled={ajouter.isPending}
       >
-        <SelectTrigger className="mb-4 h-10 w-full rounded-sm">
-          <SelectValue placeholder="Marquer une compétence comme acquise..." />
+        <SelectTrigger className="mb-4 h-10 w-full rounded-lg">
+          <SelectValue placeholder={t("mesStagiaires.progression.markSkill")} />
         </SelectTrigger>
         <SelectContent>
           {optionsDisponibles.map((c) => (
@@ -61,7 +61,7 @@ export default function CompetencesAcquisesPanel({
 
       {competencesAcquises.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Aucune compétence marquée comme acquise pour l&apos;instant.
+          {t("mesStagiaires.progression.noSkillsYet")}
         </p>
       ) : (
         <div className="flex flex-wrap gap-2">
@@ -76,7 +76,7 @@ export default function CompetencesAcquisesPanel({
                 type="button"
                 onClick={() => supprimer.mutate(c.idAcquisition)}
                 className="rounded-full p-0.5 hover:bg-primary/20"
-                aria-label="Retirer la compétence"
+                aria-label={t("mesStagiaires.progression.removeSkill")}
               >
                 <FiTrash2 className="h-3 w-3" />
               </button>
@@ -88,7 +88,7 @@ export default function CompetencesAcquisesPanel({
       {ajouter.isPending && (
         <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
           <FiLoader className="h-3 w-3 animate-spin" />
-          Ajout en cours...
+          {t("mesStagiaires.progression.adding")}
         </p>
       )}
     </div>

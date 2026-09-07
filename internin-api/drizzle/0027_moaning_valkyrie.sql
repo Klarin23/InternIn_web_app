@@ -1,0 +1,1 @@
+ALTER TABLE "utilisateurs" ADD COLUMN "version_jeton" integer DEFAULT 0 NOT NULL;

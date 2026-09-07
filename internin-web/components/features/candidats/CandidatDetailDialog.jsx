@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { useState } from "react";
 import {
   FiFileText,
@@ -11,12 +13,14 @@ import {
   FiPhone,
   FiBookOpen,
 } from "react-icons/fi";
+import ViewCvButton from "@/components/shared/ViewCvButton";
 import { SidePanel } from "@/components/ui/side-panel";
 import StatutSelect from "./StatutSelect";
 import PlanifierEntretienDialog from "@/components/features/entretiens/PlanifierEntretienDialog";
 import FaireOffreDialog from "@/components/features/entretiens/FaireOffreDialog";
 import RejeterCandidatDialog from "@/components/features/entretiens/RejeterCandidatDialog";
 import EntretienStatutPanel from "@/components/features/entretiens/EntretienStatutPanel";
+import { MOTIFS_RETRAIT_LABELS } from "@/lib/candidatures/statut";
 import HistoriqueOffresFinales from "@/components/features/entretiens/HistoriqueOffresFinales";
 import { useEntretiensEntreprise } from "@/lib/queries/useEntretiens";
 import CandidatureTimeline from "./CandidatureTimeline";
@@ -24,15 +28,16 @@ import { useSignalerConsultationCv } from "@/lib/queries/useCandidaturesEntrepri
 import EvaluationRapide from "./EvaluationRapide";
 import NotesPrivees from "./NotesPrivees";
 import HistoriqueComplet from "./HistoriqueComplet";
+import { safeHref } from "@/lib/utils/urlValidation";
 
 
 const OFFRE_FINALE_MESSAGES = {
   en_attente: {
-    text: "Offre finale en attente de validation par l'administration",
+    textKey: "entrepriseSpace.candidatures.finalOfferPending",
     className: "bg-[#FEF3C7] text-[#B45309]",
   },
   approuve: {
-    text: "Offre finale validée — le candidat a été notifié",
+    textKey: "entrepriseSpace.candidatures.finalOfferApproved",
     className: "bg-success/10 text-green-700",
   },
 };
@@ -48,6 +53,7 @@ const STATUTS_ENTRETIEN_ACTIFS = [
 ];
 
 export default function CandidatDetailDialog({ candidature, onClose }) {
+  const { t, locale } = useTranslation();
   const signalerCv = useSignalerConsultationCv();
   const [showLettre, setShowLettre] = useState(false);
   const { data: entretiens } = useEntretiensEntreprise();
@@ -91,7 +97,7 @@ export default function CandidatDetailDialog({ candidature, onClose }) {
              {candidature.prenom} {candidature.nom}
            </p>
            <p className="text-sm text-muted-foreground">
-             {candidature.diplome || "Formation non précisée"}
+             {candidature.diplome || t("entrepriseSpace.candidatures.formationFallback")}
            </p>
          </div>
        </div>
@@ -100,26 +106,24 @@ export default function CandidatDetailDialog({ candidature, onClose }) {
          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
            <FiMapPin className="h-3.5 w-3.5" />
            {candidature.ville}, {candidature.pays} ·{" "}
-           {candidature.nomUniversite || "Université non précisée"}
+           {candidature.nomUniversite || t("entrepriseSpace.candidatures.universityFallback")}
          </p>
          <p className="inline-block rounded-full bg-[#CCFBF1] px-2.5 py-1 text-sm font-semibold text-[#0F766E]">
-           Postule pour : {candidature.titreOffre}
+           {t("entrepriseSpace.candidatures.appliedFor", { title: candidature.titreOffre })}
          </p>
 
          <div className="flex flex-wrap gap-2">
-           <a
-             href={candidature.cvUrl}
-             target="_blank"
-             rel="noopener noreferrer"
-             onClick={() => signalerCv.mutate(candidature.idCandidature)}
+           <ViewCvButton
+             cvUrl={candidature.cvUrl}
+             onBeforeOpen={() => signalerCv.mutate(candidature.idCandidature)}
              className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/70"
            >
              <FiFileText className="h-3.5 w-3.5" />
-             Voir le CV
-           </a>
-           {candidature.linkedinUrl && (
+             {t("entrepriseSpace.candidatures.viewCv")}
+           </ViewCvButton>
+           {candidature.linkedinUrl && safeHref(candidature.linkedinUrl) && (
              <a
-               href={candidature.linkedinUrl}
+               href={safeHref(candidature.linkedinUrl)}
                target="_blank"
                rel="noopener noreferrer"
                className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/70"
@@ -128,9 +132,9 @@ export default function CandidatDetailDialog({ candidature, onClose }) {
                LinkedIn
              </a>
            )}
-           {candidature.portfolioUrl && (
+           {candidature.portfolioUrl && safeHref(candidature.portfolioUrl) && (
              <a
-               href={candidature.portfolioUrl}
+               href={safeHref(candidature.portfolioUrl)}
                target="_blank"
                rel="noopener noreferrer"
                className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/70"
@@ -148,7 +152,7 @@ export default function CandidatDetailDialog({ candidature, onClose }) {
                onClick={() => setShowLettre((v) => !v)}
                className="text-xs font-semibold text-secondary hover:underline"
              >
-               {showLettre ? "Masquer" : "Voir"} la lettre de motivation
+               {showLettre ? t("entrepriseSpace.candidatures.hideCover") : t("entrepriseSpace.candidatures.showCover")}
              </button>
              {showLettre && (
                <p className="mt-2 rounded-sm bg-muted/50 p-3 text-sm text-muted-foreground">
@@ -161,7 +165,7 @@ export default function CandidatDetailDialog({ candidature, onClose }) {
          {candidature.competences?.length > 0 && (
            <div>
              <h5 className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-               Compétences
+               {t("entrepriseSpace.candidatures.skills")}
              </h5>
              <div className="flex flex-wrap gap-1.5">
                {candidature.competences.map((c) => (
@@ -178,14 +182,14 @@ export default function CandidatDetailDialog({ candidature, onClose }) {
 
          <div>
            <h5 className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-             Évaluation rapide
+             {t("entrepriseSpace.candidatures.quickEval")}
            </h5>
            <EvaluationRapide idCandidature={candidature.idCandidature} />
          </div>
 
          <div>
            <h5 className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-             Notes privées
+             {t("entrepriseSpace.candidatures.privateNotes")}
            </h5>
            <NotesPrivees idCandidature={candidature.idCandidature} />
          </div>
@@ -194,7 +198,7 @@ export default function CandidatDetailDialog({ candidature, onClose }) {
            <div>
              <h5 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
                <FiBookOpen className="h-3.5 w-3.5" />
-               Parcours académique
+               {t("entrepriseSpace.candidatures.academicPath")}
              </h5>
              <p className="text-sm text-foreground">
                {candidature.nomUniversite}
@@ -202,21 +206,21 @@ export default function CandidatDetailDialog({ candidature, onClose }) {
              <p className="text-sm text-muted-foreground">
                {candidature.diplome}
                {candidature.departement && ` · ${candidature.departement}`}
-               {candidature.anneeEtude && ` · ${candidature.anneeEtude}e année`}
+               {candidature.anneeEtude && ` · ${t("entrepriseSpace.candidatures.yearOfStudy", { year: candidature.anneeEtude })}`}
              </p>
            </div>
          )}
 
          <div>
            <h5 className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-             Chronologie
+             {t("entrepriseSpace.candidatures.timeline")}
            </h5>
            <CandidatureTimeline idCandidature={candidature.idCandidature} />
          </div>
 
          <div>
            <h5 className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-             Coordonnées
+             {t("entrepriseSpace.candidatures.contactInfo")}
            </h5>
            {candidature.email || candidature.telephone ? (
              <div className="space-y-1 text-sm text-foreground">
@@ -235,21 +239,81 @@ export default function CandidatDetailDialog({ candidature, onClose }) {
              </div>
            ) : (
              <p className="rounded-sm bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
-               Les coordonnées du candidat seront visibles une fois l’offre de
-               stage validée par votre entreprise (offre finale envoyée).
+               {t("entrepriseSpace.candidatures.contactHidden")}
              </p>
            )}
          </div>
 
+         {/* Section dédiée au retrait (visible uniquement si retirée) */}
+         {candidature.statut === "retiree" && (
+           <div className="rounded-xl border border-border/70 bg-muted/30 p-4">
+             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+               {t("entrepriseSpace.candidatures.withdrawalSection")}
+             </p>
+             <p className="mt-2 text-sm font-semibold text-foreground">
+               {t("entrepriseSpace.candidatures.withdrawnByCandidate")}
+             </p>
+             {candidature.dateRetrait && (
+               <div className="mt-3">
+                 <p className="text-xs font-medium text-muted-foreground">{t("entrepriseSpace.candidatures.date")}</p>
+                 <p className="mt-0.5 text-sm text-foreground">
+                   {new Date(candidature.dateRetrait).toLocaleString(locale === "en" ? "en-GB" : "fr-FR", {
+                     day: "numeric",
+                     month: "long",
+                     year: "numeric",
+                     hour: "2-digit",
+                     minute: "2-digit",
+                   })}
+                 </p>
+               </div>
+             )}
+             {(MOTIFS_RETRAIT_LABELS[candidature.motifRetraitCode] ||
+               candidature.motifRetraitCommentaire) && (
+               <div className="mt-3">
+                 <p className="text-xs font-medium text-muted-foreground">{t("entrepriseSpace.candidatures.reason")}</p>
+                 <p className="mt-0.5 text-sm text-foreground">
+                   {MOTIFS_RETRAIT_LABELS[candidature.motifRetraitCode] ||
+                     candidature.motifRetraitCommentaire}
+                 </p>
+               </div>
+             )}
+             {candidature.motifRetraitCommentaire &&
+               candidature.motifRetraitCode === "OTHER" && (
+                 <div className="mt-3">
+                   <p className="text-xs font-medium text-muted-foreground">
+                     {t("entrepriseSpace.candidatures.candidateComment")}
+                   </p>
+                   <p className="mt-0.5 whitespace-pre-wrap text-sm text-foreground">
+                     {candidature.motifRetraitCommentaire}
+                   </p>
+                 </div>
+               )}
+             {candidature.motifRetraitCommentaire &&
+               candidature.motifRetraitCode &&
+               candidature.motifRetraitCode !== "OTHER" && (
+                 <div className="mt-3">
+                   <p className="text-xs font-medium text-muted-foreground">
+                     {t("entrepriseSpace.candidatures.candidateComment")}
+                   </p>
+                   <p className="mt-0.5 whitespace-pre-wrap text-sm text-foreground">
+                     {candidature.motifRetraitCommentaire}
+                   </p>
+                 </div>
+               )}
+           </div>
+         )}
+
          <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+           {candidature.statut !== "retiree" && candidature.statut !== "acceptee" && (
            <StatutSelect
              idCandidature={candidature.idCandidature}
              statutActuel={candidature.statut}
            />
+           )}
 
            {entretienTermine &&
            !entretienTermine.idOffreFinale &&
-           candidature.statut !== "rejetee" ? (
+           candidature.statut !== "rejetee" && candidature.statut !== "retiree" ? (
              <>
                <FaireOffreDialog
                  idEntretien={entretienTermine.idEntretien}
@@ -262,7 +326,7 @@ export default function CandidatDetailDialog({ candidature, onClose }) {
              </>
            ) : !entretienActif &&
              !entretienTermine &&
-             candidature.statut === "preselectionnee" ? (
+             candidature.statut === "preselectionnee" && candidature.statut !== "retiree" ? (
              <PlanifierEntretienDialog
                idCandidature={candidature.idCandidature}
                candidatNom={`${candidature.prenom} ${candidature.nom}`}
@@ -271,7 +335,7 @@ export default function CandidatDetailDialog({ candidature, onClose }) {
              />
            ) : !entretienActif && !entretienTermine ? (
              <p className="text-xs text-muted-foreground">
-               Présélectionnez ce candidat pour pouvoir planifier un entretien.
+               {t("entrepriseSpace.candidatures.preselectToInterview")}
              </p>
            ) : null}
          </div>
@@ -281,8 +345,7 @@ export default function CandidatDetailDialog({ candidature, onClose }) {
            !entretienTermine.idOffreFinale &&
            candidature.statut === "rejetee" && (
              <p className="rounded-sm bg-destructive/10 p-3 text-xs font-medium text-destructive">
-               Candidature rejetée — un message a été envoyé au candidat pour
-               l&apos;en informer.
+               {t("entrepriseSpace.candidatures.rejectedNotified")}
              </p>
            )}
 
@@ -313,19 +376,20 @@ export default function CandidatDetailDialog({ candidature, onClose }) {
            <p
              className={`rounded-sm p-3 text-xs font-medium ${OFFRE_FINALE_MESSAGES[entretienTermine.statutValidationPlateforme]?.className}`}
            >
-             {
-               OFFRE_FINALE_MESSAGES[
-                 entretienTermine.statutValidationPlateforme
-               ]?.text
-             }
+             {(() => {
+               const msg =
+                 OFFRE_FINALE_MESSAGES[
+                   entretienTermine.statutValidationPlateforme
+                 ];
+               return msg?.textKey ? t(msg.textKey) : msg?.text || null;
+             })()}
            </p>
          )}
 
          {!entretienTermine && (
            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
              <FiBriefcase className="h-3.5 w-3.5" />
-             Un entretien &quot;Terminé&quot; est requis avant de pouvoir faire
-             une offre finale.
+             {t("entrepriseSpace.candidatures.finalOfferRequiresInterview")}
            </p>
          )}
        </div>

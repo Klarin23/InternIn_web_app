@@ -1,4 +1,7 @@
+
 "use client";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
@@ -25,73 +28,73 @@ import { cn } from "@/lib/utils";
 
 const SITUATION_CONFIG = {
   excellent: {
-    label: "Excellent",
-    emoji: "🟢",
+    labelKey: "mesStagiaires.situation.excellent",
+    dot: "bg-emerald-500",
     badge: "bg-emerald-500/10 text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-400",
     bar: "bg-emerald-500",
   },
   bon: {
-    label: "Bon",
-    emoji: "🟢",
+    labelKey: "mesStagiaires.situation.good",
+    dot: "bg-emerald-500",
     badge: "bg-emerald-500/10 text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-400",
     bar: "bg-emerald-500",
   },
   surveiller: {
-    label: "À surveiller",
-    emoji: "🟡",
+    labelKey: "mesStagiaires.situation.watch",
+    dot: "bg-amber-500",
     badge: "bg-amber-500/10 text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-400",
     bar: "bg-amber-500",
   },
   attention: {
-    label: "Attention",
-    emoji: "🟠",
+    labelKey: "mesStagiaires.situation.attention",
+    dot: "bg-orange-500",
     badge: "bg-orange-500/10 text-orange-700 ring-1 ring-orange-500/20 dark:text-orange-400",
     bar: "bg-orange-500",
   },
   critique: {
-    label: "Critique",
-    emoji: "🔴",
+    labelKey: "mesStagiaires.situation.critical",
+    dot: "bg-destructive",
     badge: "bg-destructive/10 text-destructive ring-1 ring-destructive/20",
     bar: "bg-destructive",
   },
   termine: {
-    label: "Terminé",
-    emoji: "⚪",
+    labelKey: "mesStagiaires.situation.completed",
+    dot: "bg-muted-foreground/50",
     badge: "bg-muted text-muted-foreground ring-1 ring-border",
     bar: "bg-muted-foreground/40",
   },
 };
 
 const OPTIONS_TRI = [
-  { valeur: "nom", label: "Nom" },
-  { valeur: "progression", label: "Progression" },
-  { valeur: "note", label: "Note moyenne" },
-  { valeur: "objectifs", label: "Objectifs terminés" },
-  { valeur: "fin", label: "Fin de stage" },
-  { valeur: "situation", label: "Situation" },
+  { valeur: "nom", labelKey: "mesStagiaires.sort.nameShort" },
+  { valeur: "progression", labelKey: "mesStagiaires.sort.progress" },
+  { valeur: "note", labelKey: "mesStagiaires.sort.avgGrade" },
+  { valeur: "objectifs", labelKey: "mesStagiaires.sort.objectivesDone" },
+  { valeur: "fin", labelKey: "mesStagiaires.sort.endDate" },
+  { valeur: "situation", labelKey: "mesStagiaires.sort.situation" },
 ];
 
 const FILTRES_SITUATION = [
-  { valeur: "tous", label: "Tous" },
-  { valeur: "excellent", label: "🟢 Excellent" },
-  { valeur: "bon", label: "🟢 Bon" },
-  { valeur: "surveiller", label: "🟡 À surveiller" },
-  { valeur: "attention", label: "🟠 Attention" },
-  { valeur: "critique", label: "🔴 Critique" },
+  { valeur: "tous", labelKey: "mesStagiaires.filters.all" },
+  { valeur: "excellent", labelKey: "mesStagiaires.situation.excellent" },
+  { valeur: "bon", labelKey: "mesStagiaires.situation.good" },
+  { valeur: "surveiller", labelKey: "mesStagiaires.situation.watch" },
+  { valeur: "attention", labelKey: "mesStagiaires.situation.attention" },
+  { valeur: "critique", labelKey: "mesStagiaires.situation.critical" },
 ];
 
 const FILTRES_STATUT = [
-  { valeur: "tous", label: "Tous" },
-  { valeur: "en_cours", label: "En cours" },
-  { valeur: "bientot", label: "Bientôt terminé" },
-  { valeur: "termine", label: "Terminé" },
+  { valeur: "tous", labelKey: "mesStagiaires.filters.all" },
+  { valeur: "en_cours", labelKey: "mesStagiaires.filters.inProgress" },
+  { valeur: "bientot", labelKey: "mesStagiaires.filters.endingSoon" },
+  { valeur: "termine", labelKey: "mesStagiaires.filters.completed" },
 ];
 
 const FILTRES_PROGRESSION = [
-  { valeur: "toutes", label: "Toutes" },
-  { valeur: "lt50", label: "< 50 %" },
-  { valeur: "50-75", label: "50–75 %" },
-  { valeur: "gt75", label: "> 75 %" },
+  { valeur: "toutes", labelKey: "mesStagiaires.filters.allF" },
+  { valeur: "lt50", labelKey: "mesStagiaires.filters.lt50" },
+  { valeur: "50-75", labelKey: "mesStagiaires.filters.mid" },
+  { valeur: "gt75", labelKey: "mesStagiaires.filters.gt75" },
 ];
 
 const ORDRE_SITUATION = {
@@ -108,19 +111,18 @@ function ProgressBar({ value, className }) {
   const reduceMotion = useReducedMotion();
 
   useEffect(() => {
-    if (reduceMotion) {
-      setWidth(value);
-      return;
-    }
+    if (reduceMotion) return;
     const id = requestAnimationFrame(() => setWidth(value));
     return () => cancelAnimationFrame(id);
   }, [value, reduceMotion]);
+
+  const display = reduceMotion ? value : width;
 
   return (
     <div className={cn("h-2 w-full overflow-hidden rounded-full bg-muted", className)}>
       <div
         className="h-full rounded-full bg-primary transition-[width] duration-700 ease-out"
-        style={{ width: `${Math.min(100, Math.max(0, width))}%` }}
+        style={{ width: `${Math.min(100, Math.max(0, display))}%` }}
       />
     </div>
   );
@@ -134,6 +136,7 @@ function Avatar({ prenom, nom, photoUrl, size = "md" }) {
 
   if (photoUrl) {
     return (
+      // eslint-disable-next-line @next/next/no-img-element -- photo API dynamique
       <img
         src={photoUrl}
         alt={`${prenom} ${nom}`}
@@ -167,6 +170,7 @@ function NoteStars({ note }) {
 }
 
 function SituationBadge({ situation }) {
+  const { t } = useTranslation();
   const cfg = SITUATION_CONFIG[situation] || SITUATION_CONFIG.bon;
   return (
     <span
@@ -175,8 +179,11 @@ function SituationBadge({ situation }) {
         cfg.badge,
       )}
     >
-      <span aria-hidden>{cfg.emoji}</span>
-      {cfg.label}
+      <span
+        aria-hidden
+        className={cn("inline-block size-1.5 shrink-0 rounded-full", cfg.dot)}
+      />
+      {t(cfg.labelKey)}
     </span>
   );
 }
@@ -209,6 +216,7 @@ function KpiCard({ label, value, icon: Icon, className, delay = 0 }) {
 }
 
 function StagiaireRow({ s, index }) {
+  const { t, locale } = useTranslation();
   const { basePath } = useSupervisionContext();
   const reduceMotion = useReducedMotion();
   const cfg = SITUATION_CONFIG[s.situation] || SITUATION_CONFIG.bon;
@@ -277,6 +285,7 @@ function StagiaireRow({ s, index }) {
 }
 
 function StagiaireCardComparative({ s, index }) {
+  const { t, locale } = useTranslation();
   const { basePath } = useSupervisionContext();
   const reduceMotion = useReducedMotion();
   return (
@@ -339,6 +348,7 @@ function StagiaireCardComparative({ s, index }) {
 }
 
 export default function VueComparative({ stagiaires = [], isLoading }) {
+  const { t, locale } = useTranslation();
   const { basePath } = useSupervisionContext();
   const [recherche, setRecherche] = useState("");
   const [filtreSituation, setFiltreSituation] = useState("tous");
@@ -483,15 +493,13 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-xl font-bold tracking-tight text-foreground">
-              Vue comparative
+              {t("mesStagiaires.view.comparative")}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Comparez la progression et les performances de vos stagiaires en un
-              coup d&apos;œil.
+              {t("mesStagiaires.comparative.subtitle")}
             </p>
             <p className="mt-2 text-sm font-medium text-foreground">
-              {kpis.total} stagiaire{kpis.total > 1 ? "s" : ""} supervisé
-              {kpis.total > 1 ? "s" : ""}
+              {t(kpis.total !== 1 ? "mesStagiaires.comparative.supervisedOther" : "mesStagiaires.comparative.supervisedOne", { count: kpis.total })}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -499,11 +507,11 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
               <FiSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="search"
-                placeholder="Rechercher un stagiaire…"
+                placeholder={t("mesStagiaires.search.placeholder")}
                 value={recherche}
                 onChange={(e) => setRecherche(e.target.value)}
                 className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                aria-label="Rechercher un stagiaire"
+                aria-label={t("mesStagiaires.search.aria")}
               />
               {recherche && (
                 <button
@@ -591,7 +599,7 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
                             : "bg-muted text-muted-foreground hover:bg-muted/80",
                         )}
                       >
-                        {f.label}
+                        {t(f.labelKey)}
                       </button>
                     ))}
                   </div>
@@ -613,7 +621,7 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
                             : "bg-muted text-muted-foreground hover:bg-muted/80",
                         )}
                       >
-                        {f.label}
+                        {t(f.labelKey)}
                       </button>
                     ))}
                   </div>
@@ -635,7 +643,7 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
                             : "bg-muted text-muted-foreground hover:bg-muted/80",
                         )}
                       >
-                        {f.label}
+                        {t(f.labelKey)}
                       </button>
                     ))}
                   </div>
@@ -652,7 +660,7 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
                   >
                     {OPTIONS_TRI.map((o) => (
                       <option key={o.valeur} value={o.valeur}>
-                        {o.label}
+                        {t(o.labelKey)}
                       </option>
                     ))}
                   </select>
@@ -684,7 +692,7 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
           delay={0.15}
         />
         <KpiCard
-          label="En difficulté"
+          label={t("mesStagiaires.comparative.inDifficulty")}
           value={kpis.enDifficulte}
           icon={FiAlertTriangle}
           delay={0.2}
@@ -704,7 +712,7 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
             <div className="mb-3 flex items-center gap-2">
               <FiAward className="h-4 w-4 text-amber-500" />
               <h3 className="text-sm font-bold text-foreground">
-                Meilleures progressions
+                {t("mesStagiaires.comparative.topProgress")}
               </h3>
             </div>
             <ol className="space-y-2">
@@ -760,8 +768,8 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
                         {s.prenom} {s.nom}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Progression {s.progression}%
-                        {s.alerte ? " · Éval. en retard" : ""}
+                        {t("mesStagiaires.comparative.progressPct", { pct: s.progression })}
+                        {s.alerte ? ` · ${t("mesStagiaires.comparative.evalLate")}` : ""}
                       </p>
                     </div>
                     <SituationBadge situation={s.situation} />
@@ -776,7 +784,7 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
       {/* Results count */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          {resultats.length} résultat{resultats.length > 1 ? "s" : ""}
+          {t(resultats.length !== 1 ? "mesStagiaires.comparative.resultsOther" : "mesStagiaires.comparative.resultsOne", { count: resultats.length })}
         </span>
       </div>
 
@@ -813,7 +821,7 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
             </div>
             {resultats.length === 0 && (
               <div className="py-12 text-center text-sm text-muted-foreground">
-                Aucun stagiaire ne correspond aux filtres.
+                {t("mesStagiaires.empty.noFilterMatch")}
               </div>
             )}
           </motion.div>
@@ -832,7 +840,7 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
         ))}
         {resultats.length === 0 && (
           <div className="col-span-full py-12 text-center text-sm text-muted-foreground">
-            Aucun stagiaire ne correspond aux filtres.
+            {t("mesStagiaires.empty.noFilterMatch")}
           </div>
         )}
       </div>

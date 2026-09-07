@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { useState, useMemo } from "react";
 import {
   DndContext,
@@ -20,14 +22,19 @@ import {
   COLONNES,
   getColonneCandidature,
   STATUT_PAR_COLONNE,
+  COLONNES_SANS_DND,
+  isCandidatureVerrouillee,
 } from "@/lib/utils/kanbanColonnes";
+import { peutChangerStatutCandidature } from "@/lib/candidatures/statut";
 
 export default function CandidatsKanban({
   candidatures,
   entretienParCandidature,
+  entretienASignalerParCandidature,
   candidaturesFraiches,
   onOpen,
 }) {
+  const { t } = useTranslation();
   const [activeId, setActiveId] = useState(null);
   const [candidatureEntretien, setCandidatureEntretien] = useState(null);
   const [entretienOffre, setEntretienOffre] = useState(null);
@@ -68,13 +75,31 @@ export default function CandidatsKanban({
     const colonneCible = over.id;
     if (colonneCible === colonneActuelle) return;
 
+    // Candidature verrouillée (retirée ou acceptée / stage validé)
+    if (isCandidatureVerrouillee(candidature)) {
+      toast.info(
+        candidature.statut === "retiree"
+          ? t("entrepriseSpace.candidatures.kanbanWithdrawnLocked")
+          : t("entrepriseSpace.candidatures.kanbanWithdrawnLocked"),
+      );
+      return;
+    }
+
+    // Colonne Retirées : aucun drop (action exclusive du stagiaire)
+    if (COLONNES_SANS_DND.has(colonneCible) || colonneCible === "retirees") {
+      toast.info(
+        t("entrepriseSpace.candidatures.kanbanWithdrawnLocked"),
+      );
+      return;
+    }
+
     // Vibration légère de confirmation (silencieusement ignorée si non supportée)
     navigator.vibrate?.(25);
 
     if (colonneCible === "entretien") {
       if (candidature.statut !== "preselectionnee") {
         toast.info(
-          "Présélectionnez d'abord ce candidat avant de planifier un entretien",
+          t("entrepriseSpace.candidatures.kanbanPreselectFirst"),
         );
         return;
       }
@@ -86,13 +111,13 @@ export default function CandidatsKanban({
       const entretien = entretienParCandidature[candidature.idCandidature];
       if (!entretien) {
         toast.info(
-          "Un entretien est nécessaire avant de faire une offre à ce candidat",
+          t("entrepriseSpace.candidatures.kanbanInterviewRequired"),
         );
         return;
       }
       if (entretien.statut !== "termine") {
         toast.info(
-          "L'entretien doit être terminé avant de faire une offre finale",
+          t("entrepriseSpace.candidatures.kanbanInterviewMustEnd"),
         );
         return;
       }
@@ -106,12 +131,27 @@ export default function CandidatsKanban({
     const nouveauStatut = STATUT_PAR_COLONNE[colonneCible];
     if (!nouveauStatut) return;
 
+    // Le drag-and-drop respecte la même machine d'état que le backend :
+    // une candidature rejetée, acceptée ou retirée ne peut pas revenir en arrière.
+    if (!peutChangerStatutCandidature(candidature.statut, nouveauStatut)) {
+      toast.info(
+        t("entrepriseSpace.candidatures.kanbanInvalidTransition"),
+      );
+      return;
+    }
+
     updateStatutMutation.mutate(
       { idCandidature: candidature.idCandidature, statut: nouveauStatut },
       {
         onSuccess: () =>
           toast.success(
-            `${candidature.prenom} ${candidature.nom} déplacé(e) vers "${COLONNES.find((c) => c.id === colonneCible)?.titre}"`,
+            t("entrepriseSpace.candidatures.candidateMoved", {
+              name: `${candidature.prenom} ${candidature.nom}`,
+              column: (() => {
+                const col = COLONNES.find((c) => c.id === colonneCible);
+                return col?.titreKey ? t(col.titreKey) : col?.titre || colonneCible;
+              })(),
+            }),
           ),
       },
     );
@@ -132,6 +172,9 @@ export default function CandidatsKanban({
               candidatures={parColonne[colonne.id] || []}
               candidaturesFraiches={candidaturesFraiches}
               onOpen={onOpen}
+              entretienASignalerParCandidature={
+                entretienASignalerParCandidature
+              }
             />
           ))}
         </div>

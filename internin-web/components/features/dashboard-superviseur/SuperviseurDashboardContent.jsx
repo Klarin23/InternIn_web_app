@@ -20,30 +20,61 @@ import AlertCenter from "./AlertCenter";
 import { CalendarPreview } from "./SupervisionCalendar";
 import { useTableauDeBordSuperviseur } from "@/lib/queries/useSuperviseur";
 import { useMonProfilEquipe } from "@/lib/queries/useEquipe";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+import { translateNotification } from "@/lib/notifications/translateNotif";
 
-const STYLE_GRAVITE = {
-  urgent: {
-    bar: "bg-destructive",
-    badge: "bg-destructive/10 text-destructive border-destructive/20",
-    label: "URGENT",
-  },
-  attention: {
-    bar: "bg-amber-500",
-    badge: "bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400",
-    label: "ATTENTION",
-  },
-  attente: {
-    bar: "bg-primary/60",
-    badge: "bg-primary/10 text-primary border-primary/20",
-    label: "EN ATTENTE",
-  },
-};
+function getLocaleTag(locale) {
+  return String(locale || "fr").toLowerCase().startsWith("en") ? "en-GB" : "fr-FR";
+}
 
-const LIBELLE_ACTION = {
-  evaluation: "Évaluer",
-  fin_stage: "Voir le suivi",
-  journal: "Consulter",
-};
+function formatDateLong(date, locale) {
+  return date.toLocaleDateString(getLocaleTag(locale), {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function formatDateShort(dateStr, locale) {
+  if (!dateStr) return "";
+  return new Date(dateStr).toLocaleDateString(getLocaleTag(locale), {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function graviteStyle(key, t) {
+  const map = {
+    urgent: {
+      bar: "bg-destructive",
+      badge: "bg-destructive/10 text-destructive border-destructive/20",
+      label: t("superviseurDashboard.severity.urgent"),
+    },
+    attention: {
+      bar: "bg-amber-500",
+      badge:
+        "bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400",
+      label: t("superviseurDashboard.severity.attention"),
+    },
+    attente: {
+      bar: "bg-primary/60",
+      badge: "bg-primary/10 text-primary border-primary/20",
+      label: t("superviseurDashboard.severity.pending"),
+    },
+  };
+  return map[key] || map.attente;
+}
+
+function actionLabel(type, t) {
+  const map = {
+    evaluation: t("superviseurDashboard.actions.evaluate"),
+    fin_stage: t("superviseurDashboard.actions.viewFollowUp"),
+    journal: t("superviseurDashboard.actions.consult"),
+  };
+  return map[type] || t("superviseurDashboard.actions.view");
+}
 
 const containerVariants = {
   hidden: {},
@@ -61,27 +92,9 @@ const itemVariants = {
   },
 };
 
-function formatDateLong(date) {
-  return date.toLocaleDateString("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-function formatDateShort(dateStr) {
-  if (!dateStr) return "";
-  return new Date(dateStr).toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 function DashboardSkeleton() {
   return (
-    <div className="space-y-8 animate-pulse">
+    <div className="space-y-8 animate-pulse" role="status" aria-busy="true">
       <div className="space-y-2">
         <div className="h-7 w-48 rounded-md bg-muted" />
         <div className="h-4 w-72 max-w-full rounded-md bg-muted" />
@@ -119,6 +132,7 @@ function DashboardSkeleton() {
 }
 
 function VueEnsemble({ compteurs }) {
+  const { t } = useTranslation();
   const total =
     (compteurs.stagesEnCours || 0) +
     (compteurs.stagesBientotTermines || 0) +
@@ -127,19 +141,19 @@ function VueEnsemble({ compteurs }) {
   const segments = [
     {
       key: "cours",
-      label: "En cours",
+      label: t("superviseurDashboard.overview.inProgress"),
       value: compteurs.stagesEnCours || 0,
       className: "bg-secondary",
     },
     {
       key: "bientot",
-      label: "Bientôt terminés",
+      label: t("superviseurDashboard.overview.endingSoon"),
       value: compteurs.stagesBientotTermines || 0,
       className: "bg-amber-500",
     },
     {
       key: "termines",
-      label: "Terminés",
+      label: t("superviseurDashboard.overview.completed"),
       value: compteurs.stagesTermines || 0,
       className: "bg-emerald-500",
     },
@@ -149,51 +163,53 @@ function VueEnsemble({ compteurs }) {
     <div className="rounded-md border border-border bg-card p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-bold text-foreground">Vue d&apos;ensemble</h3>
+          <h3 className="text-sm font-bold text-foreground">
+            {t("superviseurDashboard.overview.title")}
+          </h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Répartition de vos stages suivis
+            {t("superviseurDashboard.overview.subtitle")}
           </p>
         </div>
-        <span className="text-xs font-medium text-muted-foreground">
-          {total} stage{total > 1 ? "s" : ""} au total
+        <span className="text-xs font-semibold tabular-nums text-muted-foreground">
+          {t("superviseurDashboard.overview.total", { count: total })}
         </span>
       </div>
-
       {total === 0 ? (
         <p className="py-4 text-center text-sm text-muted-foreground">
-          Aucun stage à afficher pour le moment.
+          {t("superviseurDashboard.overview.empty")}
         </p>
       ) : (
         <>
           <div
-            className="flex h-2.5 overflow-hidden rounded-full bg-muted"
+            className="flex h-3 w-full overflow-hidden rounded-full bg-muted"
             role="img"
-            aria-label="Répartition des stages"
+            aria-label={t("superviseurDashboard.overview.title")}
           >
-            {segments.map((s) =>
-              s.value > 0 ? (
+            {segments.map((s) => {
+              const pct = total > 0 ? (s.value / total) * 100 : 0;
+              if (pct <= 0) return null;
+              return (
                 <div
                   key={s.key}
-                  className={`${s.className} transition-all`}
-                  style={{ width: `${(s.value / total) * 100}%` }}
-                  title={`${s.label} : ${s.value}`}
+                  className={s.className}
+                  style={{ width: `${pct}%` }}
+                  title={`${s.label}: ${s.value}`}
                 />
-              ) : null,
-            )}
+              );
+            })}
           </div>
-          <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
             {segments.map((s) => (
               <li
                 key={s.key}
-                className="flex items-center gap-2.5 rounded-md border border-border/60 bg-muted/30 px-3 py-2.5"
+                className="inline-flex items-center gap-2 text-xs text-muted-foreground"
               >
-                <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${s.className}`} />
-                <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">{s.label}</p>
-                  <p className="text-sm font-semibold tabular-nums text-foreground">
-                    {s.value}
-                  </p>
-                </div>
+                <span
+                  className={`size-2.5 rounded-full ${s.className}`}
+                  aria-hidden
+                />
+                <span className="font-medium text-foreground">{s.label}</span>
+                <span className="tabular-nums">{s.value}</span>
               </li>
             ))}
           </ul>
@@ -203,118 +219,52 @@ function VueEnsemble({ compteurs }) {
   );
 }
 
-function ATraiterAujourdhui({ items, reduceMotion }) {
-  return (
-    <div className="rounded-md border border-border bg-card p-5 shadow-sm">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-bold text-foreground">
-            À traiter aujourd&apos;hui
-          </h3>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Actions prioritaires de supervision
-          </p>
-        </div>
-        {items.length > 0 && (
-          <span className="rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-semibold text-destructive">
-            {items.length}
-          </span>
-        )}
-      </div>
-
-      {items.length === 0 ? (
-        <div className="flex flex-col items-center gap-2.5 rounded-md border border-dashed border-border bg-muted/20 px-4 py-10 text-center">
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
-            <FiInbox className="h-5 w-5" />
-          </div>
-          <p className="text-sm font-medium text-foreground">
-            Tout est à jour. Aucune action requise pour le moment.
-          </p>
-        </div>
-      ) : (
-        <ul className="space-y-2">
-          {items.map((item, idx) => {
-            const style = STYLE_GRAVITE[item.gravite] || STYLE_GRAVITE.attente;
-            return (
-              <li key={`${item.type}-${item.idStage}-${idx}`}>
-                <Link
-                  href={item.lien}
-                  className="group flex items-stretch overflow-hidden rounded-md border border-border/70 bg-background transition-all duration-200 hover:-translate-x-[-3px] hover:border-border hover:bg-muted/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <span
-                    className={`w-1 shrink-0 ${style.bar}`}
-                    aria-hidden
-                  />
-                  <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-3.5 py-3">
-                    <div className="min-w-0">
-                      <div className="mb-1 flex flex-wrap items-center gap-2">
-                        <span
-                          className={`inline-flex rounded border px-1.5 py-0.5 text-[10px] font-bold tracking-wide ${style.badge}`}
-                        >
-                          {style.label}
-                        </span>
-                      </div>
-                      <p className="truncate text-sm font-semibold text-foreground">
-                        {item.titre}
-                      </p>
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                        {item.description}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <span className="hidden rounded-md border border-border bg-card px-2.5 py-1 text-xs font-semibold text-foreground transition-colors group-hover:border-primary/30 group-hover:text-primary sm:inline-block">
-                        {LIBELLE_ACTION[item.type] || "Voir"}
-                      </span>
-                      <FiChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-                    </div>
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
-  );
-}
-
 function ActivitesTimeline({ activites }) {
+  const { t, locale } = useTranslation();
+  const list = Array.isArray(activites) ? activites : [];
+  const reduceMotion = useReducedMotion();
+
   return (
     <div className="rounded-md border border-border bg-card p-5 shadow-sm">
       <div className="mb-4 flex items-center gap-2">
         <FiActivity className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-bold text-foreground">Activités récentes</h3>
+        <h3 className="text-sm font-bold text-foreground">
+          {t("superviseurDashboard.activity.title")}
+        </h3>
       </div>
 
-      {activites.length === 0 ? (
+      {list.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
-          Aucune activité récente.
+          {t("superviseurDashboard.activity.empty")}
         </p>
       ) : (
         <ul className="relative space-y-0">
-          {activites.map((a, index) => (
+          {list.map((a, index) => (
             <motion.li
-              key={a.idEvaluation}
-              initial={{ opacity: 0, x: -6 }}
+              key={a.idEvaluation || index}
+              initial={reduceMotion ? false : { opacity: 0, x: -6 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05, duration: 0.3 }}
+              transition={{ delay: reduceMotion ? 0 : index * 0.05, duration: 0.3 }}
               className="relative flex gap-3 pb-5 last:pb-0"
             >
               <div className="relative flex flex-col items-center">
                 <span className="z-10 mt-1 h-2.5 w-2.5 shrink-0 rounded-full border-2 border-primary bg-card" />
-                {index < activites.length - 1 && (
+                {index < list.length - 1 && (
                   <span className="absolute top-3 bottom-0 w-px bg-border" />
                 )}
               </div>
               <div className="min-w-0 flex-1 pt-0.5">
                 <p className="text-sm font-semibold text-foreground">
-                  {a.prenomStagiaire} {a.nomStagiaire}
+                  {[a.prenomStagiaire, a.nomStagiaire].filter(Boolean).join(" ") ||
+                    t("superviseurDashboard.activity.internFallback")}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Évaluation de la semaine {a.numeroSemaine} soumise
+                  {t("superviseurDashboard.activity.evalWeekSubmitted", {
+                    week: a.numeroSemaine ?? "—",
+                  })}
                 </p>
                 <p className="mt-0.5 text-[11px] text-muted-foreground/80">
-                  {formatDateShort(a.dateSoumission)}
+                  {formatDateShort(a.dateSoumission, locale)}
                 </p>
               </div>
             </motion.li>
@@ -326,26 +276,38 @@ function ActivitesTimeline({ activites }) {
 }
 
 function NotificationsImportantes({ notifications }) {
+  const { t, locale } = useTranslation();
+  const list = Array.isArray(notifications) ? notifications : [];
+
   return (
     <div className="rounded-md border border-border bg-card p-5 shadow-sm">
-      <div className="mb-4 flex items-center gap-2">
-        <FiBell className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-bold text-foreground">
-          Notifications importantes
-        </h3>
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <FiBell className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-bold text-foreground">
+            {t("superviseurDashboard.notifications.title")}
+          </h3>
+        </div>
+        <Link
+          href="/notifications"
+          className="text-xs font-semibold text-primary hover:underline"
+        >
+          {t("superviseurDashboard.notifications.viewAll")}
+        </Link>
       </div>
 
-      {notifications.length === 0 ? (
+      {list.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
-          Aucune notification.
+          {t("superviseurDashboard.notifications.empty")}
         </p>
       ) : (
         <ul className="space-y-2">
-          {notifications.map((n) => {
+          {list.map((n) => {
             const unread = n.lu === false || n.lue === false;
+            const { titre, message } = translateNotification(n, t);
             return (
               <li
-                key={n.idNotification}
+                key={n.idNotification || n.id}
                 className={`flex gap-3 rounded-md border px-3 py-3 transition-colors ${
                   unread
                     ? "border-primary/20 bg-primary/[0.04]"
@@ -366,25 +328,26 @@ function NotificationsImportantes({ notifications }) {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-semibold text-foreground">
-                      {n.titre}
-                    </p>
-                    {unread && (
-                      <span
-                        className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
-                        aria-label="Non lue"
-                      />
-                    )}
-                  </div>
-                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                    {n.message}
+                  <p className="text-sm font-semibold text-foreground">
+                    {titre || n.titre}
                   </p>
-                  {(n.dateCreation || n.createdAt) && (
-                    <p className="mt-1 text-[11px] text-muted-foreground/80">
-                      {formatDateShort(n.dateCreation || n.createdAt)}
+                  {(message || n.message) && (
+                    <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                      {message || n.message}
                     </p>
                   )}
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                    {(n.dateCreation || n.createdAt) && (
+                      <span>
+                        {formatDateShort(n.dateCreation || n.createdAt, locale)}
+                      </span>
+                    )}
+                    {unread && (
+                      <span className="font-semibold text-primary">
+                        {t("superviseurDashboard.notifications.unread")}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </li>
             );
@@ -396,118 +359,129 @@ function NotificationsImportantes({ notifications }) {
 }
 
 export default function SuperviseurDashboardContent() {
-  const { data: profil } = useMonProfilEquipe();
-  const { data, isLoading } = useTableauDeBordSuperviseur();
+  const { t, locale } = useTranslation();
   const reduceMotion = useReducedMotion();
+  const { data: profil } = useMonProfilEquipe();
+  const { data, isLoading, isError, refetch, isFetching } =
+    useTableauDeBordSuperviseur();
 
-  const aujourdHui = new Date();
-  const prenom = profil?.nom?.split(" ")[0];
+  const prenom =
+    profil?.prenom ||
+    profil?.nom?.split?.(" ")?.[0] ||
+    "";
 
-  const motionProps = reduceMotion
+  const itemMotion = reduceMotion
     ? {}
-    : {
-        variants: containerVariants,
-        initial: "hidden",
-        animate: "show",
-      };
-
-  const itemMotion = reduceMotion ? {} : { variants: itemVariants };
+    : { variants: itemVariants };
 
   return (
     <>
       <AppHeader
-        breadcrumb={[{ label: "Tableau de bord" }]}
-        avatarLabel={profil?.nom?.slice(0, 2).toUpperCase()}
-        refreshKeys={[
-          "tableauDeBordSuperviseur",
-          "mesStagiaires",
-          "notifications",
-        ]}
+        title={t("superviseurDashboard.title")}
+        subtitle={t("superviseurDashboard.subtitle")}
+        refreshKeys={["superviseur-dashboard"]}
       />
+      <div className="w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        <div className="space-y-1">
+          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+            {prenom
+              ? t("superviseurDashboard.greetingName", { name: prenom })
+              : t("superviseurDashboard.greeting")}
+          </h1>
+          <p className="text-sm text-muted-foreground capitalize">
+            {formatDateLong(new Date(), locale)}
+          </p>
+        </div>
 
-      <div className="space-y-6 px-4 py-6 sm:px-6">
         {isLoading && <DashboardSkeleton />}
 
-        {data && (
-          <motion.div className="space-y-8" {...motionProps}>
-            {/* Header d'accueil */}
-            <motion.section {...itemMotion}>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {profil?.nomEntreprise
-                  ? `${profil.nomEntreprise} · Espace Superviseur`
-                  : "Espace Superviseur"}
-              </p>
-              <h2 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
-                Bonjour{prenom ? `, ${prenom}` : ""}
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Voici un aperçu de vos activités de supervision.
-              </p>
-              <p className="mt-2 text-xs capitalize text-muted-foreground/90">
-                {formatDateLong(aujourdHui)}
-              </p>
-            </motion.section>
+        {isError && !isLoading && (
+          <div className="rounded-2xl border border-destructive/25 bg-destructive/5 px-5 py-8 text-center">
+            <FiAlertCircle className="mx-auto mb-2 size-8 text-destructive/80" />
+            <p className="text-sm font-semibold text-foreground">
+              {t("superviseurDashboard.error.title")}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("superviseurDashboard.error.hint")}
+            </p>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="mt-4 text-sm font-semibold text-primary hover:underline"
+            >
+              {t("superviseurDashboard.error.retry")}
+            </button>
+          </div>
+        )}
 
-            {/* KPI principaux */}
+        {data && !isLoading && (
+          <motion.div
+            className="space-y-6"
+            variants={reduceMotion ? undefined : containerVariants}
+            initial={reduceMotion ? false : "hidden"}
+            animate="show"
+          >
+            {isFetching && (
+              <p className="text-xs text-muted-foreground" aria-live="polite">
+                {t("superviseurDashboard.updating")}
+              </p>
+            )}
+
             <motion.section
               {...itemMotion}
               className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
             >
               <StatCard
                 icon={FiUsers}
-                value={data.compteurs.stagiaires}
-                label="Stagiaires supervisés"
+                value={data.compteurs?.stagiairesSupervises ?? 0}
+                label={t("superviseurDashboard.stats.supervisedInterns")}
                 color="bg-primary/10 text-primary"
-                highlight
               />
               <StatCard
                 icon={FiBriefcase}
-                value={data.compteurs.stagesEnCours}
-                label="Stages en cours"
-                color="bg-secondary/10 text-secondary"
+                value={data.compteurs?.stagesEnCours ?? 0}
+                label={t("superviseurDashboard.stats.activeInternships")}
+                color="bg-secondary/20 text-secondary-foreground"
                 highlight
               />
               <StatCard
                 icon={FiClock}
-                value={data.compteurs.stagesBientotTermines}
-                label="Bientôt terminés"
-                sublabel="dans les 30 prochains jours"
+                value={data.compteurs?.stagesBientotTermines ?? 0}
+                label={t("superviseurDashboard.stats.endingSoon")}
+                sublabel={t("superviseurDashboard.stats.endingSoonSub")}
                 color="bg-amber-500/15 text-amber-700 dark:text-amber-400"
               />
               <StatCard
                 icon={FiCheckCircle}
-                value={data.compteurs.stagesTermines}
-                label="Stages terminés"
+                value={data.compteurs?.stagesTermines ?? 0}
+                label={t("superviseurDashboard.stats.completedInternships")}
                 color="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
               />
             </motion.section>
 
-            {/* KPI secondaires */}
             <motion.section
               {...itemMotion}
               className="grid grid-cols-1 gap-4 sm:grid-cols-2"
             >
               <StatCard
                 icon={FiClipboard}
-                value={data.compteurs.evaluationsAEffectuer}
-                label="Évaluations à effectuer"
-                sublabel="stages sans évaluation récente"
+                value={data.compteurs?.evaluationsAEffectuer ?? 0}
+                label={t("superviseurDashboard.stats.evaluationsDue")}
+                sublabel={t("superviseurDashboard.stats.evaluationsDueSub")}
                 color="bg-destructive/10 text-destructive"
               />
               <StatCard
                 icon={FiBell}
-                value={data.notificationsNonLues}
-                label="Notifications non lues"
+                value={data.notificationsNonLues ?? 0}
+                label={t("superviseurDashboard.stats.unreadNotifications")}
                 color="bg-primary/10 text-primary"
               />
             </motion.section>
 
-            {/* Vue d'ensemble */}
             <motion.section {...itemMotion}>
-              <VueEnsemble compteurs={data.compteurs} />
+              <VueEnsemble compteurs={data.compteurs || {}} />
             </motion.section>
 
-            {/* Centre d'alertes + aperçu calendrier */}
             <motion.section
               {...itemMotion}
               id="alertes"
@@ -521,7 +495,6 @@ export default function SuperviseurDashboardContent() {
               </div>
             </motion.section>
 
-            {/* Activités + notifications */}
             <motion.section
               {...itemMotion}
               className="grid grid-cols-1 gap-4 lg:grid-cols-2"

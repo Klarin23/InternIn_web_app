@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { motion } from "framer-motion";
@@ -51,6 +53,7 @@ function Badge({ children }) {
 }
 
 export default function PreferencesRechercheSection({ profil }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const updateProfile = useUpdateStagiaireProfile();
 
@@ -72,20 +75,20 @@ export default function PreferencesRechercheSection({ profil }) {
   }
 
   const modalitesLabels = (profil.modalitesTravailSouhaitees || [])
-    .map((m) => MODALITES.find((x) => x.value === m)?.label)
+    .map((m) => t(`stagiaireSpace.profile.modes.${m}`))
     .filter(Boolean);
 
   return (
     <>
       <ProfilSectionCard
-        title="Préférences de recherche"
+        title={t("stagiaireSpace.profile.preferences")}
         icon={FiTarget}
         onEdit={() => setOpen(true)}
       >
         <div className="space-y-4">
           <div>
             <dt className="mb-1.5 text-xs text-muted-foreground">
-              Secteurs recherchés
+              {t("stagiaireSpace.profile.preferencesSection.sectors")}
             </dt>
             {profil.secteursRecherches?.length ? (
               <div className="flex flex-wrap gap-2">
@@ -98,7 +101,7 @@ export default function PreferencesRechercheSection({ profil }) {
             )}
           </div>
           <div>
-            <dt className="mb-1.5 text-xs text-muted-foreground">Villes</dt>
+            <dt className="mb-1.5 text-xs text-muted-foreground">{t("stagiaireSpace.profile.cities")}</dt>
             {profil.villesRecherchees?.length ? (
               <div className="flex flex-wrap gap-2">
                 {profil.villesRecherchees.map((v) => (
@@ -110,7 +113,7 @@ export default function PreferencesRechercheSection({ profil }) {
             )}
           </div>
           <div>
-            <dt className="mb-1.5 text-xs text-muted-foreground">Modalité</dt>
+            <dt className="mb-1.5 text-xs text-muted-foreground">{t("stagiaireSpace.profile.modality")}</dt>
             {modalitesLabels.length ? (
               <div className="flex flex-wrap gap-2">
                 {modalitesLabels.map((m) => (
@@ -123,10 +126,10 @@ export default function PreferencesRechercheSection({ profil }) {
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">
-              Rémunération souhaitée
+              {t("stagiaireSpace.profile.remunerationType")}
             </dt>
             <dd className="text-sm text-foreground">
-              {REMUNERATION_LABELS[profil.remunerationSouhaitee] || "—"}
+              {(profil.remunerationSouhaitee === "aucune" ? t("stagiaireSpace.profile.remunerationNone") : t(`stagiaireSpace.profile.advantages.${profil.remunerationSouhaitee}`)) || REMUNERATION_LABELS[profil.remunerationSouhaitee] || "—"}
             </dd>
           </div>
         </div>
@@ -135,11 +138,11 @@ export default function PreferencesRechercheSection({ profil }) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Préférences de recherche</DialogTitle>
+            <DialogTitle>{t("stagiaireSpace.profile.preferences")}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-1.5">
-              <Label>Secteurs recherchés</Label>
+              <Label>{t("stagiaireSpace.profile.preferencesSection.sectors")}</Label>
               <Controller
                 name="secteursRecherches"
                 control={control}
@@ -147,14 +150,14 @@ export default function PreferencesRechercheSection({ profil }) {
                   <TagInput
                     value={field.value}
                     onChange={field.onChange}
-                    placeholder="Ex. Fintech, E-commerce..."
+                    placeholder={t("stagiaireSpace.profile.preferencesSection.sectorsPlaceholder")}
                   />
                 )}
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label>Villes</Label>
+              <Label>{t("stagiaireSpace.profile.cities")}</Label>
               <Controller
                 name="villesRecherchees"
                 control={control}
@@ -162,14 +165,14 @@ export default function PreferencesRechercheSection({ profil }) {
                   <TagInput
                     value={field.value}
                     onChange={field.onChange}
-                    placeholder="Ex. Abidjan, Dakar..."
+                    placeholder={t("stagiaireSpace.profile.preferencesSection.citiesPlaceholder")}
                   />
                 )}
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label>Modalité de travail</Label>
+              <Label>{t("stagiaireSpace.profile.workModality")}</Label>
               <Controller
                 name="modalitesTravailSouhaitees"
                 control={control}
@@ -190,7 +193,7 @@ export default function PreferencesRechercheSection({ profil }) {
                             )
                           }
                         />
-                        {m.label}
+                        {t(`stagiaireSpace.profile.modes.${m.value}`)}
                       </label>
                     ))}
                   </div>
@@ -199,20 +202,19 @@ export default function PreferencesRechercheSection({ profil }) {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Type de rémunération souhaité</Label>
+              <Label>{t("stagiaireSpace.profile.remunerationType")}</Label>
               <Controller
                 name="remunerationSouhaitee"
                 control={control}
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Sélectionner" />
+                      <SelectValue placeholder={t("stagiaireSpace.profile.select")} />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(REMUNERATION_LABELS).map(
-                        ([value, label]) => (
+                      {Object.keys(REMUNERATION_LABELS).map((value) => (
                           <SelectItem key={value} value={value}>
-                            {label}
+                            {value === "aucune" ? t("stagiaireSpace.profile.remunerationNone") : t(`stagiaireSpace.profile.advantages.${value}`)}
                           </SelectItem>
                         ),
                       )}
@@ -223,7 +225,7 @@ export default function PreferencesRechercheSection({ profil }) {
             </div>
 
             <Button type="submit" disabled={isSubmitting} className="w-full">
-              Enregistrer
+              {t("stagiaireSpace.profile.save")}
             </Button>
           </form>
         </DialogContent>

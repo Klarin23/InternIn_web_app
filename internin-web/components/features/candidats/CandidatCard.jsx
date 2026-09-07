@@ -1,13 +1,18 @@
 "use client";
+
+import { useTranslation } from "@/lib/i18n/useTranslation";
 // Carte d'un candidat : infos essentielles + lettre de motivation dépliable
 // + liens CV/LinkedIn/portfolio + sélecteur de statut.
 
 import { useState } from "react";
 import { FiMapPin, FiFileText, FiLinkedin, FiGlobe, FiChevronDown } from "react-icons/fi";
+import ViewCvButton from "@/components/shared/ViewCvButton";
 import StatutSelect from "./StatutSelect";
 import PlanifierEntretienDialog from "@/components/features/entretiens/PlanifierEntretienDialog";
+import { safeHref } from "@/lib/utils/urlValidation";
 
 export default function CandidatCard({ candidature }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -44,18 +49,16 @@ export default function CandidatCard({ candidature }) {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-3 text-xs">
-        <a
-          href={candidature.cvUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 font-medium text-foreground hover:bg-muted/70"
+        <ViewCvButton
+          cvUrl={candidature.cvUrl}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-secondary hover:underline"
         >
           <FiFileText className="h-3.5 w-3.5" />
           Voir le CV
-        </a>
-        {candidature.linkedinUrl && (
+        </ViewCvButton>
+        {candidature.linkedinUrl && safeHref(candidature.linkedinUrl) && (
           <a
-            href={candidature.linkedinUrl}
+            href={safeHref(candidature.linkedinUrl)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 font-medium text-foreground hover:bg-muted/70"
@@ -64,9 +67,9 @@ export default function CandidatCard({ candidature }) {
             LinkedIn
           </a>
         )}
-        {candidature.portfolioUrl && (
+        {candidature.portfolioUrl && safeHref(candidature.portfolioUrl) && (
           <a
-            href={candidature.portfolioUrl}
+            href={safeHref(candidature.portfolioUrl)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 font-medium text-foreground hover:bg-muted/70"
@@ -88,8 +91,8 @@ export default function CandidatCard({ candidature }) {
               className={`h-3.5 w-3.5 transition ${expanded ? "rotate-180" : ""}`}
             />
             {expanded
-              ? "Masquer la lettre de motivation"
-              : "Voir la lettre de motivation"}
+              ? t("entrepriseSpace.candidatures.hideCover")
+              : t("entrepriseSpace.candidatures.showCover")}
           </button>
           {expanded && (
             <p className="mt-2 rounded-sm bg-muted/50 p-3 text-sm text-muted-foreground">

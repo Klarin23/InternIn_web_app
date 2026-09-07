@@ -1,60 +1,60 @@
-// Middleware de permission pour les routes sensibles du menu Équipe.
+// Middleware central de permission pour l'espace Entreprise.
+//
+// Flux :
+//   Authentification (requireAuth)
+//   → entreprise résolue (propriétaire OU membre actif)
+//   → membre actif (si membre)
+//   → permission requise
+//   → controller (qui doit encore vérifier la propriété de la ressource)
 //
 // Règles :
-// - Le compte "entreprise" propriétaire (typeUtilisateur="entreprise") a
-//   toujours accès complet — c'est son entreprise.
-// - Un membre invité qui est "administrateur_principal" a aussi accès
-//   complet, quelle que soit la permission demandée.
+// - Le compte propriétaire (typeUtilisateur="entreprise") a toujours accès.
+// - Un membre "administrateur_principal" (estAdminPrincipal) a toujours accès.
 // - Tout autre membre actif n'a accès que si la clé de permission demandée
-//   fait partie de ses permissions personnalisées (membresEquipe.permissionsPersonnalisees),
-//   ou, à défaut, des permissions par défaut de son rôle
-//   (PERMISSIONS_PAR_DEFAUT_ROLE dans equipe.constants.js).
-// - Un membre non actif (invité pas encore accepté, ou désactivé) est refusé.
+//   figure dans ses permissions effectives (personnalisées ou défaut du rôle).
+// - Un membre non actif (invité / désactivé) est refusé → 403.
+// - Les permissions ne sont JAMAIS lues depuis un JWT ancien : on interroge
+//   la base à chaque requête.
 //
-// Important : ce middleware ne remplace pas requireAuth (il suppose que
-// req.user existe déjà) — il se place juste après, sur les routes qui le
-// nécessitent.
+// Usage :
+//   router.post("/", requireAuth, requireEquipePermission("offres.gerer"), handler)
 
-import { eq, and } from "drizzle-orm";
-import { db } from "../../db/index.js";
-import { entreprises, membresEquipe } from "../../db/schema.js";
-import { PERMISSIONS_PAR_DEFAUT_ROLE } from "./equipe.constants.js";
+import {
+  resolveEntrepriseContext,
+  resolveEntrepriseContextOrThrow,
+} from "../../utils/entrepriseContext.js";
 
+/**
+ * Middleware factory : exige la permission `clePermission`.
+ * Attache aussi req.entrepriseContext pour les handlers suivants.
+ */
 export function requireEquipePermission(clePermission) {
   return async function (req, res, next) {
     try {
-      const idUtilisateur = req.user.idUtilisateur;
+      const idUtilisateur = req.user?.idUtilisateur;
+      if (!idUtilisateur) {
+        const err = new Error("Authentification requise");
+        err.status = 401;
+        throw err;
+      }
 
-      const [entreprise] = await db
-        .select()
-        .from(entreprises)
-        .where(eq(entreprises.idUtilisateur, idUtilisateur));
-      if (entreprise) return next(); // propriétaire : accès complet
+      const ctx = await resolveEntrepriseContext(idUtilisateur);
 
-      const [membre] = await db
-        .select()
-        .from(membresEquipe)
-        .where(
-          and(
-            eq(membresEquipe.idUtilisateur, idUtilisateur),
-            eq(membresEquipe.statutMembre, "actif"),
-          ),
-        );
-
-      if (!membre) {
+      if (!ctx) {
         const err = new Error("Accès refusé");
         err.status = 403;
         throw err;
       }
 
-      if (membre.estAdminPrincipal) return next();
+      // Propriétaire ou admin principal → accès complet
+      if (ctx.isProprietaire || ctx.isAdminPrincipal) {
+        req.entrepriseContext = ctx;
+        req.entreprise = ctx.entreprise;
+        return next();
+      }
 
-      const permissions =
-        membre.permissionsPersonnalisees ??
-        PERMISSIONS_PAR_DEFAUT_ROLE[membre.roleEquipe] ??
-        [];
-
-      if (!permissions.includes(clePermission)) {
+      // Membre actif avec la permission
+      if (!ctx.permissionsEffectives.includes(clePermission)) {
         const err = new Error(
           "Vous n'avez pas la permission nécessaire pour effectuer cette action.",
         );
@@ -62,9 +62,75 @@ export function requireEquipePermission(clePermission) {
         throw err;
       }
 
+      req.entrepriseContext = ctx;
+      req.entreprise = ctx.entreprise;
       next();
     } catch (err) {
       next(err);
     }
   };
 }
+
+/**
+ * Variante : exige au moins une des permissions listées.
+ */
+export function requireAnyEquipePermission(...cles) {
+  return async function (req, res, next) {
+    try {
+      const idUtilisateur = req.user?.idUtilisateur;
+      if (!idUtilisateur) {
+        const err = new Error("Authentification requise");
+        err.status = 401;
+        throw err;
+      }
+
+      const ctx = await resolveEntrepriseContext(idUtilisateur);
+      if (!ctx) {
+        const err = new Error("Accès refusé");
+        err.status = 403;
+        throw err;
+      }
+
+      if (ctx.isProprietaire || ctx.isAdminPrincipal) {
+        req.entrepriseContext = ctx;
+        req.entreprise = ctx.entreprise;
+        return next();
+      }
+
+      const hasOne = cles.some((c) => ctx.permissionsEffectives.includes(c));
+      if (!hasOne) {
+        const err = new Error(
+          "Vous n'avez pas la permission nécessaire pour effectuer cette action.",
+        );
+        err.status = 403;
+        throw err;
+      }
+
+      req.entrepriseContext = ctx;
+      req.entreprise = ctx.entreprise;
+      next();
+    } catch (err) {
+      next(err);
+    }
+  };
+}
+
+/**
+ * Middleware léger : résout le contexte entreprise sans exiger de permission
+ * particulière (pour les routes de lecture ouvertes à tout membre actif).
+ */
+export async function attachEntrepriseContext(req, res, next) {
+  try {
+    if (!req.user?.idUtilisateur) return next();
+    const ctx = await resolveEntrepriseContext(req.user.idUtilisateur);
+    if (ctx) {
+      req.entrepriseContext = ctx;
+      req.entreprise = ctx.entreprise;
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+}
+
+export { resolveEntrepriseContext, resolveEntrepriseContextOrThrow };

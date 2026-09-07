@@ -12,6 +12,7 @@ import {
   upsertEvaluationCandidature,
   listNotesCandidature,
   ajouterNoteCandidature,
+  retirerMaCandidature,
 } from "./candidatures.service.js";
 
 export async function postuler(req, res, next) {
@@ -159,6 +160,22 @@ export async function postNote(req, res, next) {
       req.body.contenu,
     );
     res.status(201).json(note);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function retirer(req, res, next) {
+  try {
+    const result = await retirerMaCandidature(
+      req.user.idUtilisateur,
+      req.params.id,
+      {
+        motifCode: req.body.motifCode,
+        commentaire: req.body.commentaire,
+      },
+    );
+    res.json(result);
   } catch (err) {
     next(err);
   }

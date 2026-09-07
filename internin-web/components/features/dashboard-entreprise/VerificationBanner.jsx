@@ -1,44 +1,77 @@
-// Bannière de statut de vérification — toute nouvelle entreprise démarre
-// "en_attente" (cf. entreprises.service.js à l'onboarding). Un administrateur
-// devra la faire passer à "verifiee" avant que publier des offres soit possible
-// (règle à appliquer côté module offres/nouveau, pas encore construit).
+"use client";
 
-import { FiClock, FiCheckCircle, FiXCircle } from "react-icons/fi";
-
-const CONFIG = {
-  en_attente: {
-    icon: FiClock,
-    bg: "bg-linear-to-r from-accent/25 via-accent/10 to-transparent border-accent/40",
-    text: "text-amber-800",
-    message:
-      "Votre entreprise est en cours de vérification par notre équipe. Certaines actions seront limitées d'ici là.",
-  },
-  verifiee: {
-    icon: FiCheckCircle,
-    bg: "bg-linear-to-r from-success/15 via-success/5 to-transparent border-success/30",
-    text: "text-green-600",
-    message:
-      "Votre entreprise est vérifiée — vous pouvez publier des offres de stage.",
-  },
-  rejetee: {
-    icon: FiXCircle,
-    bg: "bg-linear-to-r from-destructive/15 via-destructive/5 to-transparent border-destructive/30",
-    text: "text-destructive",
-    message:
-      "Votre demande de vérification a été rejetée. Contactez notre équipe pour plus d'informations.",
-  },
-};
+import Link from "next/link";
+import { FiClock, FiCheckCircle, FiXCircle, FiArrowRight } from "react-icons/fi";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function VerificationBanner({ statut }) {
+  const { t } = useTranslation();
+
+  const CONFIG = {
+    en_attente: {
+      icon: FiClock,
+      title: t("entrepriseSpace.dashboard.verifyPendingTitle"),
+      message: t("entrepriseSpace.dashboard.verifyPendingDesc"),
+      className: "border-amber-500/25 bg-amber-500/5",
+      iconClass: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+      titleClass: "text-amber-900 dark:text-amber-200",
+    },
+    verifiee: {
+      icon: FiCheckCircle,
+      title: t("entrepriseSpace.dashboard.verifyOkTitle"),
+      message: t("entrepriseSpace.dashboard.verifyOkDesc"),
+      className: "border-success/25 bg-success/5",
+      iconClass: "bg-success/15 text-success",
+      titleClass: "text-foreground",
+    },
+    rejetee: {
+      icon: FiXCircle,
+      title: t("entrepriseSpace.dashboard.verifyRejectedTitle"),
+      message: t("entrepriseSpace.dashboard.verifyRejectedDesc"),
+      className: "border-destructive/25 bg-destructive/5",
+      iconClass: "bg-destructive/15 text-destructive",
+      titleClass: "text-destructive",
+    },
+  };
+
   const config = CONFIG[statut] || CONFIG.en_attente;
   const Icon = config.icon;
 
   return (
     <div
-      className={`flex items-center gap-3 rounded-md border px-4 py-3.5 text-sm font-medium ${config.bg} ${config.text}`}
+      className={cn(
+        "flex flex-col gap-3 rounded-2xl border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5",
+        config.className,
+      )}
     >
-      <Icon className="h-5 w-5 shrink-0" />
-      {config.message}
+      <div className="flex items-start gap-3">
+        <div
+          className={cn(
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+            config.iconClass,
+          )}
+        >
+          <Icon className="h-5 w-5" aria-hidden />
+        </div>
+        <div>
+          <p className={cn("text-sm font-semibold", config.titleClass)}>
+            {config.title}
+          </p>
+          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+            {config.message}
+          </p>
+        </div>
+      </div>
+      {(statut === "en_attente" || statut === "rejetee") && (
+        <Button asChild variant="outline" size="sm" className="shrink-0 gap-1">
+          <Link href="/parametres-entreprise">
+            {t("entrepriseSpace.dashboard.viewMyProfile")}
+            <FiArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </Button>
+      )}
     </div>
   );
 }

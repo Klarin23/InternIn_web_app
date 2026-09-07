@@ -18,6 +18,7 @@ export default function EntreprisesPage() {
         i18nKey="marketing.companies.hero"
         imageUrl="/images/company.png"
         imageAlt="Entreprises partenaires sur InternIn"
+        secondaryCtaClassName="h-12 rounded-sm border border-[#450f9cb2] bg-[#450f9cb2] px-5 text-sm font-semibold text-white shadow-none hover:bg-[#450f9c] hover:text-white"
       />
       <HowItWorks i18nKey="marketing.companies.howItWorks" />
       <FeaturesGrid i18nKey="marketing.companies.features" />

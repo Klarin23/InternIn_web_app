@@ -12,7 +12,6 @@ import {
   FiCalendar,
   FiCheckSquare,
 } from "react-icons/fi";
-import { getAffichage } from "@/lib/candidatures/statut";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 function AnimatedCounter({ value }) {
@@ -73,11 +72,15 @@ export default function CandidaturesStatsRow({ candidatures, entretiens }) {
 
   const compte = liste.reduce(
     (acc, c) => {
-      const { label } = getAffichage(c, entretiens);
-      if (label === "En attente") acc.enAttente++;
-      else if (label === "Consultée") acc.consultees++;
-      else if (label === "Entretien") acc.entretiens++;
-      else if (label === "Accepté" || label === "Refusé") acc.reponses++;
+      // Compter par statut métier (indépendant de la langue d'affichage)
+      const st = c.statut;
+      const hasEntretien = (entretiens || []).some(
+        (e) => e.idCandidature === c.idCandidature,
+      );
+      if (st === "soumise" || (st === "preselectionnee" && !hasEntretien)) acc.enAttente++;
+      else if (st === "consultee") acc.consultees++;
+      else if (hasEntretien && st !== "acceptee" && st !== "rejetee" && st !== "retiree") acc.entretiens++;
+      else if (st === "acceptee" || st === "rejetee") acc.reponses++;
       return acc;
     },
     { enAttente: 0, consultees: 0, entretiens: 0, reponses: 0 },

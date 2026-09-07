@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseStrictYmd } from "../../utils/dateValidation.js";
 
 export const createOffreSchema = z.object({
   titre: z.string().min(1, "Le titre est requis"),
@@ -27,7 +28,14 @@ export const createOffreSchema = z.object({
   ),
   montantRemuneration: z.string().nullable().optional(),
   dureeStage: z.enum(["1_mois", "2_mois", "3_mois"]).optional(),
-  dateLimiteCandidature: z.string().nullable().optional(),
+  dateLimiteCandidature: z
+    .string()
+    .nullable()
+    .optional()
+    .refine(
+      (v) => v == null || v === "" || parseStrictYmd(v) != null,
+      { message: "Date limite invalide (AAAA-MM-JJ, date calendaire réelle)" },
+    ),
   nombrePostes: z.number().min(1, "Au moins 1 poste").default(1),
   statut: z.enum(["brouillon", "publie"]).default("brouillon"),
 });
@@ -52,7 +60,14 @@ export const updateOffreSchema = z.object({
     .optional(),
   montantRemuneration: z.string().nullable().optional(),
   dureeStage: z.enum(["1_mois", "2_mois", "3_mois"]).optional(),
-  dateLimiteCandidature: z.string().nullable().optional(),
+  dateLimiteCandidature: z
+    .string()
+    .nullable()
+    .optional()
+    .refine(
+      (v) => v == null || v === "" || parseStrictYmd(v) != null,
+      { message: "Date limite invalide (AAAA-MM-JJ, date calendaire réelle)" },
+    ),
   nombrePostes: z.number().min(1).optional(),
   statut: z
     .enum(["brouillon", "publie", "pause", "ferme", "archive"])

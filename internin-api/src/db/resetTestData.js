@@ -1,16 +1,45 @@
-// Réinitialise tout le cycle de vie du recrutement (candidatures, entretiens,
-// offres finales, conventions, stages, évaluations, certificats, litiges)
-// SANS toucher aux offres publiées, aux comptes ni aux profils.
-// PostgreSQL CASCADE supprime automatiquement toutes les lignes dépendantes
-// (ex: supprimer une candidature supprime ses entretiens liés, etc.).
+// Réinitialise uniquement les données de test.
+// SÉCURITÉ : ce script refuse toute base qui n'est pas internin_test.
 
 import "dotenv/config";
 import { sql } from "drizzle-orm";
 import { db } from "./index.js";
 import { stagiaires } from "./schema.js";
-import { eq } from "drizzle-orm";
+
+const databaseUrl = process.env.DATABASE_URL ?? "";
+const nodeEnv = process.env.NODE_ENV ?? "";
+
+function assertTestDatabase() {
+  if (nodeEnv !== "test") {
+    throw new Error(
+      ` SÉCURITÉ : resetTestData.js exige NODE_ENV=test. ` +
+        `Valeur actuelle : ${nodeEnv || "(non définie)"}`,
+    );
+  }
+
+  let databaseName;
+
+  try {
+    databaseName = new URL(databaseUrl).pathname.replace(/^\/+/, "");
+  } catch {
+    throw new Error(" SÉCURITÉ : DATABASE_URL est invalide ou absente.");
+  }
+
+  if (databaseName !== "internin_test") {
+    throw new Error(
+      ` SÉCURITÉ : resetTestData.js refuse la base "${databaseName}". ` +
+        `Seule la base "internin_test" est autorisée.`,
+    );
+  }
+}
 
 async function resetTestData() {
+  // IMPORTANT : cette vérification intervient AVANT le TRUNCATE.
+  assertTestDatabase();
+
+  console.log(" Base autorisée : internin_test");
+  console.log(" Réinitialisation des données de test...");
+
   await db.execute(sql`
     TRUNCATE TABLE
       candidatures,
@@ -23,24 +52,33 @@ async function resetTestData() {
       certificats,
       badges,
       recommandations,
-      litiges_reclamations
+      litiges_reclamations,
+      propositions_stage,
+      favoris_offres,
+      notifications
     RESTART IDENTITY CASCADE;
   `);
 
-  // Remet tous les stagiaires en "disponible" — un stage de test supprimé
-  // ne doit pas laisser un profil bloqué en "actif" sans stage réel.
-  await db.update(stagiaires).set({ statutStage: "disponible" });
+  // Un stage de test supprimé ne doit pas laisser
+  // un stagiaire bloqué en "actif".
+  await db.update(stagiaires).set({
+    statutStage: "disponible",
+  });
 
   console.log(
-    "✓ Candidatures, entretiens et tout le cycle de recrutement ont été réinitialisés.",
+    "Candidatures, entretiens, propositions de stage, favoris, " +
+      "notifications et cycle de recrutement réinitialisés.",
   );
-  console.log(
-    "✓ Les offres publiées, comptes et profils n'ont pas été touchés.",
-  );
-  process.exit(0);
+
+  console.log(" Offres publiées, comptes et profils conservés.");
 }
 
-resetTestData().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+resetTestData()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error("\n Réinitialisation refusée/échouée :");
+    console.error(err.message);
+    process.exit(1);
+  });

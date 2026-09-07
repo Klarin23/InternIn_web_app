@@ -190,11 +190,34 @@ export async function supprimerObjectif(idUtilisateur, idStage, idObjectif) {
 // Tâches
 // -----------------------------------------------------------------------
 
-export async function ajouterTache(idUtilisateur, idStage, description) {
+export async function ajouterTache(idUtilisateur, idStage, description, idObjectif = null) {
   await verifierAcces(idUtilisateur, idStage);
+
+  let objectifId = idObjectif || null;
+  if (objectifId) {
+    const [obj] = await db
+      .select({ idObjectif: objectifsStage.idObjectif })
+      .from(objectifsStage)
+      .where(
+        and(
+          eq(objectifsStage.idObjectif, objectifId),
+          eq(objectifsStage.idStage, idStage),
+        ),
+      );
+    if (!obj) {
+      const err = new Error("Objectif introuvable pour ce stage");
+      err.status = 400;
+      throw err;
+    }
+  }
+
   const [tache] = await db
     .insert(tachesStage)
-    .values({ idStage, description })
+    .values({
+      idStage,
+      description,
+      idObjectif: objectifId,
+    })
     .returning();
   return tache;
 }
@@ -212,6 +235,23 @@ export async function updateTache(idUtilisateur, idStage, idTache, payload) {
     const err = new Error("Tâche introuvable");
     err.status = 404;
     throw err;
+  }
+
+  if (payload.idObjectif) {
+    const [obj] = await db
+      .select({ idObjectif: objectifsStage.idObjectif })
+      .from(objectifsStage)
+      .where(
+        and(
+          eq(objectifsStage.idObjectif, payload.idObjectif),
+          eq(objectifsStage.idStage, idStage),
+        ),
+      );
+    if (!obj) {
+      const err = new Error("Objectif introuvable pour ce stage");
+      err.status = 400;
+      throw err;
+    }
   }
 
   const [tache] = await db

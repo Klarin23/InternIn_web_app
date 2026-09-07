@@ -1,15 +1,13 @@
+"use client";
+
 // Liste des offres de l'entreprise, avec badge de statut et compteur de
 // candidatures. Le clic mène vers la page de détail — pas encore construite
 // côté entreprise (gestion des candidats par offre), prochain chantier logique.
 
 import { FiInbox, FiUsers } from "react-icons/fi";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
-const STATUT_LABELS = {
-  brouillon: "Brouillon",
-  publie: "Publiée",
-  ferme: "Fermée",
-  archive: "Archivée",
-};
+// STATUT_LABELS défini dans le composant (traduit).
 const STATUT_COLORS = {
   brouillon: "bg-muted text-muted-foreground",
   publie: "bg-primary/10 text-primary",
@@ -18,15 +16,23 @@ const STATUT_COLORS = {
 };
 
 export default function OffresList({ offres }) {
+  const { t } = useTranslation();
+  const STATUT_LABELS = {
+    brouillon: t("entrepriseSpace.offers.statusDraft"),
+    publie: t("entrepriseSpace.offers.offreListStatusPublished"),
+    ferme: t("entrepriseSpace.offers.statusClosed"),
+    archive: t("entrepriseSpace.offers.statusArchived"),
+  };
+
   if (offres.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border py-14 text-center">
         <FiInbox className="h-7 w-7 text-muted-foreground" />
         <p className="text-sm font-medium text-foreground">
-          Aucune offre publiée pour l&apos;instant
+          {t("entrepriseSpace.offers.offreListEmptyTitle")}
         </p>
         <p className="text-xs text-muted-foreground">
-          La publication d&apos;offres sera bientôt disponible.
+          {t("entrepriseSpace.offers.offreListEmptyDesc")}
         </p>
       </div>
     );
@@ -42,7 +48,7 @@ export default function OffresList({ offres }) {
           <div>
             <h5 className="font-semibold text-foreground">{offre.titre}</h5>
             <p className="text-sm text-muted-foreground">
-              {offre.nombrePostes} poste{offre.nombrePostes > 1 ? "s" : ""}
+              {t(offre.nombrePostes > 1 ? "entrepriseSpace.offers.positionCountOther" : "entrepriseSpace.offers.positionCountOne", { count: offre.nombrePostes })}
             </p>
           </div>
           <div className="flex items-center gap-3">

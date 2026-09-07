@@ -3,6 +3,7 @@ import {
   getStagiaireProfile,
   updateStagiaireProfile,
   updateStagiairePhoto,
+  updateStagiairePrivacy,
 } from "./stagiaires.service.js";
 
 export async function completeOnboarding(req, res, next) {
@@ -51,6 +52,18 @@ export async function updateMyPhoto(req, res, next) {
       urlFichier,
     );
     res.json({ stagiaire, url: urlFichier });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateMyPrivacy(req, res, next) {
+  try {
+    if (req.user.typeUtilisateur !== "stagiaire") {
+      return res.status(403).json({ error: "Accès réservé aux stagiaires" });
+    }
+    const result = await updateStagiairePrivacy(req.user.idUtilisateur, req.body);
+    res.json(result);
   } catch (err) {
     next(err);
   }

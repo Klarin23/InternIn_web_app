@@ -34,10 +34,9 @@ export default function QuickActionsStagiaire() {
       key: "favoris",
       icon: Heart,
       label: t("dashboard.quickActions.favorites"),
-      href: null,
+      href: "/favoris",
       color: "bg-pink-500/10 text-pink-500",
       glow: "rgba(236, 72, 153, 0.2)",
-      indisponible: true,
     },
     {
       key: "profil",

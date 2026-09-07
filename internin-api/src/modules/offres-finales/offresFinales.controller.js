@@ -76,6 +76,7 @@ export async function repondre(req, res, next) {
       req.user.idUtilisateur,
       req.params.id,
       req.body.statutReponseStagiaire,
+      req.body.motifRefusStagiaire,
     );
     res.json(result);
   } catch (err) {

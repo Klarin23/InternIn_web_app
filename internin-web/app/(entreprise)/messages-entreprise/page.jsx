@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   Search,
@@ -27,7 +28,11 @@ import {
 import { toast } from "@/lib/store/useToastStore";
 import { cn } from "@/lib/utils";
 
-function formatTime(dateStr) {
+function localeTag(locale) {
+  return locale === "en" || locale === "en-GB" ? "en-GB" : "fr-FR";
+}
+
+function formatTime(dateStr, locale, t) {
   if (!dateStr) return "";
   try {
     const d = new Date(dateStr);
@@ -37,7 +42,10 @@ function formatTime(dateStr) {
       d.getMonth() === now.getMonth() &&
       d.getFullYear() === now.getFullYear();
     if (sameDay) {
-      return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+      return d.toLocaleTimeString(localeTag(locale), {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     }
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -46,18 +54,21 @@ function formatTime(dateStr) {
       d.getMonth() === yesterday.getMonth() &&
       d.getFullYear() === yesterday.getFullYear()
     ) {
-      return "Hier";
+      return t("messages.yesterday");
     }
-    return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+    return d.toLocaleDateString(localeTag(locale), {
+      day: "numeric",
+      month: "short",
+    });
   } catch {
     return "";
   }
 }
 
-function formatMessageTime(dateStr) {
+function formatMessageTime(dateStr, locale) {
   if (!dateStr) return "";
   try {
-    return new Date(dateStr).toLocaleTimeString("fr-FR", {
+    return new Date(dateStr).toLocaleTimeString(localeTag(locale), {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -66,8 +77,8 @@ function formatMessageTime(dateStr) {
   }
 }
 
-function dayLabel(dateStr) {
-  if (!dateStr) return "";
+function dayLabelMeta(dateStr) {
+  if (!dateStr) return { type: "empty" };
   try {
     const d = new Date(dateStr);
     const now = new Date();
@@ -76,7 +87,7 @@ function dayLabel(dateStr) {
       d.getMonth() === now.getMonth() &&
       d.getFullYear() === now.getFullYear()
     ) {
-      return "Aujourd'hui";
+      return { type: "today" };
     }
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -85,43 +96,73 @@ function dayLabel(dateStr) {
       d.getMonth() === yesterday.getMonth() &&
       d.getFullYear() === yesterday.getFullYear()
     ) {
-      return "Hier";
+      return { type: "yesterday" };
     }
-    return d.toLocaleDateString("fr-FR", {
+    return { type: "date", date: d };
+  } catch {
+    return { type: "empty" };
+  }
+}
+
+function formatDayLabel(meta, locale, t) {
+  if (!meta || meta.type === "empty") return "";
+  if (meta.type === "today") return t("messages.today");
+  if (meta.type === "yesterday") return t("messages.yesterday");
+  if (meta.date) {
+    return meta.date.toLocaleDateString(localeTag(locale), {
       day: "numeric",
       month: "long",
       year: "numeric",
     });
-  } catch {
-    return "";
   }
+  return "";
 }
 
 function groupMessagesByDay(list) {
   if (!list?.length) return [];
   const groups = [];
-  let currentLabel = null;
+  let currentKey = null;
   let currentItems = [];
+  let currentMeta = null;
   for (const msg of list) {
-    const label = dayLabel(msg.dateEnvoi);
-    if (label !== currentLabel) {
-      if (currentItems.length) groups.push({ label: currentLabel, items: currentItems });
-      currentLabel = label;
+    const meta = dayLabelMeta(msg.dateEnvoi);
+    const d = msg.dateEnvoi ? new Date(msg.dateEnvoi) : null;
+    const key =
+      d && !Number.isNaN(d.getTime())
+        ? `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+        : "unknown";
+    if (key !== currentKey) {
+      if (currentItems.length) {
+        groups.push({ key: currentKey, labelMeta: currentMeta, items: currentItems });
+      }
+      currentKey = key;
+      currentMeta = meta;
       currentItems = [msg];
     } else {
       currentItems.push(msg);
     }
   }
-  if (currentItems.length) groups.push({ label: currentLabel, items: currentItems });
+  if (currentItems.length) {
+    groups.push({ key: currentKey, labelMeta: currentMeta, items: currentItems });
+  }
   return groups;
 }
 
-function formatDateRange(debut, fin) {
+function formatDateRange(debut, fin, locale) {
   if (!debut) return null;
   const opts = { day: "numeric", month: "short", year: "numeric" };
-  const a = new Date(debut).toLocaleDateString("fr-FR", opts);
-  const b = fin ? new Date(fin).toLocaleDateString("fr-FR", opts) : "—";
+  const loc = localeTag(locale);
+  const a = new Date(debut).toLocaleDateString(loc, opts);
+  const b = fin ? new Date(fin).toLocaleDateString(loc, opts) : "—";
   return `${a} → ${b}`;
+}
+
+function stageStatusLabel(statut, t) {
+  if (!statut) return "";
+  const key = `messages.stageStatus.${statut}`;
+  const translated = t(key);
+  if (translated && translated !== key) return translated;
+  return statut;
 }
 
 function ConversationSkeleton() {
@@ -157,14 +198,22 @@ function MessagesSkeleton() {
 }
 
 function ConversationItem({ conversation, active, onSelect }) {
+  const { t, locale } = useTranslation();
   const hasUnread = (conversation.nonLus || 0) > 0;
-  const name = [conversation.prenom, conversation.nom].filter(Boolean).join(" ") || "Stagiaire";
+  const name =
+    [conversation.prenom, conversation.nom].filter(Boolean).join(" ") ||
+    t("messages.intern");
   const preview =
-    conversation.dernierMessage?.contenu?.slice(0, 60) || "Aucun message pour le moment";
+    conversation.dernierMessage?.contenu?.slice(0, 60) ||
+    t("messages.noMessageYet");
   const time = formatTime(
     conversation.dernierMessage?.dateEnvoi || conversation.dateCreation,
+    locale,
+    t,
   );
-  const initiales = `${conversation.prenom?.[0] || ""}${conversation.nom?.[0] || ""}`.toUpperCase() || "S";
+  const initiales =
+    `${conversation.prenom?.[0] || ""}${conversation.nom?.[0] || ""}`.toUpperCase() ||
+    "S";
 
   return (
     <button
@@ -172,26 +221,48 @@ function ConversationItem({ conversation, active, onSelect }) {
       onClick={() => onSelect(conversation)}
       className={cn(
         "flex w-full items-start gap-3 rounded-md px-3 py-3 text-left transition-colors",
-        active ? "bg-primary/10" : hasUnread ? "bg-muted/50 hover:bg-muted" : "hover:bg-muted/60",
+        active
+          ? "bg-primary/10"
+          : hasUnread
+            ? "bg-muted/50 hover:bg-muted"
+            : "hover:bg-muted/60",
       )}
     >
       <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-primary/10 text-xs font-bold text-primary">
         {conversation.photoProfilUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={conversation.photoProfilUrl} alt="" className="h-full w-full object-cover" />
+          <img
+            src={conversation.photoProfilUrl}
+            alt=""
+            className="h-full w-full object-cover"
+          />
         ) : (
           initiales
         )}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
-          <p className={cn("truncate text-sm", hasUnread ? "font-semibold text-foreground" : "font-medium text-foreground")}>
+          <p
+            className={cn(
+              "truncate text-sm",
+              hasUnread
+                ? "font-semibold text-foreground"
+                : "font-medium text-foreground",
+            )}
+          >
             {name}
           </p>
-          <span className="shrink-0 text-[11px] text-muted-foreground">{time}</span>
+          <span className="shrink-0 text-[11px] text-muted-foreground">
+            {time}
+          </span>
         </div>
         <div className="mt-0.5 flex items-center justify-between gap-2">
-          <p className={cn("truncate text-xs", hasUnread ? "font-medium text-foreground" : "text-muted-foreground")}>
+          <p
+            className={cn(
+              "truncate text-xs",
+              hasUnread ? "font-medium text-foreground" : "text-muted-foreground",
+            )}
+          >
             {preview}
             {(conversation.dernierMessage?.contenu?.length || 0) > 60 ? "…" : ""}
           </p>
@@ -202,9 +273,12 @@ function ConversationItem({ conversation, active, onSelect }) {
           )}
         </div>
         {conversation.statutStage && (
-          <p className="mt-0.5 text-[10px] capitalize text-muted-foreground">
-            Stage {conversation.statutStage}
-            {!conversation.messagerieActive && " · lecture seule"}
+          <p className="mt-0.5 text-[10px] text-muted-foreground">
+            {t("messages.stage")}{" "}
+            {stageStatusLabel(conversation.statutStage, t)}
+            {!conversation.messagerieActive
+              ? ` · ${t("messages.readOnly")}`
+              : ""}
           </p>
         )}
       </div>
@@ -213,35 +287,46 @@ function ConversationItem({ conversation, active, onSelect }) {
 }
 
 function MessageBubble({ message, isMine, reduceMotion }) {
+  const { t, locale } = useTranslation();
+  const time = formatMessageTime(message.dateEnvoi, locale);
+  const isRead = message.statutLecture === "lu" || message.lu === true;
+
   return (
     <motion.div
-      initial={reduceMotion ? false : { opacity: 0, y: 8, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
+      initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
       className={cn("flex", isMine ? "justify-end" : "justify-start")}
     >
       <div
         className={cn(
-          "max-w-[75%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed sm:max-w-[65%]",
+          "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm sm:max-w-[75%]",
           isMine
             ? "rounded-br-md bg-primary text-primary-foreground"
-            : "rounded-bl-md border border-border bg-card text-foreground",
+            : "rounded-bl-md bg-muted text-foreground",
         )}
       >
-        <p className="whitespace-pre-wrap break-words">{message.contenu}</p>
+        <p className="whitespace-pre-wrap break-words leading-relaxed">
+          {message.contenu}
+        </p>
         <div
           className={cn(
-            "mt-1 flex items-center justify-end gap-1 text-[10px]",
-            isMine ? "text-primary-foreground/70" : "text-muted-foreground",
+            "mt-1 flex items-center gap-1 text-[10px]",
+            isMine
+              ? "justify-end text-primary-foreground/75"
+              : "text-muted-foreground",
           )}
         >
-          <span>{formatMessageTime(message.dateEnvoi)}</span>
-          {isMine &&
-            (message.statutLecture === "lu" ? (
-              <CheckCheck className="h-3 w-3" />
+          <span>{time}</span>
+          {isMine ? (
+            isRead ? (
+              <CheckCheck
+                className="h-3.5 w-3.5"
+                aria-label={t("messages.read")}
+              />
             ) : (
-              <Check className="h-3 w-3" />
-            ))}
+              <Check className="h-3.5 w-3.5" aria-label={t("messages.sent")} />
+            )
+          ) : null}
         </div>
       </div>
     </motion.div>
@@ -249,6 +334,7 @@ function MessageBubble({ message, isMine, reduceMotion }) {
 }
 
 function Composer({ onSend, disabled }) {
+  const { t } = useTranslation();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const textareaRef = useRef(null);
@@ -262,7 +348,7 @@ function Composer({ onSend, disabled }) {
       setText("");
       textareaRef.current?.focus();
     } catch {
-      /* parent toast */
+      /* toast handled by parent */
     } finally {
       setSending(false);
     }
@@ -277,9 +363,9 @@ function Composer({ onSend, disabled }) {
 
   return (
     <div className="border-t border-border bg-card p-3 sm:p-4">
-      <div className="flex items-end gap-2 rounded-md border border-border bg-background px-3 py-2 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20">
+      <div className="flex items-end gap-2 rounded-xl border border-border bg-background px-3 py-2 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/15">
         <label htmlFor="msg-input-entreprise" className="sr-only">
-          Écrire un message
+          {t("messages.writeMessage")}
         </label>
         <textarea
           id="msg-input-entreprise"
@@ -288,7 +374,7 @@ function Composer({ onSend, disabled }) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Écrivez votre message..."
+          placeholder={t("messages.placeholder")}
           disabled={disabled || sending}
           maxLength={5000}
           className="max-h-32 min-h-[24px] flex-1 resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
@@ -298,20 +384,21 @@ function Composer({ onSend, disabled }) {
           size="icon"
           disabled={!text.trim() || sending || disabled}
           onClick={handleSend}
-          aria-label="Envoyer le message"
+          aria-label={t("messages.sendAria")}
           className="h-8 w-8 shrink-0"
         >
           <Send className="h-4 w-4" />
         </Button>
       </div>
       <p className="mt-1.5 text-[11px] text-muted-foreground">
-        Entrée pour envoyer · Maj+Entrée pour une nouvelle ligne
+        {t("messages.keyboardHint")}
       </p>
     </div>
   );
 }
 
 function BlockedComposer({ conversation }) {
+  const { t, locale } = useTranslation();
   const isEnded =
     conversation.statutStage === "termine" ||
     conversation.statutStage === "interrompu";
@@ -320,21 +407,20 @@ function BlockedComposer({ conversation }) {
     <div className="border-t border-border bg-muted/40 px-4 py-6 text-center">
       <MessageSquare className="mx-auto h-6 w-6 text-muted-foreground/50" />
       <p className="mt-2 text-sm font-medium text-foreground">
-        Messagerie indisponible
+        {t("messages.messagingUnavailable")}
       </p>
       <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
         {isEnded
-          ? "Ce stage est terminé. La conversation est conservée en lecture seule."
-          : "Les échanges avec ce stagiaire seront disponibles dès le début officiel du stage."}
+          ? t("messages.readonlyFinished")
+          : t("messages.availableAtStart")}
       </p>
       {!isEnded && conversation.dateDebut && (
         <p className="mt-2 text-xs font-medium text-muted-foreground">
-          Début du stage :{" "}
-          {new Date(conversation.dateDebut).toLocaleDateString("fr-FR", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })}
+          {t("messages.internshipStart")}{" "}
+          {new Date(conversation.dateDebut).toLocaleDateString(
+            localeTag(locale),
+            { day: "numeric", month: "long", year: "numeric" },
+          )}
         </p>
       )}
     </div>
@@ -342,6 +428,7 @@ function BlockedComposer({ conversation }) {
 }
 
 export default function MessagesEntreprisePage() {
+  const { t, locale } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const reduceMotion = useReducedMotion();
   const [selectedId, setSelectedId] = useState(null);
@@ -351,29 +438,32 @@ export default function MessagesEntreprisePage() {
 
   const { data: conversations, isLoading: loadingConvos } = useConversations();
   const { data: unreadData } = useMessagesUnreadCount();
-  const { data: messages, isLoading: loadingMessages } = useMessages(selectedId);
-  const sendMutation = useSendMessage(selectedId);
-  const markRead = useMarkConversationRead();
-
   const selected = useMemo(
-    () => conversations?.find((c) => c.idConversation === selectedId) || null,
+    () =>
+      conversations?.find((c) => c.idConversation === selectedId) || null,
     [conversations, selectedId],
   );
 
-  const filtered = useMemo(() => {
-    if (!conversations) return [];
-    const q = search.trim().toLowerCase();
-    if (!q) return conversations;
-    return conversations.filter((c) => {
-      const name = `${c.prenom || ""} ${c.nom || ""}`.toLowerCase();
-      return (
-        name.includes(q) ||
-        c.dernierMessage?.contenu?.toLowerCase().includes(q)
-      );
-    });
-  }, [conversations, search]);
+  const {
+    data: messages,
+    isLoading: loadingMessages,
+  } = useMessages(selected?.idConversation);
+
+  const sendMutation = useSendMessage(selected?.idConversation);
+  const markRead = useMarkConversationRead();
 
   const groups = useMemo(() => groupMessagesByDay(messages), [messages]);
+
+  const filtered = useMemo(() => {
+    const list = conversations || [];
+    if (!search.trim()) return list;
+    const q = search.trim().toLowerCase();
+    return list.filter((c) => {
+      const name = `${c.prenom || ""} ${c.nom || ""}`.toLowerCase();
+      const last = (c.dernierMessage?.contenu || "").toLowerCase();
+      return name.includes(q) || last.includes(q);
+    });
+  }, [conversations, search]);
 
   useEffect(() => {
     if (selectedId && selected?.nonLus > 0) {
@@ -393,38 +483,44 @@ export default function MessagesEntreprisePage() {
 
   async function handleSend(contenu) {
     if (!selected?.messagerieActive) {
-      toast.error("Messagerie indisponible pour ce stage.");
+      toast.error(t("messages.messagingUnavailableStage"));
       throw new Error("Stage non actif");
     }
     try {
       await sendMutation.mutateAsync(contenu);
     } catch (err) {
-      toast.error(err?.message || "Impossible d'envoyer le message.");
+      toast.error(t("messages.sendError"));
       throw err;
     }
   }
 
   const unreadTotal = unreadData?.count ?? 0;
   const selectedName = selected
-    ? [selected.prenom, selected.nom].filter(Boolean).join(" ") || "Stagiaire"
+    ? [selected.prenom, selected.nom].filter(Boolean).join(" ") ||
+      t("messages.intern")
     : "";
   const selectedInitiales = selected
-    ? `${selected.prenom?.[0] || ""}${selected.nom?.[0] || ""}`.toUpperCase() || "S"
+    ? `${selected.prenom?.[0] || ""}${selected.nom?.[0] || ""}`.toUpperCase() ||
+      "S"
     : "S";
 
   return (
     <>
       <AppHeader
-        title="Messages"
-        subtitle="Échangez avec vos stagiaires dans un espace de communication sécurisé."
+        title={t("messages.title")}
+        subtitle={t("messages.subtitle")}
         refreshKeys={["conversations", "messages", "messagesUnread"]}
       />
 
       {unreadTotal > 0 && (
         <div className="border-b border-border bg-primary/5 px-4 py-2 sm:px-6">
           <p className="text-xs font-medium text-primary">
-            {unreadTotal} message{unreadTotal > 1 ? "s" : ""} non lu
-            {unreadTotal > 1 ? "s" : ""}
+            {t(
+              unreadTotal > 1
+                ? "messages.unreadOther"
+                : "messages.unreadOne",
+              { count: unreadTotal },
+            )}
           </p>
         </div>
       )}
@@ -443,7 +539,7 @@ export default function MessagesEntreprisePage() {
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Rechercher un stagiaire ou une conversation..."
+                placeholder={t("messages.searchPlaceholder")}
                 className="w-full rounded-md border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
@@ -453,15 +549,17 @@ export default function MessagesEntreprisePage() {
             {loadingConvos && <ConversationSkeleton />}
 
             {!loadingConvos && filtered.length === 0 && (
-              <div className="flex flex-col items-center justify-center gap-2 px-6 py-16 text-center">
-                <MessageSquare className="h-8 w-8 text-muted-foreground/50" />
+              <div className="flex flex-col items-center justify-center gap-2 px-4 py-16 text-center">
+                <MessageSquare className="h-8 w-8 text-muted-foreground/40" />
                 <p className="text-sm font-medium text-foreground">
-                  {search ? "Aucune conversation trouvée" : "Aucune conversation"}
+                  {search.trim()
+                    ? t("messages.emptySearch")
+                    : t("messages.empty")}
                 </p>
-                <p className="max-w-[260px] text-xs text-muted-foreground">
-                  {search
-                    ? "Essayez avec un autre nom ou mot-clé."
-                    : "La messagerie sera disponible lorsqu'un stage aura officiellement commencé."}
+                <p className="max-w-xs text-xs text-muted-foreground">
+                  {search.trim()
+                    ? t("messages.emptySearchHint")
+                    : t("messages.emptyHint")}
                 </p>
               </div>
             )}
@@ -480,32 +578,28 @@ export default function MessagesEntreprisePage() {
 
         <section
           className={cn(
-            "flex min-w-0 flex-1 flex-col bg-muted/20",
-            !mobileShowChat ? "hidden lg:flex" : "flex",
+            "flex min-w-0 flex-1 flex-col bg-background",
+            mobileShowChat ? "flex" : "hidden lg:flex",
           )}
         >
-          {!selectedId && (
+          {!selected ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-                <MessageSquare className="h-7 w-7 text-muted-foreground" />
-              </div>
+              <User className="h-10 w-10 text-muted-foreground/30" />
               <p className="text-sm font-semibold text-foreground">
-                Sélectionnez une conversation
+                {t("messages.selectConversation")}
               </p>
-              <p className="max-w-xs text-sm text-muted-foreground">
-                Choisissez un stagiaire pour consulter vos échanges sécurisés.
+              <p className="max-w-sm text-xs text-muted-foreground">
+                {t("messages.chooseConversation")}
               </p>
             </div>
-          )}
-
-          {selectedId && selected && (
+          ) : (
             <>
-              <div className="flex items-center gap-3 border-b border-border bg-card px-3 py-3 sm:px-5">
+              <div className="flex items-start gap-3 border-b border-border bg-card px-3 py-3 sm:px-5">
                 <button
                   type="button"
+                  className="mt-1 rounded-md p-1 text-muted-foreground hover:bg-muted lg:hidden"
                   onClick={() => setMobileShowChat(false)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted lg:hidden"
-                  aria-label="Retour aux conversations"
+                  aria-label={t("messages.backToConversations")}
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </button>
@@ -525,19 +619,24 @@ export default function MessagesEntreprisePage() {
                   <p className="truncate text-sm font-semibold text-foreground">
                     {selectedName}
                   </p>
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
                     <span className="inline-flex items-center gap-1">
-                      <User className="h-3 w-3" />
-                      Stagiaire
-                    </span>
-                    <span className="inline-flex items-center gap-1 capitalize">
                       <Briefcase className="h-3 w-3" />
-                      Stage {selected.statutStage}
+                      {t("messages.stage")}{" "}
+                      {stageStatusLabel(selected.statutStage, t)}
                     </span>
                   </div>
-                  {formatDateRange(selected.dateDebut, selected.dateFinPrevue) && (
+                  {formatDateRange(
+                    selected.dateDebut,
+                    selected.dateFinPrevue,
+                    locale,
+                  ) && (
                     <p className="text-[11px] text-muted-foreground">
-                      {formatDateRange(selected.dateDebut, selected.dateFinPrevue)}
+                      {formatDateRange(
+                        selected.dateDebut,
+                        selected.dateFinPrevue,
+                        locale,
+                      )}
                     </p>
                   )}
                 </div>
@@ -551,18 +650,18 @@ export default function MessagesEntreprisePage() {
                     <MessageSquare className="h-7 w-7 text-muted-foreground/40" />
                     <p className="text-sm text-muted-foreground">
                       {selected.messagerieActive
-                        ? "Aucun message pour le moment. Envoyez le premier !"
-                        : "Aucun message dans cette conversation."}
+                        ? t("messages.noMessageSendFirst")
+                        : t("messages.noMessageInConversation")}
                     </p>
                   </div>
                 )}
 
                 {!loadingMessages &&
                   groups.map((group) => (
-                    <div key={group.label} className="mb-4 space-y-2.5">
+                    <div key={group.key} className="mb-4 space-y-2.5">
                       <div className="flex items-center justify-center py-2">
                         <span className="rounded-full bg-muted px-3 py-0.5 text-[11px] font-medium text-muted-foreground">
-                          {group.label}
+                          {formatDayLabel(group.labelMeta, locale, t)}
                         </span>
                       </div>
                       {group.items.map((msg) => (
@@ -579,7 +678,10 @@ export default function MessagesEntreprisePage() {
               </div>
 
               {selected.messagerieActive ? (
-                <Composer onSend={handleSend} disabled={sendMutation.isPending} />
+                <Composer
+                  onSend={handleSend}
+                  disabled={sendMutation.isPending}
+                />
               ) : (
                 <BlockedComposer conversation={selected} />
               )}

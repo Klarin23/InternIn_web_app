@@ -4,25 +4,27 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { FiChevronDown } from "react-icons/fi";
 import ProfilSectionCard from "@/components/features/profil/ProfilSectionCard";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const SEUIL_TRONCATURE = 260;
 
 export default function AProposSection({ profil, onModifier }) {
+  const { t } = useTranslation();
   const [ouvert, setOuvert] = useState(false);
   const texte = profil.aPropos;
   const estLong = texte && texte.length > SEUIL_TRONCATURE;
 
   return (
-    <ProfilSectionCard title="À propos de l'entreprise" onEdit={onModifier}>
+    <ProfilSectionCard title={t("profilEntreprise.about.title")} onEdit={onModifier}>
       {!texte ? (
         <p className="text-sm text-muted-foreground">
-          Aucune description pour le moment.{" "}
+          {t("profilEntreprise.about.empty")}{" "}
           <button
             type="button"
             onClick={onModifier}
             className="text-primary hover:underline"
           >
-            Ajouter une description
+            {t("profilEntreprise.about.addDescription")}
           </button>
         </p>
       ) : (
@@ -38,7 +40,9 @@ export default function AProposSection({ profil, onModifier }) {
               onClick={() => setOuvert((v) => !v)}
               className="mt-2 flex items-center gap-1 text-sm font-medium text-primary hover:underline"
             >
-              {ouvert ? "Voir moins" : "Voir plus"}
+              {ouvert
+                ? t("profilEntreprise.about.viewLess")
+                : t("profilEntreprise.about.viewMore")}
               <FiChevronDown
                 className={`h-3.5 w-3.5 transition-transform duration-200 ${ouvert ? "rotate-180" : ""}`}
               />

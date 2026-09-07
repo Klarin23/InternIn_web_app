@@ -23,11 +23,14 @@ import {
 import {
   listNotifications,
   compterNonLues,
+  creerNotification,
 } from "../notifications/notifications.service.js";
-import { PERMISSIONS_PAR_DEFAUT_ROLE } from "../equipe/equipe.constants.js";
+import { resolveEntrepriseContext, hasEntreprisePermission } from "../../utils/entrepriseContext.js";
 
 const JOURS_ALERTE_FIN_STAGE = 30;
 const JOURS_RETARD_EVALUATION = 7;
+/** Nombre de jours après le début du stage avant la 1re alerte d'évaluation manquante. */
+const JOURS_GRACE_AVANT_ALERTE_EVAL = 6;
 
 // -----------------------------------------------------------------------
 // Helpers internes — accès unifié Superviseur + Entreprise
@@ -43,34 +46,11 @@ const JOURS_RETARD_EVALUATION = 7;
  * Sécurité : chaque mode est strictement limité à son périmètre (affectation ou idEntreprise).
  */
 export async function resolveSupervisionAccess(idUtilisateur) {
-  // 1. Compte propriétaire de l'entreprise
-  const [entreprise] = await db
-    .select({
-      idEntreprise: entreprises.idEntreprise,
-    })
-    .from(entreprises)
-    .where(eq(entreprises.idUtilisateur, idUtilisateur));
+  // Le contexte entreprise central est l'unique source de vérité pour
+  // l'identité, le statut du membre et ses permissions effectives.
+  const ctx = await resolveEntrepriseContext(idUtilisateur);
 
-  if (entreprise) {
-    return {
-      mode: "entreprise",
-      idEntreprise: entreprise.idEntreprise,
-      idMembre: null,
-    };
-  }
-
-  // 2. Membre d'équipe actif
-  const [membre] = await db
-    .select()
-    .from(membresEquipe)
-    .where(
-      and(
-        eq(membresEquipe.idUtilisateur, idUtilisateur),
-        eq(membresEquipe.statutMembre, "actif"),
-      ),
-    );
-
-  if (!membre) {
+  if (!ctx) {
     const err = new Error(
       "Accès réservé aux superviseurs et aux comptes entreprise autorisés.",
     );
@@ -78,24 +58,43 @@ export async function resolveSupervisionAccess(idUtilisateur) {
     throw err;
   }
 
-  if (membre.roleEquipe === "superviseur") {
+  // Propriétaire : accès à tous les stages de son entreprise.
+  if (ctx.isProprietaire) {
+    return {
+      mode: "entreprise",
+      idEntreprise: ctx.entreprise.idEntreprise,
+      idMembre: null,
+    };
+  }
+
+  const membre = ctx.membre;
+
+  // Le rôle ne décide plus seul de l'autorisation : la permission centrale
+  // doit être présente. Le rôle superviseur conserve uniquement son
+  // périmètre métier (stages affectés) lorsqu'il est autorisé.
+  if (membre?.roleEquipe === "superviseur") {
+    if (!hasEntreprisePermission(ctx, "stagiaires.suivre")) {
+      const err = new Error(
+        "Vous n'avez pas la permission de superviser des stagiaires.",
+      );
+      err.status = 403;
+      throw err;
+    }
     return {
       mode: "superviseur",
-      idEntreprise: membre.idEntreprise,
+      idEntreprise: ctx.entreprise.idEntreprise,
       idMembre: membre.idMembre,
     };
   }
 
-  // Admin principal ou permission explicite "stagiaires.suivre"
-  const permissions =
-    membre.permissionsPersonnalisees ??
-    PERMISSIONS_PAR_DEFAUT_ROLE[membre.roleEquipe] ??
-    [];
-  if (membre.estAdminPrincipal || permissions.includes("stagiaires.suivre")) {
+  // Les autres membres ne peuvent accéder à tous les stages de l'entreprise
+  // que via la permission RBAC centrale. Aucun calcul local des permissions
+  // par rôle/permissionsPersonnalisees ne doit diverger de celle-ci.
+  if (hasEntreprisePermission(ctx, "stagiaires.suivre")) {
     return {
       mode: "admin_entreprise",
-      idEntreprise: membre.idEntreprise,
-      idMembre: membre.idMembre,
+      idEntreprise: ctx.entreprise.idEntreprise,
+      idMembre: membre?.idMembre ?? null,
     };
   }
 
@@ -845,6 +844,37 @@ export async function listMesStagiaires(idUtilisateur) {
 
   const aujourdHui = new Date();
 
+  // Superviseur(s) affecté(s) par stage — pour affichage entreprise / admin
+  const superviseurParStage = new Map();
+  if (idsStages.length > 0) {
+    const affectations = await db
+      .select({
+        idStage: affectationsSuperviseurStage.idStage,
+        idMembre: membresEquipe.idMembre,
+        nomSuperviseur: membresEquipe.nom,
+        emailSuperviseur: membresEquipe.email,
+        roleEquipe: membresEquipe.roleEquipe,
+      })
+      .from(affectationsSuperviseurStage)
+      .innerJoin(
+        membresEquipe,
+        eq(membresEquipe.idMembre, affectationsSuperviseurStage.idMembre),
+      )
+      .where(inArray(affectationsSuperviseurStage.idStage, idsStages));
+
+    for (const a of affectations) {
+      // Un stage peut avoir plusieurs affectations ; on garde la liste
+      const liste = superviseurParStage.get(a.idStage) || [];
+      liste.push({
+        idMembre: a.idMembre,
+        nom: a.nomSuperviseur,
+        email: a.emailSuperviseur,
+        roleEquipe: a.roleEquipe,
+      });
+      superviseurParStage.set(a.idStage, liste);
+    }
+  }
+
   return mesStages.map((s) => {
     const debut = new Date(s.dateDebut);
     const fin = new Date(s.dateFinPrevue);
@@ -880,9 +910,21 @@ export async function listMesStagiaires(idUtilisateur) {
     const derniereActivite = derniereActiviteParStage.get(s.idStage) || null;
     const seuilRetard = new Date();
     seuilRetard.setDate(seuilRetard.getDate() - JOURS_RETARD_EVALUATION);
+
+    // Délai de grâce : pas d'alerte avant N jours après le début du stage
+    // (les évaluations sont hebdomadaires — éviter "Action requise" dès J1).
+    const debutStage = s.dateDebut ? new Date(s.dateDebut) : null;
+    const joursDepuisDebut =
+      debutStage && !Number.isNaN(debutStage.getTime())
+        ? Math.floor((aujourdHui - debutStage) / 86400000)
+        : 0;
+    const graceOk = joursDepuisDebut >= JOURS_GRACE_AVANT_ALERTE_EVAL;
+
+    const evaluationEnRetard =
+      !derniereActivite || new Date(derniereActivite) < seuilRetard;
+
     const alerte =
-      s.statutStage === "actif" &&
-      (!derniereActivite || new Date(derniereActivite) < seuilRetard);
+      s.statutStage === "actif" && graceOk && evaluationEnRetard;
 
     const noteMoyenne = noteMoyenneParStage.get(s.idStage) ?? null;
 
@@ -944,6 +986,13 @@ export async function listMesStagiaires(idUtilisateur) {
       situation,
       situationLabel,
       joursRestants,
+      // Affectation superviseur (visible surtout côté entreprise)
+      superviseursAssignes: superviseurParStage.get(s.idStage) || [],
+      superviseurAssigne: (() => {
+        const liste = superviseurParStage.get(s.idStage) || [];
+        if (!liste.length) return null;
+        return liste[0].nom || liste[0].email || null;
+      })(),
     };
   });
 }
@@ -1141,5 +1190,100 @@ export async function getDetailStagiaire(idUtilisateur, idStage) {
       progressionPourcentage: ligne.progressionPourcentage,
     },
     historique,
+  };
+}
+
+
+/**
+ * L'entreprise (ou admin) rappelle le(s) superviseur(s) affecté(s) qu'une
+ * évaluation est en retard sur ce stage.
+ * Sécurité : réservé au mode entreprise / admin_entreprise du même idEntreprise.
+ */
+export async function rappelerEvaluationSuperviseur(idUtilisateur, idStage) {
+  const access = await resolveSupervisionAccess(idUtilisateur);
+
+  if (access.mode === "superviseur") {
+    const err = new Error(
+      "Seul le compte entreprise peut envoyer un rappel d'évaluation au superviseur.",
+    );
+    err.status = 403;
+    throw err;
+  }
+
+  await assertStageAccess(access, idStage);
+
+  // Charger le stage + stagiaire
+  const [stage] = await db
+    .select({
+      idStage: stages.idStage,
+      idEntreprise: stages.idEntreprise,
+      dateDebut: stages.dateDebut,
+      statut: stages.statut,
+      prenom: stagiaires.prenom,
+      nom: stagiaires.nom,
+    })
+    .from(stages)
+    .innerJoin(stagiaires, eq(stagiaires.idStagiaire, stages.idStagiaire))
+    .where(eq(stages.idStage, idStage));
+
+  if (!stage) {
+    const err = new Error("Stage introuvable");
+    err.status = 404;
+    throw err;
+  }
+
+  if (stage.idEntreprise !== access.idEntreprise) {
+    const err = new Error("Ce stage n'appartient pas à votre entreprise.");
+    err.status = 403;
+    throw err;
+  }
+
+  // Superviseur(s) affectés avec compte utilisateur actif
+  const affectes = await db
+    .select({
+      idMembre: membresEquipe.idMembre,
+      nom: membresEquipe.nom,
+      idUtilisateur: membresEquipe.idUtilisateur,
+      email: membresEquipe.email,
+    })
+    .from(affectationsSuperviseurStage)
+    .innerJoin(
+      membresEquipe,
+      eq(membresEquipe.idMembre, affectationsSuperviseurStage.idMembre),
+    )
+    .where(eq(affectationsSuperviseurStage.idStage, idStage));
+
+  const destinataires = affectes.filter((a) => a.idUtilisateur);
+  if (!destinataires.length) {
+    const err = new Error(
+      "Aucun superviseur assigné avec un compte actif pour ce stagiaire.",
+    );
+    err.status = 400;
+    throw err;
+  }
+
+  const nomStagiaire = `${stage.prenom || ""} ${stage.nom || ""}`.trim();
+  const notifs = [];
+  for (const dest of destinataires) {
+    const notif = await creerNotification({
+      idUtilisateur: dest.idUtilisateur,
+      type: "rappel_evaluation_stage",
+      titre: "Rappel : évaluation à effectuer",
+      message: `L'entreprise vous rappelle qu'une évaluation est attendue pour le stagiaire ${nomStagiaire}. Merci de la compléter dès que possible.`,
+      lien: `/mes-stagiaires/evaluations`,
+      idEntreprise: stage.idEntreprise,
+      categoriePreference: "evaluations",
+    });
+    notifs.push({
+      idMembre: dest.idMembre,
+      nom: dest.nom,
+      idNotification: notif?.idNotification,
+    });
+  }
+
+  return {
+    ok: true,
+    message: `Rappel envoyé à ${destinataires.length} superviseur(s).`,
+    destinataires: notifs,
   };
 }

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { changerStatutCompteUtilisateurRequest } from "@/lib/api/admin";
 import { useAuthStore } from "@/lib/store/useAuthStore";
+import { toast } from "@/lib/store/useToastStore";
 
 export function useChangerStatutCompteUtilisateur() {
   const token = useAuthStore((state) => state.token);
@@ -8,9 +9,19 @@ export function useChangerStatutCompteUtilisateur() {
   return useMutation({
     mutationFn: ({ id, statutCompte }) =>
       changerStatutCompteUtilisateurRequest(id, statutCompte, token),
-    onSuccess: () => {
+    onSuccess: (_d, variables) => {
       queryClient.invalidateQueries({ queryKey: ["tousUtilisateurs"] });
+      queryClient.invalidateQueries({ queryKey: ["utilisateursAdminStats"] });
+      queryClient.invalidateQueries({ queryKey: ["utilisateurAdminDetail"] });
       queryClient.invalidateQueries({ queryKey: ["adminStats"] });
+      toast.success(
+        variables?.statutCompte === "suspendu"
+          ? "Compte suspendu"
+          : "Compte réactivé",
+      );
+    },
+    onError: (err) => {
+      toast.error(err?.message || "Action impossible");
     },
   });
 }

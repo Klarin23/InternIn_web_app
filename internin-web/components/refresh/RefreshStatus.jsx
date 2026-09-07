@@ -16,7 +16,11 @@ export default function RefreshStatus({ queryKeys = [] }) {
   const queryClient = useQueryClient();
   const wasOffline = useRef(false);
   const keysRef = useRef(queryKeys);
-  keysRef.current = queryKeys;
+
+  // Sync après le rendu (react-hooks/refs).
+  useEffect(() => {
+    keysRef.current = queryKeys;
+  });
 
   useEffect(() => {
     if (!isOnline) {

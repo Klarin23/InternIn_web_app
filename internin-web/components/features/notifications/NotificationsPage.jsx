@@ -1,4 +1,6 @@
 "use client";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -15,14 +17,17 @@ import {
 import { useToastStore } from "@/lib/store/useToastStore";
 import { cn } from "@/lib/utils";
 import { getNotifMeta, TONE_CLASS, TONE_DOT, formatNotifDate } from "@/lib/notifications/notifMeta";
+import { translateNotification } from "@/lib/notifications/translateNotif";
 
-const FILTRES = [
-  { id: "toutes", label: "Toutes" },
-  { id: "non_lues", label: "Non lues" },
-  { id: "lues", label: "Lues" },
+const FILTRE_DEFS = [
+  { id: "toutes", labelKey: "notifications.filterAll" },
+  { id: "non_lues", labelKey: "notifications.filterUnread" },
+  { id: "lues", labelKey: "notifications.filterRead" },
 ];
 
 export default function NotificationsPage() {
+  const { t } = useTranslation();
+  const FILTRES = FILTRE_DEFS.map((f) => ({ ...f, label: t(f.labelKey) }));
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const showToast = useToastStore((s) => s.showToast);
@@ -32,6 +37,7 @@ export default function NotificationsPage() {
   const marquerToutes = useMarquerToutesNotificationsLues();
   const supprimer = useSupprimerNotification();
   const supprimerToutes = useSupprimerToutesNotifications();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const notifications = Array.isArray(liste) ? liste : liste?.notifications || [];
   const filtered = useMemo(() => {
     if (filtre === "non_lues") return notifications.filter((n) => !n.lu);
@@ -48,16 +54,23 @@ export default function NotificationsPage() {
   return (
     <>
       <AppHeader
-        breadcrumb={[{ label: "Notifications" }]}
-        subtitle="Historique de vos alertes"
+        breadcrumb={[{ label: t("notifications.title") }]}
+        subtitle={t("notifications.subtitle")}
         refreshKeys={["notifications", "notificationsNonLuesCount"]}
       />
       <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Notifications</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("notifications.title")}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {nonLues > 0 ? `${nonLues} non lue${nonLues > 1 ? "s" : ""}` : "Tout est à jour"}
+              {nonLues > 0
+                ? t(
+                    nonLues > 1
+                      ? "notifications.unreadCountPlural"
+                      : "notifications.unreadCount",
+                    { n: nonLues },
+                  )
+                : t("notifications.allCaughtUp")}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -67,23 +80,23 @@ export default function NotificationsPage() {
                 onClick={() =>
                   marquerToutes.mutate(undefined, {
                     onSuccess: () =>
-                      showToast?.({ message: "Toutes marquées comme lues", variant: "success" }),
+                      showToast?.({ message: t("notifications.markAllReadSuccess"), variant: "success" }),
                   })
                 }
                 className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold shadow-sm hover:bg-muted"
               >
-                <FiCheck className="h-3.5 w-3.5" /> Tout marquer comme lu
+                <FiCheck className="h-3.5 w-3.5" /> {t("notifications.markAllRead")}
               </button>
             )}
             {notifications.length > 0 && (
               <button
                 type="button"
                 onClick={() => {
-                  if (confirm("Supprimer toutes les notifications ?")) supprimerToutes.mutate();
+                  if (confirm(t("notifications.deleteAllConfirm"))) supprimerToutes.mutate();
                 }}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/5"
               >
-                <FiTrash2 className="h-3.5 w-3.5" /> Tout supprimer
+                <FiTrash2 className="h-3.5 w-3.5" /> {t("notifications.deleteAll")}
               </button>
             )}
           </div>
@@ -143,7 +156,7 @@ export default function NotificationsPage() {
                     transition={{ delay: reduceMotion ? 0 : Math.min(idx, 10) * 0.025 }}
                     className={cn(
                       "group flex items-start gap-3 px-4 py-3.5 transition hover:bg-muted/40",
-                      !n.lu && "bg-primary/[0.03]",
+                      !n.lu && "bg-primary/3",
                     )}
                   >
                     <button type="button" onClick={() => openNotif(n)} className="flex min-w-0 flex-1 items-start gap-3 text-left">
@@ -153,20 +166,20 @@ export default function NotificationsPage() {
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-2">
                           {!n.lu && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
-                          <span className={cn("text-sm text-foreground", !n.lu ? "font-semibold" : "font-medium")}>{n.titre}</span>
+                          <span className={cn("text-sm text-foreground", !n.lu ? "font-semibold" : "font-medium")}>{translateNotification(n, t).titre}</span>
                         </span>
-                        {n.message && <span className="mt-0.5 block text-xs text-muted-foreground">{n.message}</span>}
+                        {n.message && <span className="mt-0.5 block text-xs text-muted-foreground">{translateNotification(n, t).message}</span>}
                         <span className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
                           {formatNotifDate(n.dateCreation)}
                           {n.lien && (
                             <span className="inline-flex items-center gap-0.5 font-semibold text-primary">
-                              {meta.label} <FiChevronRight className="h-3 w-3" />
+                              {t(meta.labelKey)} <FiChevronRight className="h-3 w-3" />
                             </span>
                           )}
                         </span>
                       </span>
                     </button>
-                    <button type="button" onClick={() => supprimer.mutate(n.idNotification)} className="rounded-lg p-2 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100" aria-label="Supprimer">
+                    <button type="button" onClick={() => supprimer.mutate(n.idNotification)} className="rounded-lg p-2 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100" aria-label={t("notifications.delete")}>
                       <FiTrash2 className="h-4 w-4" />
                     </button>
                   </motion.li>

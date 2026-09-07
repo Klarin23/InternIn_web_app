@@ -93,6 +93,9 @@ export default function SoumettreEvaluationDialog({
   stagiaireNom,
   stagiairePoste,
   numeroSemaine,
+  triggerLabel = "Soumettre l'évaluation",
+  triggerIcon = null,
+  triggerClassName,
 }) {
   const reduceMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
@@ -172,8 +175,16 @@ export default function SoumettreEvaluationDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button type="button" size="sm" className="rounded-lg">
-          Soumettre l&apos;évaluation
+        <Button
+          type="button"
+          size="sm"
+          className={cn(
+            "rounded-lg gap-1.5 transition-all duration-200 active:scale-[0.98]",
+            triggerClassName,
+          )}
+        >
+          {triggerIcon}
+          {triggerLabel}
         </Button>
       </DialogTrigger>
 

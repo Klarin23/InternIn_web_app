@@ -27,6 +27,13 @@ import StepInformationsGenerales from "./steps/StepInformationsGenerales";
 import StepMissionsProfil from "./steps/StepMissionsProfil";
 import StepConditionsStage from "./steps/StepConditionsStage";
 import StepApercu from "./steps/StepApercu";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+import {
+  SECTEUR_OPTIONS,
+  DEPARTEMENT_OPTIONS,
+  resolveOffreListValue,
+  splitExistingListValue,
+} from "./offreForm.constants";
 
 const TOTAL_STEPS = 4;
 
@@ -35,6 +42,7 @@ export default function OffreForm({
   onSuccess,
   onCancel,
 }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const isEditing = !!existingOffre;
   const createMutation = useCreateOffre();
@@ -47,6 +55,15 @@ export default function OffreForm({
   // soumission, pour n'afficher le loader que sur le bon bouton à l'étape 4.
   const [publishingStatut, setPublishingStatut] = useState(null);
 
+  const secteurInit = splitExistingListValue(
+    existingOffre?.secteurActivite,
+    SECTEUR_OPTIONS,
+  );
+  const departementInit = splitExistingListValue(
+    existingOffre?.departement,
+    DEPARTEMENT_OPTIONS,
+  );
+
   const {
     register,
     handleSubmit,
@@ -58,8 +75,10 @@ export default function OffreForm({
     resolver: zodResolver(offreFormSchema),
     defaultValues: {
       titre: existingOffre?.titre || "",
-      departement: existingOffre?.departement || "",
-      secteurActivite: existingOffre?.secteurActivite || "",
+      departement: departementInit.selected,
+      departementCustom: departementInit.custom,
+      secteurActivite: secteurInit.selected,
+      secteurActiviteCustom: secteurInit.custom,
       description: existingOffre?.description || "",
       responsabilites: existingOffre?.responsabilites || "",
       competencesRequises: existingOffre?.competencesRequises || "",
@@ -96,8 +115,21 @@ export default function OffreForm({
   }
 
   function sanitizePayload(vals) {
+    const {
+      secteurActiviteCustom,
+      departementCustom,
+      secteurActivite,
+      departement,
+      ...rest
+    } = vals;
+
     return {
-      ...vals,
+      ...rest,
+      secteurActivite: resolveOffreListValue(
+        secteurActivite,
+        secteurActiviteCustom,
+      ),
+      departement: resolveOffreListValue(departement, departementCustom) || null,
       montantRemuneration: vals.montantRemuneration || null,
       dateLimiteCandidature: vals.dateLimiteCandidature || null,
     };
@@ -117,10 +149,10 @@ export default function OffreForm({
       }
 
       if (statut === "publie") {
-        toast.success("Offre publiée avec succès ✅");
+        toast.success(t("entrepriseSpace.offers.publishSuccess"));
         setConfettiTrigger((n) => n + 1);
       } else {
-        toast.info("Offre enregistrée en brouillon");
+        toast.info(t("entrepriseSpace.offers.draftSuccess"));
       }
 
       if (onSuccess) {
@@ -162,6 +194,7 @@ export default function OffreForm({
             <StepInformationsGenerales
               key="step1"
               register={register}
+              control={control}
               errors={errors}
             />
           )}
@@ -220,7 +253,7 @@ export default function OffreForm({
               </Button>
             )}
             <Button type="button" onClick={goNext} className="h-12 rounded-sm">
-              {currentStep === 3 ? "Aperçu de l'offre" : "Continuer"}
+              {currentStep === 3 ? t("entrepriseSpace.offers.previewOffer") : t("entrepriseSpace.offers.continue")}
               <FiChevronRight className="h-4 w-4" />
             </Button>
           </div>

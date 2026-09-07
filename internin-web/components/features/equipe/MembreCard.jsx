@@ -19,7 +19,8 @@ import {
   STATUT_MEMBRE_COLORS,
   STATUT_DOT_COLORS,
   AVATAR_COLORS,
-} from "./equipeConstants";
+ roleLabel, statutLabel } from "./equipeConstants";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import {
   useRenvoyerInvitation,
   useAnnulerInvitation,
@@ -27,6 +28,7 @@ import {
 } from "@/lib/queries/useEquipe";
 
 export default function MembreCard({ membre, index, onOuvrirDetail }) {
+  const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const couleur = AVATAR_COLORS[index % AVATAR_COLORS.length];
@@ -76,7 +78,7 @@ export default function MembreCard({ membre, index, onOuvrirDetail }) {
             size="icon-sm"
             variant="ghost"
             className="h-8 w-8 opacity-60 transition group-hover:opacity-100"
-            aria-label="Actions du membre"
+            aria-label={t("equipe.actions.memberActions")}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((v) => !v)}
           >
@@ -106,7 +108,7 @@ export default function MembreCard({ membre, index, onOuvrirDetail }) {
                       }}
                     >
                       <FiRefreshCw className="h-3.5 w-3.5" />
-                      Renvoyer l&apos;invitation
+                      {t("equipe.actions.resendInvite")}
                     </button>
                     <button
                       type="button"
@@ -119,7 +121,7 @@ export default function MembreCard({ membre, index, onOuvrirDetail }) {
                       }}
                     >
                       <FiX className="h-3.5 w-3.5" />
-                      Annuler l&apos;invitation
+                      {t("equipe.actions.cancelInvite")}
                     </button>
                   </>
                 )}
@@ -145,12 +147,12 @@ export default function MembreCard({ membre, index, onOuvrirDetail }) {
                       {membre.statutMembre === "actif" ? (
                         <>
                           <FiPause className="h-3.5 w-3.5" />
-                          Désactiver
+                          {t("equipe.actions.deactivate")}
                         </>
                       ) : (
                         <>
                           <FiPlay className="h-3.5 w-3.5" />
-                          Activer
+                          {t("equipe.actions.activate")}
                         </>
                       )}
                     </button>
@@ -167,7 +169,7 @@ export default function MembreCard({ membre, index, onOuvrirDetail }) {
                     }}
                   >
                     <FiSettings className="h-3.5 w-3.5" />
-                    Modifier le rôle
+                    {t("equipe.actions.editRole")}
                   </button>
                 )}
               </motion.div>
@@ -191,7 +193,7 @@ export default function MembreCard({ membre, index, onOuvrirDetail }) {
           </span>
           <span
             className={`absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-card ${STATUT_DOT_COLORS[membre.statutMembre] || "bg-muted"}`}
-            title={STATUT_MEMBRE_LABELS[membre.statutMembre]}
+            title={statutLabel(t, membre.statutMembre)}
           />
         </div>
 
@@ -199,7 +201,7 @@ export default function MembreCard({ membre, index, onOuvrirDetail }) {
           {membre.nom}
           {membre.estAdminPrincipal && (
             <span className="ml-1 text-xs font-normal text-muted-foreground">
-              (vous)
+              {t("equipe.you")}
             </span>
           )}
         </span>
@@ -213,7 +215,7 @@ export default function MembreCard({ membre, index, onOuvrirDetail }) {
         <span
           className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${ROLE_BADGE_COLORS[membre.roleEquipe] || "bg-muted text-muted-foreground border-border"}`}
         >
-          {ROLE_LABELS[membre.roleEquipe] || membre.roleEquipe}
+          {roleLabel(t, membre.roleEquipe)}
         </span>
         <span
           className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${STATUT_MEMBRE_COLORS[membre.statutMembre]}`}
@@ -221,7 +223,7 @@ export default function MembreCard({ membre, index, onOuvrirDetail }) {
           <span
             className={`h-1.5 w-1.5 rounded-full ${STATUT_DOT_COLORS[membre.statutMembre]}`}
           />
-          {STATUT_MEMBRE_LABELS[membre.statutMembre]}
+          {statutLabel(t, membre.statutMembre)}
         </span>
       </div>
     </motion.div>

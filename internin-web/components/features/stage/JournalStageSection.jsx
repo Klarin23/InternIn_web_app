@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
 import { useState } from "react";
 import {
   FiPlus,
@@ -20,10 +22,10 @@ import {
 } from "@/lib/queries/useStages";
 
 const STATUT_LABELS = {
-  en_attente: "En attente de validation",
-  validee: "Validée",
-  correction_demandee: "Correction demandée",
-  terminee: "Terminée",
+  en_attente: "journalStatusPending",
+  validee: "journalStatusValidated",
+  correction_demandee: "journalStatusCorrection",
+  terminee: "journalStatusDone",
 };
 
 const STATUT_COLORS = {
@@ -73,13 +75,13 @@ function FormulaireEntree({ idStage, entree, onTerminer }) {
   return (
     <div className="space-y-3 rounded-md border border-border bg-muted/30 p-4">
       <Input
-        placeholder="Titre de l'activité"
+        placeholder={t("stagiaireSpace.stage.journalTitlePh")}
         value={titre}
         onChange={(e) => setTitre(e.target.value)}
         className="h-10 rounded-sm"
       />
       <Textarea
-        placeholder="Décrivez ce que vous avez réalisé..."
+        placeholder={t("stagiaireSpace.stage.journalDescPh")}
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         className="min-h-[80px] rounded-sm"
@@ -103,7 +105,7 @@ function FormulaireEntree({ idStage, entree, onTerminer }) {
           ) : (
             <>
               <FiCheck className="h-3.5 w-3.5" />
-              {entree ? "Enregistrer" : "Publier"}
+              {entree ? t("stagiaireSpace.stage.journalSave") : t("stagiaireSpace.stage.journalPublish")}
             </>
           )}
         </Button>
@@ -122,6 +124,7 @@ function FormulaireEntree({ idStage, entree, onTerminer }) {
 }
 
 export default function JournalStageSection({ idStage }) {
+  const { t } = useTranslation();
   const { data: entrees, isLoading } = useMonJournal(idStage);
   const supprimer = useSupprimerEntreeJournal(idStage);
   const [ajoutOuvert, setAjoutOuvert] = useState(false);
@@ -140,7 +143,7 @@ export default function JournalStageSection({ idStage }) {
     <div className="rounded-md border border-border bg-card p-5">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-semibold text-foreground">
-          Journal de stage
+          {t("stagiaireSpace.stage.journalTitle")}
         </h2>
         {!ajoutOuvert && (
           <Button
@@ -150,7 +153,7 @@ export default function JournalStageSection({ idStage }) {
             onClick={() => setAjoutOuvert(true)}
           >
             <FiPlus className="h-3.5 w-3.5" />
-            Nouvelle activité
+            {t("stagiaireSpace.stage.journalNewActivity")}
           </Button>
         )}
       </div>
@@ -166,7 +169,7 @@ export default function JournalStageSection({ idStage }) {
 
       {(!entrees || entrees.length === 0) && !ajoutOuvert ? (
         <p className="text-sm text-muted-foreground">
-          Aucune activité enregistrée pour l&apos;instant.
+          {t("stagiaireSpace.stage.journalEmpty")}
         </p>
       ) : (
         <ul className="space-y-3">
@@ -191,7 +194,7 @@ export default function JournalStageSection({ idStage }) {
                   <span
                     className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUT_COLORS[e.statutValidation]}`}
                   >
-                    {STATUT_LABELS[e.statutValidation]}
+                    {t(`stagiaireSpace.stage.${STATUT_LABELS[e.statutValidation]}`)}
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground">{e.description}</p>

@@ -1,19 +1,27 @@
 "use client";
 // Carte "Profil" complète : photo, nom, université, niveau, compétences,
-// statut du CV, pourcentage de complétude, bouton d'action. Coins 20px,
-// ombre douce, léger dégradé de fond — cohérent avec la direction "premium"
-// demandée pour l'espace étudiant. Icônes Lucide (déjà utilisées ailleurs
-// dans l'app : auth, profil, marketing, onboarding).
+// statut du CV, pourcentage de complétude, liste des éléments manquants,
+// bouton d'action.
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { GraduationCap, FileCheck2, FileX2, ArrowRight } from "lucide-react";
+import {
+  GraduationCap,
+  FileCheck2,
+  FileX2,
+  ArrowRight,
+  CheckCircle2,
+  Circle,
+} from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { calculerCompletionProfil } from "@/lib/utils/profilCompletion";
 
 export default function ProfileCompletionCard({ profile, derniereFormation }) {
   const { t } = useTranslation();
-    const score = calculerCompletionProfil(profile).pourcentage;
+  const completion = calculerCompletionProfil(profile);
+  const score = completion.pourcentage;
+  const manquants = completion.manquants || [];
+  const elements = completion.elements || [];
   const initiale = (profile?.prenom?.charAt(0) || "?").toUpperCase();
   const competences = profile?.competences || [];
   const competencesAffichees = competences.slice(0, 4);
@@ -53,7 +61,13 @@ export default function ProfileCompletionCard({ profile, derniereFormation }) {
               <GraduationCap className="h-3.5 w-3.5 shrink-0" />
               {[
                 derniereFormation?.diplome &&
-                  `${derniereFormation.diplome}${derniereFormation.anneeEtude ? ` · ${t("dashboard.profileCard.yearLabel", { n: derniereFormation.anneeEtude })}` : ""}`,
+                  `${derniereFormation.diplome}${
+                    derniereFormation.anneeEtude
+                      ? ` · ${t("dashboard.profileCard.yearLabel", {
+                          n: derniereFormation.anneeEtude,
+                        })}`
+                      : ""
+                  }`,
                 derniereFormation?.nomUniversite,
               ]
                 .filter(Boolean)
@@ -114,11 +128,34 @@ export default function ProfileCompletionCard({ profile, derniereFormation }) {
         />
       </div>
 
+      {/* Éléments manquants sous la barre */}
+      {manquants.length > 0 && (
+        <ul className="mt-4 space-y-1.5">
+          {manquants.map((el) => (
+            <li
+              key={el.id}
+              className="flex items-center gap-2 text-xs text-muted-foreground"
+            >
+              <Circle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+              <span>{el.label}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {score === 100 && (
+        <p className="mt-4 flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          Profil complet
+        </p>
+      )}
+
       <Link
-        href="/profil"
+        href={score < 100 ? "/activation" : "/profil"}
         className="mt-5 flex items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
       >
-        {t("dashboard.profileCard.completeProfile")}
+        {score < 100
+          ? t("dashboard.profileCard.completeProfile")
+          : t("dashboard.profileCard.completeProfile")}
         <ArrowRight className="h-4 w-4" />
       </Link>
     </motion.div>
