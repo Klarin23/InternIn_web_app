@@ -296,6 +296,7 @@ function SettingsNav({ activeId, onSelect }) {
 
 function ProfilSection({ profil, user }) {
   const router = useRouter();
+  const { t } = useTranslation();
   return (
     <SectionCard
       title={t("stagiaireSpace.settings.profileAccount")}
