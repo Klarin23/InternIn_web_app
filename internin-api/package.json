@@ -22,7 +22,8 @@
     "test:realtime-horizontal": "node script/test-realtime-horizontal.js",
     "job:sync-stages": "node script/sync-stages-statuts.js",
     "test:stage-sync-lock": "node script/test-stage-sync-lock.js",
-    "db:migrate-etats-vue": "node script/migrate-etats-vue.js"
+    "db:migrate-etats-vue": "node script/migrate-etats-vue.js",
+    "db:reconcile-neon": "node script/reconcile-neon-schema.js"
   },
   "keywords": [],
   "author": "",
