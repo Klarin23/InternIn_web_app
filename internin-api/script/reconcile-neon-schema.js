@@ -71,6 +71,10 @@ async function main() {
     await q("BEGIN");
 
     // ---- Existing tables: columns added by later InternIn migrations ----
+    // Entreprises: migration 0030 reintroduced this column after it was removed in 0029.
+    // The current application selects it on multiple enterprise/admin endpoints.
+    await addColumnIfMissing("entreprises", "motif_rejet_verification", "text");
+
     await addColumnIfMissing("utilisateurs", "version_jeton", "integer NOT NULL DEFAULT 0");
 
     await addColumnIfMissing("sessions_utilisateur", "pays_connexion", "varchar(100)");

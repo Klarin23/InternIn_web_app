@@ -350,6 +350,7 @@ function ProfilSection({ profil, user }) {
 }
 
 function SecuriteSection({ user, profil }) {
+  const { t } = useTranslation();
   const [resending, setResending] = useState(false);
   const token = useAuthStore((s) => s.token);
   const emailVerifie = user?.emailVerifie ?? profil?.emailVerifie;
@@ -438,6 +439,7 @@ function SecuriteSection({ user, profil }) {
 }
 
 function NotificationsSection() {
+  const { t } = useTranslation();
   const [prefs, setPrefs] = useState(() => {
     if (typeof window === "undefined") return DEFAULT_NOTIF_PREFS;
     try {
@@ -543,6 +545,7 @@ function NotificationsSection() {
 }
 
 function ApparenceSection() {
+  const { t } = ueTranslation();
   const theme = useThemeStore((s) => s.theme);
   const setTheme = useThemeStore((s) => s.setTheme);
 
@@ -666,6 +669,7 @@ function LangueSection() {
 }
 
 function ConfidentialiteSection({ profil }) {
+  const { t } = useTranslation();
   const shouldReduceMotion = useReducedMotion();
   const updatePrivacy = useUpdateStagiairePrivacy();
   const visible = Boolean(profil?.profilVisibleEntreprises);
@@ -801,6 +805,7 @@ function ConfidentialiteSection({ profil }) {
 }
 
 function DangerSection({ onLogout }) {
+  const { t } = useTranslation();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const token = useAuthStore((s) => s.token);

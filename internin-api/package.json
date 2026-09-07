@@ -23,6 +23,7 @@
     "job:sync-stages": "node script/sync-stages-statuts.js",
     "test:stage-sync-lock": "node script/test-stage-sync-lock.js",
     "db:migrate-etats-vue": "node script/migrate-etats-vue.js",
+    "db:replace-admin": "node script/replace-admin.js",
     "db:reconcile-neon": "node script/reconcile-neon-schema.js"
   },
   "keywords": [],
