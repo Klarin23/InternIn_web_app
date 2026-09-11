@@ -10,6 +10,7 @@ import { useRefresh } from "@/hooks/useRefresh";
 import { toast } from "@/lib/store/useToastStore";
 import { cn } from "@/lib/utils";
 import LastUpdated from "./LastUpdated";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function RefreshButton({
   queryKeys = [],
@@ -18,9 +19,18 @@ export default function RefreshButton({
   errorMessage = "Impossible d'actualiser les données.",
   className,
 }) {
+  const { t } = useTranslation();
+  const successText =
+    successMessage === "Données mises à jour"
+      ? t("auditUi.refresh.updated")
+      : successMessage;
+  const errorText =
+    errorMessage === "Impossible d'actualiser les données."
+      ? t("auditUi.refresh.error")
+      : errorMessage;
   const { refresh, status, lastUpdated } = useRefresh(queryKeys, {
-    onSuccess: () => toast.success(successMessage),
-    onError: () => toast.error(errorMessage),
+    onSuccess: () => toast.success(successText),
+    onError: () => toast.error(errorText),
   });
 
   const isLoading = status === "loading";
@@ -52,7 +62,7 @@ export default function RefreshButton({
               className="flex items-center gap-1.5"
             >
               <Check className="h-3.5 w-3.5" />
-              Mis à jour
+              {t("auditUi.refresh.updated")}
             </motion.span>
           ) : (
             <motion.span
@@ -63,8 +73,12 @@ export default function RefreshButton({
               transition={{ duration: 0.18 }}
               className="flex items-center gap-1.5"
             >
-              <RefreshCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} />
-              {isLoading ? "Actualisation…" : "Actualiser"}
+              <RefreshCw
+                className={cn("h-3.5 w-3.5", isLoading && "animate-spin")}
+              />
+              {isLoading
+                ? t("auditUi.refresh.refreshing")
+                : t("auditUi.refresh.refresh")}
             </motion.span>
           )}
         </AnimatePresence>
@@ -74,13 +88,13 @@ export default function RefreshButton({
 
       {status === "error" && (
         <div className="flex items-center gap-2 text-[11px] text-destructive">
-          <span>Réessayez dans quelques instants.</span>
+          <span>{t("auditUi.refresh.retryHint")}</span>
           <button
             type="button"
             onClick={refresh}
             className="font-medium underline underline-offset-2 hover:text-destructive/80"
           >
-            Réessayer
+            {t("auditUi.common.retry")}
           </button>
         </div>
       )}

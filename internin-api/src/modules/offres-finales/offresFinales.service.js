@@ -1,10 +1,10 @@
-// Le point le plus délicat de ce module : la création du Stage ne se
-// produit que lorsque les 3 booléens de conventions_stage sont à true
-// (règle métier du PRD). On y arrive en 3 étapes indépendantes :
-// 1) L'entreprise crée l'offre finale -> accepteeParEntreprise = true d'emblée
-// 2) L'admin valide -> approuveeParPlateforme = true
-// 3) Le stagiaire accepte -> accepteeParStagiaire = true, et si les 2 autres
-//    sont déjà true, on crée le Stage dans la foulée (transaction).
+// La création du Stage ne se produit que lorsque les 3 booléens de
+// conventions_stage sont à true. L'offre finale est désormais approuvée
+// automatiquement lors de sa création : l'étudiant peut donc la recevoir
+// immédiatement, tandis que l'approbation de la convention reste distincte.
+// 1) L'entreprise crée l'offre finale -> offre approuvée + entreprise acceptée
+// 2) Le stagiaire accepte -> accepteeParStagiaire = true
+// 3) Si l'approbation de convention est également acquise, le Stage est créé.
 
 import { eq, and, ne, desc, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
@@ -20,7 +20,10 @@ import {
   entreprises,
   stagiaires,
 } from "../../db/schema.js";
-import { creerNotification, emitNotificationCreated } from "../notifications/notifications.service.js";
+import {
+  creerNotification,
+  emitNotificationCreated,
+} from "../notifications/notifications.service.js";
 import {
   computeInitialStageStatus,
   getStageLifecycleStatus,
@@ -30,7 +33,6 @@ import {
 import { enrichWithDelaiTraitement } from "../../utils/delaiTraitement.js";
 import {
   isAutoValidationEnabled,
-  ELEMENT_OFFRES_FINALES,
   ELEMENT_CONVENTIONS,
 } from "../../utils/autoValidation.js";
 import {
@@ -50,6 +52,12 @@ export async function createOffreFinale(idUtilisateurEntreprise, payload) {
     .select({
       idOffreEntreprise: offresStage.idEntreprise,
       idContactSuperviseur: offresStage.idContactSuperviseur,
+      intitulePoste: offresStage.titre,
+      remunerationType: offresStage.remunerationType,
+      idUtilisateurStagiaire: stagiaires.idUtilisateur,
+      prenomStagiaire: stagiaires.prenom,
+      nomStagiaire: stagiaires.nom,
+      idCandidature: candidatures.idCandidature,
     })
     .from(entretiens)
     .innerJoin(
@@ -57,6 +65,7 @@ export async function createOffreFinale(idUtilisateurEntreprise, payload) {
       eq(entretiens.idCandidature, candidatures.idCandidature),
     )
     .innerJoin(offresStage, eq(candidatures.idOffre, offresStage.idOffre))
+    .innerJoin(stagiaires, eq(candidatures.idStagiaire, stagiaires.idStagiaire))
     .where(eq(entretiens.idEntretien, payload.idEntretien));
 
   if (!row || row.idOffreEntreprise !== entreprise.idEntreprise) {
@@ -88,27 +97,40 @@ export async function createOffreFinale(idUtilisateurEntreprise, payload) {
 
   // Objectifs pédagogiques obligatoires (liste ou texte multi-lignes)
   const objectifsList = validateObjectifsPedagogiques(
-    payload.objectifs?.length ? payload.objectifs : payload.objectifsApprentissage,
+    payload.objectifs?.length
+      ? payload.objectifs
+      : payload.objectifsApprentissage,
   );
   const objectifsSerialized = serializeObjectifsList(objectifsList);
 
-  const autoOffre = await isAutoValidationEnabled(ELEMENT_OFFRES_FINALES);
+  // Il n'existe plus de validation administrative de l'offre finale.
+  // La validation éventuelle de la convention reste indépendante.
   const autoConvention = await isAutoValidationEnabled(ELEMENT_CONVENTIONS);
+  const pendingNotifs = [];
 
-  return db.transaction(async (tx) => {
+  const resultatCreation = await db.transaction(async (tx) => {
     const [offreFinale] = await tx
       .insert(offresFinales)
       .values({
         idEntretien: payload.idEntretien,
         idContactSuperviseur: row.idContactSuperviseur,
-        intitulePoste: payload.intitulePoste,
+        // Le titre de l'offre finale est hérité de l'offre de stage publiée.
+        // Il ne doit jamais être fourni ni modifié par le client.
+        intitulePoste: row.intitulePoste,
         objectifsApprentissage: objectifsSerialized,
         volumeHoraireHebdo: payload.volumeHoraireHebdo,
         dureeStage: payload.dureeStage,
         modeTravail: payload.modeTravail,
-        remunerationType: payload.remunerationType,
+        lienReunionOnline: payload.lienReunionOnline || null,
+        horairesStage: payload.horairesStage,
+        // La rémunération est héritée de l'offre de stage publiée et ne peut
+        // plus être modifiée lors de la création de l'offre finale.
+        remunerationType: row.remunerationType,
         dateDebut: payload.dateDebut,
-        statutValidationPlateforme: autoOffre ? "approuve" : "en_attente",
+        // Une offre finale créée par une entreprise autorisée est directement
+        // disponible au stagiaire : aucune approbation admin n'est requise.
+        statutValidationPlateforme: "approuve",
+        dateValidation: new Date(),
         statutReponseStagiaire: "en_attente",
       })
       .returning();
@@ -118,27 +140,39 @@ export async function createOffreFinale(idUtilisateurEntreprise, payload) {
       accepteeParEntreprise: true,
       dateAcceptationEntreprise: new Date(),
       accepteeParStagiaire: false,
-      approuveeParPlateforme: autoOffre || autoConvention,
+      approuveeParPlateforme: autoConvention,
     });
 
-    const [candidatureRow] = await tx
-      .select({ idCandidature: candidatures.idCandidature })
-      .from(entretiens)
-      .innerJoin(
-        candidatures,
-        eq(entretiens.idCandidature, candidatures.idCandidature),
-      )
-      .where(eq(entretiens.idEntretien, payload.idEntretien));
+    // L'entretien a déjà été vérifié avant l'insertion et la requête ci-dessus
+    // garantit la présence du candidat. On met donc à jour sa candidature
+    // dans la même transaction que l'offre finale.
+    await tx
+      .update(candidatures)
+      .set({ statut: "preselectionnee", dateMajStatut: new Date() })
+      .where(eq(candidatures.idCandidature, row.idCandidature));
 
-    if (candidatureRow) {
-      await tx
-        .update(candidatures)
-        .set({ statut: "preselectionnee", dateMajStatut: new Date() })
-        .where(eq(candidatures.idCandidature, candidatureRow.idCandidature));
-    }
+    // Notification atomique : l'offre n'est considérée comme reçue par
+    // l'étudiant que si sa création est effectivement commitée.
+    const notification = await creerNotification(
+      {
+        idUtilisateur: row.idUtilisateurStagiaire,
+        type: "offre_finale_recue",
+        titre: "Offre finale reçue",
+        message: `${entreprise.nomEntreprise || "L'entreprise"} vous a envoyé une offre finale pour « ${offreFinale.intitulePoste} ». Vous pouvez maintenant la consulter et y répondre.`,
+        lien: "/candidatures",
+      },
+      tx,
+    );
+    if (notification) pendingNotifs.push(notification);
 
     return offreFinale;
   });
+
+  for (const notification of pendingNotifs) {
+    emitNotificationCreated(notification);
+  }
+
+  return resultatCreation;
 }
 
 // Historique des tentatives d'offre finale rejetées par l'administration
@@ -178,6 +212,7 @@ export async function listHistoriqueRejets(
       dureeStage: offresFinales.dureeStage,
       volumeHoraireHebdo: offresFinales.volumeHoraireHebdo,
       dateDebut: offresFinales.dateDebut,
+      horairesStage: offresFinales.horairesStage,
       dateCreation: offresFinales.dateCreation,
       dateValidation: offresFinales.dateValidation,
       statutValidationPlateforme: offresFinales.statutValidationPlateforme,
@@ -197,6 +232,7 @@ export async function listOffresFinalesEnAttente() {
       intitulePoste: offresFinales.intitulePoste,
       dureeStage: offresFinales.dureeStage,
       dateDebut: offresFinales.dateDebut,
+      horairesStage: offresFinales.horairesStage,
       dateCreation: offresFinales.dateCreation,
       nomEntreprise: entreprises.nomEntreprise,
       prenom: stagiaires.prenom,
@@ -242,6 +278,7 @@ export async function listToutesOffresFinales(statut) {
       modeTravail: offresFinales.modeTravail,
       remunerationType: offresFinales.remunerationType,
       dateDebut: offresFinales.dateDebut,
+      horairesStage: offresFinales.horairesStage,
       dateCreation: offresFinales.dateCreation,
       dateValidation: offresFinales.dateValidation,
       statutValidationPlateforme: offresFinales.statutValidationPlateforme,
@@ -269,7 +306,9 @@ export async function listToutesOffresFinales(statut) {
     .innerJoin(stagiaires, eq(candidatures.idStagiaire, stagiaires.idStagiaire))
     // .where(undefined) est un pattern Drizzle standard : la clause WHERE
     // est simplement omise quand aucun filtre de statut n'est demandé.
-    .where(statut ? eq(offresFinales.statutValidationPlateforme, statut) : undefined)
+    .where(
+      statut ? eq(offresFinales.statutValidationPlateforme, statut) : undefined,
+    )
     .orderBy(desc(offresFinales.dateCreation));
 
   return enrichWithDelaiTraitement(
@@ -277,96 +316,6 @@ export async function listToutesOffresFinales(statut) {
     (r) => r.dateCreation,
     (r) => r.statutValidationPlateforme === "en_attente",
   );
-}
-
-export async function validerOffreFinale(
-  idUtilisateurAdmin,
-  idOffreFinale,
-  statutValidationPlateforme,
-) {
-  const resultatValidation = await db.transaction(async (tx) => {
-    const [offreFinale] = await tx
-      .update(offresFinales)
-      .set({ statutValidationPlateforme, dateValidation: new Date() })
-      .where(eq(offresFinales.idOffreFinale, idOffreFinale))
-      .returning();
-
-    if (!offreFinale) {
-      const err = new Error("Offre finale introuvable");
-      err.status = 404;
-      throw err;
-    }
-
-    if (statutValidationPlateforme === "approuve") {
-      await tx
-        .update(conventionsStage)
-        .set({ approuveeParPlateforme: true })
-        .where(eq(conventionsStage.idOffreFinale, idOffreFinale));
-    }
-
-    // Contexte nécessaire pour personnaliser la notification envoyée à
-    // l'entreprise (nom du candidat concerné).
-    const [contexte] = await tx
-      .select({
-        idUtilisateurEntreprise: entreprises.idUtilisateur,
-        prenom: stagiaires.prenom,
-        nom: stagiaires.nom,
-      })
-      .from(offresFinales)
-      .innerJoin(
-        entretiens,
-        eq(offresFinales.idEntretien, entretiens.idEntretien),
-      )
-      .innerJoin(
-        candidatures,
-        eq(entretiens.idCandidature, candidatures.idCandidature),
-      )
-      .innerJoin(offresStage, eq(candidatures.idOffre, offresStage.idOffre))
-      .innerJoin(
-        entreprises,
-        eq(offresStage.idEntreprise, entreprises.idEntreprise),
-      )
-      .innerJoin(
-        stagiaires,
-        eq(candidatures.idStagiaire, stagiaires.idStagiaire),
-      )
-      .where(eq(offresFinales.idOffreFinale, idOffreFinale));
-
-    let notif = null;
-    if (contexte) {
-      if (statutValidationPlateforme === "approuve") {
-        notif = await creerNotification(
-          {
-            idUtilisateur: contexte.idUtilisateurEntreprise,
-            type: "offre_finale_approuvee",
-            titre: "Offre finale validée",
-            message: `L'administration a validé votre offre pour ${contexte.prenom} ${contexte.nom} (« ${offreFinale.intitulePoste} »). Le candidat peut désormais y répondre.`,
-            lien: "/entretiens-entreprise",
-          },
-          tx,
-        );
-      } else if (statutValidationPlateforme === "rejete") {
-        notif = await creerNotification(
-          {
-            idUtilisateur: contexte.idUtilisateurEntreprise,
-            type: "offre_finale_rejetee",
-            titre: "Offre finale rejetée",
-            message: `L'administration a rejeté votre offre pour ${contexte.prenom} ${contexte.nom} (« ${offreFinale.intitulePoste} »). Vous pouvez soumettre une nouvelle offre.`,
-            lien: "/entretiens-entreprise",
-          },
-          tx,
-        );
-      }
-    }
-
-    return { offreFinale, contexte, notif };
-  });
-
-  if (resultatValidation?.notif) {
-    emitNotificationCreated(resultatValidation.notif);
-  }
-
-  return resultatValidation.offreFinale;
 }
 
 export async function listMesOffresFinales(idUtilisateurStagiaire) {
@@ -385,6 +334,7 @@ export async function listMesOffresFinales(idUtilisateurStagiaire) {
       volumeHoraireHebdo: offresFinales.volumeHoraireHebdo,
       dureeStage: offresFinales.dureeStage,
       modeTravail: offresFinales.modeTravail,
+      lienReunionOnline: offresFinales.lienReunionOnline,
       dateDebut: offresFinales.dateDebut,
       statutValidationPlateforme: offresFinales.statutValidationPlateforme,
       statutReponseStagiaire: offresFinales.statutReponseStagiaire,
@@ -628,23 +578,35 @@ export async function repondreOffreFinale(
 
     if (statutReponseStagiaire === "refusee") {
       if (entrepriseInfo?.idUtilisateurEntreprise) {
-        { const _n = await creerNotification({
-          idUtilisateur: entrepriseInfo.idUtilisateurEntreprise,
-          type: "offre_finale_refusee",
-          idEntreprise: entrepriseInfo.idEntreprise,
-          categoriePreference: "candidatures",
-          titre: "Offre finale refusée",
-          message: `${stagiaire.prenom} ${stagiaire.nom} a refusé votre offre finale pour « ${offreFinale.intitulePoste} ». Motif : ${motifNormalise}`,
-          lien: "/entretiens-entreprise",
-        }, tx); if (_n) pendingNotifs.push(_n); };
+        {
+          const _n = await creerNotification(
+            {
+              idUtilisateur: entrepriseInfo.idUtilisateurEntreprise,
+              type: "offre_finale_refusee",
+              idEntreprise: entrepriseInfo.idEntreprise,
+              categoriePreference: "candidatures",
+              titre: "Offre finale refusée",
+              message: `${stagiaire.prenom} ${stagiaire.nom} a refusé votre offre finale pour « ${offreFinale.intitulePoste} ». Motif : ${motifNormalise}`,
+              lien: "/entretiens-entreprise",
+            },
+            tx,
+          );
+          if (_n) pendingNotifs.push(_n);
+        }
         // Confirmation stagiaire
-        { const _n = await creerNotification({
-          idUtilisateur: idUtilisateurStagiaire,
-          type: "offre_finale_refusee_confirmation",
-          titre: "Votre refus a bien été enregistré",
-          message: `L'entreprise ${entrepriseInfo.nomEntreprise || ""} a été informée de votre décision concernant « ${offreFinale.intitulePoste} ».`,
-          lien: "/candidatures",
-        }, tx); if (_n) pendingNotifs.push(_n); };
+        {
+          const _n = await creerNotification(
+            {
+              idUtilisateur: idUtilisateurStagiaire,
+              type: "offre_finale_refusee_confirmation",
+              titre: "Votre refus a bien été enregistré",
+              message: `L'entreprise ${entrepriseInfo.nomEntreprise || ""} a été informée de votre décision concernant « ${offreFinale.intitulePoste} ».`,
+              lien: "/candidatures",
+            },
+            tx,
+          );
+          if (_n) pendingNotifs.push(_n);
+        }
       }
       return { stageCree: false };
     }
@@ -666,15 +628,21 @@ export async function repondreOffreFinale(
     }
 
     if (entrepriseInfo?.idUtilisateurEntreprise) {
-      { const _n = await creerNotification({
-        idUtilisateur: entrepriseInfo.idUtilisateurEntreprise,
-        type: "offre_finale_acceptee",
-          idEntreprise: entrepriseInfo.idEntreprise,
-          categoriePreference: "candidatures",
-        titre: "Offre finale acceptée 🎉",
-        message: `${stagiaire.prenom} ${stagiaire.nom} a accepté votre offre finale pour « ${offreFinale.intitulePoste} ».`,
-        lien: "/entretiens-entreprise",
-      }, tx); if (_n) pendingNotifs.push(_n); };
+      {
+        const _n = await creerNotification(
+          {
+            idUtilisateur: entrepriseInfo.idUtilisateurEntreprise,
+            type: "offre_finale_acceptee",
+            idEntreprise: entrepriseInfo.idEntreprise,
+            categoriePreference: "candidatures",
+            titre: "Offre finale acceptée 🎉",
+            message: `${stagiaire.prenom} ${stagiaire.nom} a accepté votre offre finale pour « ${offreFinale.intitulePoste} ».`,
+            lien: "/entretiens-entreprise",
+          },
+          tx,
+        );
+        if (_n) pendingNotifs.push(_n);
+      }
     }
 
     // Les 3 accords sont réunis : on crée le stage
@@ -708,7 +676,9 @@ export async function repondreOffreFinale(
         .limit(1);
 
       if (!row) {
-        const err = new Error("Données métier incohérentes pour la création du stage");
+        const err = new Error(
+          "Données métier incohérentes pour la création du stage",
+        );
         err.status = 409;
         throw err;
       }
@@ -793,13 +763,20 @@ export async function repondreOffreFinale(
         statutInitial === "a_venir"
           ? `Toutes les signatures sont réunies. Votre stage débutera le ${debutLabel}${jours > 0 ? ` (dans ${jours} jour${jours > 1 ? "s" : ""})` : ""}. Le suivi et la messagerie s'ouvriront à cette date.`
           : `Toutes les signatures sont réunies : votre stage démarre le ${debutLabel}.`;
-      { const _n = await creerNotification({
-        idUtilisateur: stagiaire.idUtilisateur,
-        type: statutInitial === "a_venir" ? "stage_programme" : "stage_demarre",
-        titre: notifTitre,
-        message: notifMessage,
-        lien: "/stage",
-      }, tx); if (_n) pendingNotifs.push(_n); };
+      {
+        const _n = await creerNotification(
+          {
+            idUtilisateur: stagiaire.idUtilisateur,
+            type:
+              statutInitial === "a_venir" ? "stage_programme" : "stage_demarre",
+            titre: notifTitre,
+            message: notifMessage,
+            lien: "/stage",
+          },
+          tx,
+        );
+        if (_n) pendingNotifs.push(_n);
+      }
 
       return { stageCree: true, stage };
     }
@@ -812,4 +789,3 @@ export async function repondreOffreFinale(
   }
   return resultatReponse;
 }
-

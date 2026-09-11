@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { entrepriseStep3Schema } from "@/lib/schemas/onboardingEntreprise.schema";
 import { useOnboardingEntrepriseStore } from "@/lib/store/useOnboardingEntrepriseStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 // Petit composant réutilisable pour une zone de texte avec compteur de caractères
 function TextareaField({
@@ -43,6 +44,7 @@ function TextareaField({
 export default function EntrepriseStep3APropos() {
   const router = useRouter();
   const { data, saveStepData } = useOnboardingEntrepriseStore();
+  const { t } = useTranslation();
 
   const {
     register,
@@ -69,29 +71,29 @@ export default function EntrepriseStep3APropos() {
           <FileText className="h-5 w-5" />
         </div>
         <h1 className="mb-1.5 text-2xl font-bold text-foreground">
-          Présentez votre entreprise
+          {t("onboardingEntreprise.step3.title")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Ce texte sera visible par les stagiaires sur vos offres de stage.
+          {t("onboardingEntreprise.step3.description")}
         </p>
       </div>
 
       <TextareaField
         id="aPropos"
-        label="À propos de l'entreprise"
-        placeholder="Décrivez votre entreprise, son activité, son histoire..."
+        label={t("onboardingEntreprise.step3.about")}
+        placeholder={t("onboardingEntreprise.step3.aboutPlaceholder")}
         registration={register("aPropos")}
-        error={errors.aPropos?.message}
+        error={errors.aPropos?.message ? t(errors.aPropos.message) : undefined}
       />
 
       <TextareaField
         id="mission"
         label={
           <>
-            Mission <span className="text-muted-foreground">(facultatif)</span>
+            {t("onboardingEntreprise.step3.mission")} <span className="text-muted-foreground">({t("onboardingEntreprise.step3.optional")})</span>
           </>
         }
-        placeholder="Quelle est la mission de votre entreprise ?"
+        placeholder={t("onboardingEntreprise.step3.missionPlaceholder")}
         minRows={3}
         registration={register("mission")}
       />
@@ -100,11 +102,10 @@ export default function EntrepriseStep3APropos() {
         id="cultureEntreprise"
         label={
           <>
-            Culture d&apos;entreprise{" "}
-            <span className="text-muted-foreground">(facultatif)</span>
+            {t("onboardingEntreprise.step3.culture")} <span className="text-muted-foreground">({t("onboardingEntreprise.step3.optional")})</span>
           </>
         }
-        placeholder="Décrivez l'ambiance de travail, les valeurs de votre équipe..."
+        placeholder={t("onboardingEntreprise.step3.culturePlaceholder")}
         minRows={3}
         registration={register("cultureEntreprise")}
       />
@@ -117,13 +118,14 @@ export default function EntrepriseStep3APropos() {
           onClick={() => router.push("/onboarding/2")}
         >
           <ArrowLeft className="h-4 w-4" />
+          <span className="sr-only">{t("onboardingEntreprise.step3.back")}</span>
         </Button>
         <Button
           type="submit"
           disabled={isSubmitting}
           className="h-12 flex-1 rounded-sm"
         >
-          Continuer
+          {t("onboardingEntreprise.step3.continue")}
         </Button>
       </div>
     </form>

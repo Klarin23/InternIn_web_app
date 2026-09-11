@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { step3Schema } from "@/lib/schemas/onboarding.schema";
 import { useOnboardingStore } from "@/lib/store/useOnboardingStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const EMPTY_FORMATION = {
   typeFormation: undefined,
@@ -32,6 +33,7 @@ const EMPTY_FORMATION = {
 
 export default function Step3Formation() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { data, saveStepData } = useOnboardingStore();
 
   const {
@@ -48,22 +50,24 @@ export default function Step3Formation() {
   });
 
   // Gère l'ajout/suppression dynamique d'entrées dans le tableau "formations"
-  const { fields, append, remove } = useFieldArray({ control, name: "formations" });
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "formations",
+  });
 
   const onSubmit = (values) => {
     saveStepData(values);
-    router.push("/onboarding/3");
+    router.push("/onboarding/4");
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div>
         <h1 className="mb-1.5 text-2xl font-bold text-foreground">
-          Votre parcours académique
+          {t("auditUi.onboarding.academicPath")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Ajoutez votre formation actuelle, et toute autre formation déjà
-          obtenue si pertinent.
+          {t("auditUi.onboarding.academicPathDescription")}
         </p>
       </div>
 
@@ -80,14 +84,14 @@ export default function Step3Formation() {
           >
             <div className="flex items-center justify-between">
               <h5 className="text-sm font-semibold text-foreground">
-                Formation {index + 1}
+                {t("auditUi.onboarding.formation", { n: index + 1 })}
               </h5>
               {fields.length > 1 && (
                 <button
                   type="button"
                   onClick={() => remove(index)}
                   className="text-muted-foreground hover:text-destructive"
-                  aria-label="Supprimer cette formation"
+                  aria-label={t("auditUi.onboarding.removeFormation")}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -95,7 +99,7 @@ export default function Step3Formation() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Statut</Label>
+              <Label>{t("auditUi.onboarding.status")}</Label>
               <Controller
                 name={`formations.${index}.typeFormation`}
                 control={control}
@@ -105,34 +109,40 @@ export default function Step3Formation() {
                     onValueChange={selectField.onChange}
                   >
                     <SelectTrigger className="h-12 w-full rounded-sm">
-                      <SelectValue placeholder="En cours ou déjà obtenue ?" />
+                      <SelectValue
+                        placeholder={t(
+                          "auditUi.onboarding.formationStatusPlaceholder",
+                        )}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="en_cours">
-                        Formation en cours
+                        {t("auditUi.onboarding.formationInProgress")}
                       </SelectItem>
-                      <SelectItem value="obtenue">Formation obtenue</SelectItem>
+                      <SelectItem value="obtenue">
+                        {t("auditUi.onboarding.formationObtained")}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 )}
               />
               {errors.formations?.[index]?.typeFormation && (
                 <p className="text-xs text-destructive">
-                  {errors.formations[index].typeFormation.message}
+                  {t(errors.formations[index].typeFormation.message)}
                 </p>
               )}
             </div>
 
             <div className="space-y-1.5">
-              <Label>Établissement</Label>
+              <Label>{t("auditUi.onboarding.institution")}</Label>
               <Input
                 className="h-12 rounded-sm"
-                placeholder="Nom de l'université / école"
+                placeholder={t("auditUi.onboarding.institutionPlaceholder")}
                 {...register(`formations.${index}.nomUniversite`)}
               />
               {errors.formations?.[index]?.nomUniversite && (
                 <p className="text-xs text-destructive">
-                  {errors.formations[index].nomUniversite.message}
+                  {t(errors.formations[index].nomUniversite.message)}
                 </p>
               )}
             </div>
@@ -140,8 +150,10 @@ export default function Step3Formation() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>
-                  Faculté{" "}
-                  <span className="text-muted-foreground">(facultatif)</span>
+                  {t("auditUi.onboarding.faculty")}{" "}
+                  <span className="text-muted-foreground">
+                    ({t("auditUi.common.optional")})
+                  </span>
                 </Label>
                 <Input
                   className="h-12 rounded-sm"
@@ -150,8 +162,10 @@ export default function Step3Formation() {
               </div>
               <div className="space-y-1.5">
                 <Label>
-                  Département{" "}
-                  <span className="text-muted-foreground">(facultatif)</span>
+                  {t("auditUi.onboarding.department")}{" "}
+                  <span className="text-muted-foreground">
+                    ({t("auditUi.common.optional")})
+                  </span>
                 </Label>
                 <Input
                   className="h-12 rounded-sm"
@@ -161,15 +175,15 @@ export default function Step3Formation() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Diplôme</Label>
+              <Label>{t("auditUi.onboarding.degree")}</Label>
               <Input
                 className="h-12 rounded-sm"
-                placeholder="Ex : Licence en Génie Logiciel"
+                placeholder={t("auditUi.onboarding.degreePlaceholder")}
                 {...register(`formations.${index}.diplome`)}
               />
               {errors.formations?.[index]?.diplome && (
                 <p className="text-xs text-destructive">
-                  {errors.formations[index].diplome.message}
+                  {t(errors.formations[index].diplome.message)}
                 </p>
               )}
             </div>
@@ -177,22 +191,24 @@ export default function Step3Formation() {
             {/* Champ d'année conditionnel selon le statut sélectionné */}
             {typeFormation === "en_cours" && (
               <div className="space-y-1.5">
-                <Label>Année d&apos;étude actuelle</Label>
+                <Label>{t("auditUi.onboarding.currentStudyYear")}</Label>
                 <Input
                   type="number"
                   className="h-12 rounded-sm"
-                  placeholder="Ex : 3"
+                  placeholder={t("auditUi.onboarding.studyYearPlaceholder")}
                   {...register(`formations.${index}.anneeEtude`)}
                 />
               </div>
             )}
             {typeFormation === "obtenue" && (
               <div className="space-y-1.5">
-                <Label>Année d&apos;obtention</Label>
+                <Label>{t("auditUi.onboarding.graduationYear")}</Label>
                 <Input
                   type="number"
                   className="h-12 rounded-sm"
-                  placeholder="Ex : 2024"
+                  placeholder={t(
+                    "auditUi.onboarding.graduationYearPlaceholder",
+                  )}
                   {...register(`formations.${index}.anneeObtention`)}
                 />
               </div>
@@ -208,7 +224,7 @@ export default function Step3Formation() {
         onClick={() => append(EMPTY_FORMATION)}
       >
         <Plus className="h-4 w-4" />
-        Ajouter une formation
+        {t("auditUi.onboarding.addFormation")}
       </Button>
 
       <div className="flex gap-3">
@@ -216,7 +232,7 @@ export default function Step3Formation() {
           type="button"
           variant="outline"
           className="h-12 rounded-sm"
-          onClick={() => router.push("/onboarding/1")}
+          onClick={() => router.push("/onboarding/2")}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
@@ -225,7 +241,7 @@ export default function Step3Formation() {
           disabled={isSubmitting}
           className="h-12 flex-1 rounded-sm"
         >
-          Continuer
+          {t("auditUi.common.continue")}
         </Button>
       </div>
     </form>

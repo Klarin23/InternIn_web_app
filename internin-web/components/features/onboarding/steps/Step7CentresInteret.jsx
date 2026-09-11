@@ -11,9 +11,11 @@ import { Button } from "@/components/ui/button";
 import { useCentresInteret } from "@/lib/queries/useCentresInteret";
 import { step7Schema } from "@/lib/schemas/onboarding.schema";
 import { useOnboardingStore } from "@/lib/store/useOnboardingStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function Step7CentresInteret() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { data, saveStepData } = useOnboardingStore();
   const { data: centresList, isLoading, isError } = useCentresInteret();
 
@@ -35,7 +37,7 @@ export default function Step7CentresInteret() {
     return (
       <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
-        Chargement des centres d&apos;intérêt...
+        {t("auditUi.onboarding.loadingInterests")}
       </div>
     );
   }
@@ -43,8 +45,7 @@ export default function Step7CentresInteret() {
   if (isError) {
     return (
       <p className="text-sm text-destructive">
-        Impossible de charger les centres d&apos;intérêt. Vérifiez que
-        l&apos;API backend tourne bien.
+        {t("auditUi.onboarding.interestsLoadError")}
       </p>
     );
   }
@@ -53,11 +54,10 @@ export default function Step7CentresInteret() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div>
         <h1 className="mb-1.5 text-2xl font-bold text-foreground">
-          Vos centres d&apos;intérêt
+          {t("auditUi.onboarding.interestsTitle")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Choisissez les domaines qui vous intéressent — ça nous aide à vous
-          proposer les bonnes offres de stage.
+          {t("auditUi.onboarding.interestsDescription")}
         </p>
       </div>
 
@@ -97,7 +97,7 @@ export default function Step7CentresInteret() {
       />
       {errors.centresInteret && (
         <p className="text-xs text-destructive">
-          {errors.centresInteret.message}
+          {t(errors.centresInteret.message)}
         </p>
       )}
 
@@ -115,7 +115,7 @@ export default function Step7CentresInteret() {
           disabled={isSubmitting}
           className="h-12 flex-1 rounded-sm"
         >
-          Continuer
+          {t("auditUi.common.continue")}
         </Button>
       </div>
     </form>

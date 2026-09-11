@@ -5,8 +5,7 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 // + liens CV/LinkedIn/portfolio + sélecteur de statut.
 
 import { useState } from "react";
-import { FiMapPin, FiFileText, FiLinkedin, FiGlobe, FiChevronDown } from "react-icons/fi";
-import ViewCvButton from "@/components/shared/ViewCvButton";
+import { FiMapPin, FiLinkedin, FiGlobe, FiChevronDown } from "react-icons/fi";
 import StatutSelect from "./StatutSelect";
 import PlanifierEntretienDialog from "@/components/features/entretiens/PlanifierEntretienDialog";
 import { safeHref } from "@/lib/utils/urlValidation";
@@ -49,13 +48,6 @@ export default function CandidatCard({ candidature }) {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-3 text-xs">
-        <ViewCvButton
-          cvUrl={candidature.cvUrl}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-secondary hover:underline"
-        >
-          <FiFileText className="h-3.5 w-3.5" />
-          Voir le CV
-        </ViewCvButton>
         {candidature.linkedinUrl && safeHref(candidature.linkedinUrl) && (
           <a
             href={safeHref(candidature.linkedinUrl)}

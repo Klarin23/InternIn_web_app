@@ -3,13 +3,22 @@
 @import "shadcn/tailwind.css";
 
 @keyframes blink-badge {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
 }
 
 @keyframes shimmer {
-  0% { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
 }
 .skeleton-shimmer {
   background-color: var(--muted);
@@ -146,14 +155,14 @@
      une sidebar blanche) : sidebar sombre commune à tous les rôles, avec
      l'élément actif teinté par la couleur du rôle (--sidebar-primary,
      redéfinie par .role-entreprise / .role-universite / .role-admin). */
-  --sidebar: #0F172A;
-  --sidebar-foreground: #CBD5E1;
-  --sidebar-primary: #14B8A6;
-  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar: #0f172a;
+  --sidebar-foreground: #cbd5e1;
+  --sidebar-primary: #14b8a6;
+  --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: rgba(255, 255, 255, 0.06);
-  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-ring: #14B8A6;
+  --sidebar-ring: #14b8a6;
 }
 
 .dark {
@@ -228,22 +237,19 @@ html.dark .marketing-theme {
    ===================================================================== */
 
 .role-entreprise {
-  --primary: #5B3DF5;
-  --primary-foreground: #FFFFFF;
-  --ring: #5B3DF5;
-  --sidebar-primary: #5B3DF5;
-  --sidebar-primary-foreground: #FFFFFF;
-  
- 
+  --primary: #5b3df5;
+  --primary-foreground: #ffffff;
+  --ring: #5b3df5;
+  --sidebar-primary: #5b3df5;
+  --sidebar-primary-foreground: #ffffff;
 }
 
 .role-universite {
-  --primary: #2563EB;
-  --primary-foreground: #FFFFFF;
-  --ring: #2563EB;
-  --sidebar-primary: #2563EB;
-  --sidebar-primary-foreground: #FFFFFF;
-  
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --ring: #2563eb;
+  --sidebar-primary: #2563eb;
+  --sidebar-primary-foreground: #ffffff;
 }
 
 .role-admin {
@@ -264,11 +270,11 @@ html.dark .marketing-theme {
 
 /* Superviseur = compte dérivé entreprise → mêmes couleurs */
 .role-superviseur {
-  --primary: #5B3DF5;
-  --primary-foreground: #FFFFFF;
-  --ring: #5B3DF5;
-  --sidebar-primary: #5B3DF5;
-  --sidebar-primary-foreground: #FFFFFF;
+  --primary: #5b3df5;
+  --primary-foreground: #ffffff;
+  --ring: #5b3df5;
+  --sidebar-primary: #5b3df5;
+  --sidebar-primary-foreground: #ffffff;
 }
 
 /* =====================================================================
@@ -307,7 +313,6 @@ html.dark .marketing-theme {
   background-color: var(--sidebar-primary);
 }
 
-
 /* =====================================================================
    SCROLLBAR — dialog « Faire une offre finale » (et réutilisable ciblé)
    Classe dédiée : ne pas appliquer sur body/html. Compatible light/dark.
@@ -336,7 +341,11 @@ html.dark .marketing-theme {
 }
 
 .internin-custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: color-mix(in oklab, var(--muted-foreground) 35%, transparent);
+  background-color: color-mix(
+    in oklab,
+    var(--muted-foreground) 35%,
+    transparent
+  );
   border-radius: 9999px;
   border: 1px solid transparent;
   background-clip: padding-box;
@@ -344,9 +353,45 @@ html.dark .marketing-theme {
 }
 
 .internin-custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: color-mix(in oklab, var(--primary) 55%, var(--muted-foreground));
+  background-color: color-mix(
+    in oklab,
+    var(--primary) 55%,
+    var(--muted-foreground)
+  );
 }
 
 .internin-custom-scrollbar::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* Le dialogue « Faire une offre » reste réellement centré sur le viewport
+   mobile/tablette. Le portail Radix étant rendu hors du layout de la page, on
+   ne dépend pas des offsets éventuels du conteneur parent. */
+@media (max-width: 767px) {
+  .internin-mobile-dialog-content {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: calc(100vw - 1rem) !important;
+    max-width: calc(100vw - 1rem) !important;
+    max-height: calc(100dvh - 1rem) !important;
+    margin: 0 !important;
+    transform: translate(-50%, -50%) !important;
+    animation: none !important;
+    opacity: 1 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* Le portail Radix sort du conteneur React et se centre sinon sur tout le
+   viewport. Sur desktop, la zone utile commence après la sidebar de 260px. */
+@media (min-width: 768px) {
+  .internin-mobile-dialog-content {
+    left: calc(50% + 130px) !important;
+    width: min(30rem, calc(100vw - 17rem)) !important;
+    max-width: min(30rem, calc(100vw - 17rem)) !important;
+  }
 }

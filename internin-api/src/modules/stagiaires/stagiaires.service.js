@@ -404,6 +404,7 @@ export async function getStagiaireProfile(idUtilisateur) {
       .select({
         idCompetence: competences.idCompetence,
         nom: competences.nom,
+        typeCompetence: competences.typeCompetence,
         niveau: stagiaireCompetences.niveau,
       })
       .from(stagiaireCompetences)

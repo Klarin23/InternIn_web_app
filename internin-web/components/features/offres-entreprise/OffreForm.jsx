@@ -84,8 +84,13 @@ export default function OffreForm({
       competencesRequises: existingOffre?.competencesRequises || "",
       opportunitesApprentissage: existingOffre?.opportunitesApprentissage || "",
       modeTravail: existingOffre?.modeTravail || undefined,
-      remunerationType: existingOffre?.remunerationType || undefined,
-      montantRemuneration: existingOffre?.montantRemuneration || "",
+      remunerationType: existingOffre?.remunerationOptions?.map((r) => r.type)
+        || (existingOffre?.remunerationType ? [existingOffre.remunerationType] : []),
+      remunerationMontants: {},
+      montantRemuneration:
+        existingOffre?.montantRemuneration != null
+          ? String(existingOffre.montantRemuneration)
+          : String(existingOffre?.remunerationOptions?.find((r) => r.type !== "aucune")?.montant ?? ""),
       nombrePostes: existingOffre?.nombrePostes || 1,
       dureeStage: existingOffre?.dureeStage || undefined,
       dateLimiteCandidature: existingOffre?.dateLimiteCandidature || "",
@@ -125,11 +130,16 @@ export default function OffreForm({
 
     return {
       ...rest,
-      secteurActivite: resolveOffreListValue(
-        secteurActivite,
-        secteurActiviteCustom,
-      ),
-      departement: resolveOffreListValue(departement, departementCustom) || null,
+      remunerationType: vals.remunerationType,
+      remunerationMontants: vals.remunerationMontants || {},
+      secteurActivite:
+        secteurActivite && secteurActivite.toLowerCase() !== "autre"
+          ? secteurActivite
+          : resolveOffreListValue(secteurActivite, secteurActiviteCustom),
+      departement:
+        departement && departement.toLowerCase() !== "autre"
+          ? departement
+          : resolveOffreListValue(departement, departementCustom) || null,
       montantRemuneration: vals.montantRemuneration || null,
       dateLimiteCandidature: vals.dateLimiteCandidature || null,
     };

@@ -7,6 +7,25 @@ import { sql, eq, and, or, ilike } from "drizzle-orm";
 import { offresStage, entreprises, candidatures } from "../../db/schema.js";
 import { resolveEntrepriseContextOrThrow } from "../../utils/entrepriseContext.js";
 
+function normalizeRemunerations(payload) {
+  const types = Array.isArray(payload.remunerationType) ? payload.remunerationType : payload.remunerationType ? [payload.remunerationType] : [];
+  if (types.length === 0) {
+    const e = new Error("Sélectionnez au moins un type de rémunération"); e.status = 400; throw e;
+  }
+  if (types.includes("aucune") && types.length > 1) {
+    const e = new Error("Non rémunéré ne peut pas être combiné avec une autre rémunération"); e.status = 400; throw e;
+  }
+  const paidTypes = types.filter((v) => v !== "aucune");
+  const amount = paidTypes.length ? Number(payload.montantRemuneration) : null;
+  if (paidTypes.length && (!Number.isFinite(amount) || amount <= 0)) {
+    const e = new Error("Le montant total de la rémunération est requis et doit être supérieur à 0"); e.status = 400; throw e;
+  }
+  return types.map((type) => ({
+    type,
+    montant: type === "aucune" ? null : String(payload.montantRemuneration),
+  }));
+}
+
 export async function listOffresPubliees({
   recherche,
   modeTravail,
@@ -45,6 +64,7 @@ export async function listOffresPubliees({
       modeTravail: offresStage.modeTravail,
       remunerationType: offresStage.remunerationType,
       montantRemuneration: offresStage.montantRemuneration,
+      remunerationOptions: offresStage.remunerationOptions,
       nombrePostes: offresStage.nombrePostes,
       nombreCandidaturesActives: sql`count(${candidatures.idCandidature}) filter (where ${candidatures.statut} not in ('rejetee', 'retiree'))`.mapWith(Number),
       datePublication: offresStage.datePublication,
@@ -65,7 +85,7 @@ export async function listOffresPubliees({
       offresStage.idOffre, offresStage.titre, offresStage.departement,
       offresStage.secteurActivite, offresStage.description,
       offresStage.competencesRequises, offresStage.modeTravail,
-      offresStage.remunerationType, offresStage.montantRemuneration,
+      offresStage.remunerationType, offresStage.montantRemuneration, offresStage.remunerationOptions,
       offresStage.nombrePostes, offresStage.datePublication,
       entreprises.nomEntreprise, entreprises.logoUrl, entreprises.ville,
       offresStage.dateLimiteCandidature, offresStage.statut,
@@ -86,6 +106,7 @@ export async function getOffreById(idOffre) {
       modeTravail: offresStage.modeTravail,
       remunerationType: offresStage.remunerationType,
       montantRemuneration: offresStage.montantRemuneration,
+      remunerationOptions: offresStage.remunerationOptions,
       nombrePostes: offresStage.nombrePostes,
       nombreCandidaturesActives: sql`(select count(*)::int from candidatures c where c.id_offre = ${offresStage.idOffre} and c.statut not in ('rejetee', 'retiree'))`,
       statut: offresStage.statut,
@@ -130,6 +151,7 @@ export async function listOffresByEntreprise(idUtilisateurEntreprise) {
       modeTravail: offresStage.modeTravail,
       remunerationType: offresStage.remunerationType,
       montantRemuneration: offresStage.montantRemuneration,
+      remunerationOptions: offresStage.remunerationOptions,
       nombrePostes: offresStage.nombrePostes,
       dureeStage: offresStage.dureeStage,
       dateLimiteCandidature: offresStage.dateLimiteCandidature,
@@ -169,6 +191,7 @@ export async function listOffresByEntreprise(idUtilisateurEntreprise) {
       offresStage.modeTravail,
       offresStage.remunerationType,
       offresStage.montantRemuneration,
+      offresStage.remunerationOptions,
       offresStage.nombrePostes,
       offresStage.dureeStage,
       offresStage.dateLimiteCandidature,
@@ -207,8 +230,11 @@ export async function createOffre(idUtilisateurEntreprise, payload) {
       competencesRequises: payload.competencesRequises || null,
       opportunitesApprentissage: payload.opportunitesApprentissage || null,
       modeTravail: payload.modeTravail,
-      remunerationType: payload.remunerationType,
-      montantRemuneration: payload.montantRemuneration || null,
+      remunerationType: Array.isArray(payload.remunerationType) ? payload.remunerationType[0] : payload.remunerationType,
+      montantRemuneration: Array.isArray(payload.remunerationType) && payload.remunerationType[0] !== "aucune"
+        ? payload.montantRemuneration || null
+        : null,
+      remunerationOptions: normalizeRemunerations(payload),
       nombrePostes: payload.nombrePostes,
       dureeStage: payload.dureeStage || null,
       dateLimiteCandidature: payload.dateLimiteCandidature || null,
@@ -259,6 +285,13 @@ export async function updateOffre(idUtilisateurEntreprise, idOffre, payload) {
   }
 
   const updateValues = { ...payload };
+  if (payload.remunerationType !== undefined) {
+    updateValues.remunerationOptions = normalizeRemunerations(payload);
+    const types = Array.isArray(payload.remunerationType) ? payload.remunerationType : [payload.remunerationType];
+    const first = types[0];
+    updateValues.remunerationType = first;
+    updateValues.montantRemuneration = first !== "aucune" ? payload.montantRemuneration || null : null;
+  }
   if (updateValues.montantRemuneration === "") {
     updateValues.montantRemuneration = null;
   }

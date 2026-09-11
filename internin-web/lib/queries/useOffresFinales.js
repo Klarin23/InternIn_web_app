@@ -4,7 +4,6 @@ import {
   createOffreFinaleRequest,
   listOffresFinalesEnAttenteRequest,
   listToutesOffresFinalesRequest,
-  validerOffreFinaleRequest,
   listMesOffresFinalesRequest,
   repondreOffreFinaleRequest,
   getHistoriqueOffresFinalesRequest,
@@ -55,28 +54,6 @@ export function useOffresFinalesAdmin(statut) {
     queryKey: ["offresFinalesAdmin", statut || "toutes"],
     queryFn: () => listToutesOffresFinalesRequest(token, statut),
     enabled: !!token,
-  });
-}
-
-export function useValiderOffreFinale() {
-  const token = useAuthStore((state) => state.token);
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, statutValidationPlateforme }) =>
-      validerOffreFinaleRequest(id, statutValidationPlateforme, token),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["offresFinalesEnAttente"] });
-      queryClient.invalidateQueries({ queryKey: ["offresFinalesAdmin"] });
-      queryClient.invalidateQueries({ queryKey: ["adminStats"] });
-      if (variables?.statutValidationPlateforme === "approuve") {
-        toast.success("Offre approuvée");
-      } else if (variables?.statutValidationPlateforme === "rejete") {
-        toast.success("Offre rejetée");
-      }
-    },
-    onError: (err) => {
-      toast.error(err?.message || "Impossible de mettre à jour l'offre");
-    },
   });
 }
 

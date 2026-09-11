@@ -2,7 +2,7 @@
 // doublons au niveau SQL — on l'anticipe ici pour renvoyer un message
 // clair plutôt qu'une erreur PostgreSQL brute au frontend.
 
-import { eq, and, inArray, ne, desc, sql } from "drizzle-orm";
+import { eq, and, inArray, ne, desc, sql, lte } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
   candidatures,
@@ -13,6 +13,8 @@ import {
   formations,
   entretiens,
   offresFinales,
+  conventionsStage,
+  stages,
   stagiaireCompetences,
   competences,
   utilisateurs,
@@ -58,30 +60,30 @@ export async function createCandidature(
     throw err;
   }
 
-    const [offre] = await db
-      .select({
-        idOffre: offresStage.idOffre,
-        statut: offresStage.statut,
-        dateLimiteCandidature: offresStage.dateLimiteCandidature,
-      })
-      .from(offresStage)
-      .where(eq(offresStage.idOffre, idOffre));
+  const [offre] = await db
+    .select({
+      idOffre: offresStage.idOffre,
+      statut: offresStage.statut,
+      dateLimiteCandidature: offresStage.dateLimiteCandidature,
+    })
+    .from(offresStage)
+    .where(eq(offresStage.idOffre, idOffre));
 
-    if (!offre || offre.statut !== "publie") {
-      const err = new Error("Cette offre n'est plus disponible");
+  if (!offre || offre.statut !== "publie") {
+    const err = new Error("Cette offre n'est plus disponible");
+    err.status = 400;
+    throw err;
+  }
+
+  if (offre.dateLimiteCandidature) {
+    if (new Date(offre.dateLimiteCandidature) < new Date()) {
+      const err = new Error(
+        "Cette offre a expiré : les candidatures sont fermées",
+      );
       err.status = 400;
       throw err;
     }
-
-        if (offre.dateLimiteCandidature) {
-          if (new Date(offre.dateLimiteCandidature) < new Date()) {
-            const err = new Error(
-              "Cette offre a expiré : les candidatures sont fermées",
-            );
-            err.status = 400;
-            throw err;
-          }
-        }
+  }
 
   // Le quota est consommé dès qu'une candidature active est soumise.
   // Verrouiller l'offre pendant le contrôle empêche deux candidatures
@@ -101,7 +103,9 @@ export async function createCandidature(
       sql`SELECT COUNT(*)::int AS nombre_actives FROM candidatures WHERE id_offre = ${idOffre} AND statut NOT IN ('rejetee', 'retiree')`,
     );
     if (Number(countResult.rows?.[0]?.nombre_actives ?? 0) >= nombrePostes) {
-      const err = new Error("Cette offre a atteint son nombre maximal de postes disponibles.");
+      const err = new Error(
+        "Cette offre a atteint son nombre maximal de postes disponibles.",
+      );
       err.status = 409;
       err.code = "OFFRE_POSTES_COMPLETS";
       throw err;
@@ -109,13 +113,13 @@ export async function createCandidature(
 
     const [created] = await tx
       .insert(candidatures)
-    .values({
-      idStagiaire: stagiaire.idStagiaire,
-      idOffre,
-      origine: "candidature_spontanee",
-      statut: "soumise",
-      lettreMotivation: lettreMotivation || null,
-    })
+      .values({
+        idStagiaire: stagiaire.idStagiaire,
+        idOffre,
+        origine: "candidature_spontanee",
+        statut: "soumise",
+        lettreMotivation: lettreMotivation || null,
+      })
       .returning();
     return created;
   });
@@ -265,10 +269,14 @@ export async function listCandidaturesForEntreprise(
       pays: stagiaires.pays,
       telephone: stagiaires.telephone,
       email: utilisateurs.email,
-      cvUrl: stagiaires.cvUrl,
       linkedinUrl: stagiaires.linkedinUrl,
       portfolioUrl: stagiaires.portfolioUrl,
       scoreCompletudeProfil: stagiaires.scoreCompletudeProfil,
+      titreProfessionnel: stagiaires.titreProfessionnel,
+      presentation: stagiaires.presentation,
+      objectifProfessionnel: stagiaires.objectifProfessionnel,
+      experiencesProfessionnelles: stagiaires.experiencesProfessionnelles,
+      qualites: stagiaires.qualites,
     })
     .from(candidatures)
     .innerJoin(offresStage, eq(candidatures.idOffre, offresStage.idOffre))
@@ -293,9 +301,11 @@ export async function listCandidaturesForEntreprise(
     .select({
       idStagiaire: formations.idStagiaire,
       nomUniversite: formations.nomUniversite,
+      faculte: formations.faculte,
       diplome: formations.diplome,
       departement: formations.departement,
       anneeEtude: formations.anneeEtude,
+      anneeObtention: formations.anneeObtention,
       typeFormation: formations.typeFormation,
     })
     .from(formations)
@@ -313,6 +323,8 @@ export async function listCandidaturesForEntreprise(
     .select({
       idStagiaire: stagiaireCompetences.idStagiaire,
       nom: competences.nom,
+      typeCompetence: competences.typeCompetence,
+      niveau: stagiaireCompetences.niveau,
     })
     .from(stagiaireCompetences)
     .innerJoin(
@@ -322,54 +334,83 @@ export async function listCandidaturesForEntreprise(
     .where(inArray(stagiaireCompetences.idStagiaire, idsStagiaires));
 
   const competencesParStagiaire = {};
+  const languesParStagiaire = {};
   competencesRows.forEach((c) => {
     (competencesParStagiaire[c.idStagiaire] ??= []).push(c.nom);
+    if (c.typeCompetence === "langue") {
+      (languesParStagiaire[c.idStagiaire] ??= []).push({ nom: c.nom, niveau: c.niveau || null });
+    }
   });
 
-  // Récupère les candidatures pour lesquelles l'entreprise a déjà validé
-  // une offre finale (création de l'offre = accepteeParEntreprise).
-  // Les coordonnées du stagiaire ne sont exposées qu'à partir de ce moment.
+  // Les coordonnées personnelles restent confidentielles pendant tout le
+  // processus de recrutement. Elles ne deviennent disponibles qu'une fois
+  // le stage effectivement commencé (date_debut atteinte).
+  //
+  // Le lien candidature -> stage passe par l'offre finale puis la convention.
+  // On vérifie donc directement l'existence d'un stage correspondant et sa
+  // date civile de début côté PostgreSQL, afin de ne jamais faire confiance
+  // à un statut frontend ou à une valeur fournie par le client.
   const idsCandidatures = rows.map((r) => r.idCandidature);
-  const offresFinalesRows =
+  const stagesCandidaturesRows =
     idsCandidatures.length > 0
       ? await db
           .select({
             idCandidature: entretiens.idCandidature,
+            dateDebut: stages.dateDebut,
           })
           .from(offresFinales)
           .innerJoin(
             entretiens,
             eq(offresFinales.idEntretien, entretiens.idEntretien),
           )
+          .innerJoin(
+            conventionsStage,
+            eq(conventionsStage.idOffreFinale, offresFinales.idOffreFinale),
+          )
+          .innerJoin(
+            stages,
+            eq(stages.idConvention, conventionsStage.idConvention),
+          )
           .where(
             and(
               inArray(entretiens.idCandidature, idsCandidatures),
               ne(offresFinales.statutValidationPlateforme, "rejete"),
+              lte(stages.dateDebut, sql`CURRENT_DATE`),
             ),
           )
       : [];
 
-  const candidaturesAvecOffreValidee = new Set(
-    offresFinalesRows.map((o) => o.idCandidature),
+  const candidaturesAvecStageCommence = new Set(
+    stagesCandidaturesRows.map((o) => o.idCandidature),
   );
 
   return rows.map((r) => {
     const formation = formationParStagiaire[r.idStagiaire];
-    const offreValideeParEntreprise =
-      candidaturesAvecOffreValidee.has(r.idCandidature) ||
-      r.statut === "acceptee";
+    const stageCommence = candidaturesAvecStageCommence.has(r.idCandidature);
 
     return {
       ...r,
-      // Coordonnées masquées tant que l'entreprise n'a pas validé l'offre finale
-      email: offreValideeParEntreprise ? r.email : null,
-      telephone: offreValideeParEntreprise ? r.telephone : null,
+      // Coordonnées masquées jusqu'au jour civil de début du stage.
+      email: stageCommence ? r.email : null,
+      telephone: stageCommence ? r.telephone : null,
       nomUniversite: formation?.nomUniversite || null,
-      diplome: formation?.diplome || null,
+      // Le diplôme n’est exposé que lorsqu’il est déjà obtenu.
+      diplome:
+        formation?.typeFormation === "obtenue" ? formation.diplome : null,
+      faculte: formation?.faculte || null,
       departement: formation?.departement || null,
       anneeEtude: formation?.anneeEtude || null,
+      anneeObtention:
+        formation?.typeFormation === "obtenue"
+          ? formation.anneeObtention
+          : null,
+      typeFormation: formation?.typeFormation || null,
       competences: competencesParStagiaire[r.idStagiaire] || [],
-      coordonneesDisponibles: offreValideeParEntreprise,
+      langues: languesParStagiaire[r.idStagiaire] || [],
+      formations: formationsRows.filter((f) => f.idStagiaire === r.idStagiaire),
+      experiencesProfessionnelles: Array.isArray(r.experiencesProfessionnelles) ? r.experiencesProfessionnelles : [],
+      qualites: Array.isArray(r.qualites) ? r.qualites : [],
+      coordonneesDisponibles: stageCommence,
     };
   });
 }
@@ -643,6 +684,10 @@ export async function getCandidatsRecommandes(
     .where(
       and(
         eq(offresStage.idEntreprise, entreprise.idEntreprise),
+        // Le widget ne doit recommander que des profils correspondant à une
+        // offre actuellement publiée, jamais à un brouillon ou une offre
+        // archivée/fermée.
+        eq(offresStage.statut, "publie"),
         inArray(candidatures.statut, [
           "soumise",
           "consultee",
@@ -718,7 +763,9 @@ async function verifierAppartenanceCandidature(idEntreprise, idCandidature) {
     .where(eq(candidatures.idCandidature, idCandidature));
 
   if (!row || row.idOffreEntreprise !== idEntreprise) {
-    const err = new Error("Vous n'êtes pas autorisé à accéder à cette candidature");
+    const err = new Error(
+      "Vous n'êtes pas autorisé à accéder à cette candidature",
+    );
     err.status = 403;
     throw err;
   }
@@ -1031,7 +1078,9 @@ export async function retirerMaCandidature(
       throw err;
     }
     if (c.length > 500) {
-      const err = new Error("Le commentaire ne peut pas dépasser 500 caractères");
+      const err = new Error(
+        "Le commentaire ne peut pas dépasser 500 caractères",
+      );
       err.status = 400;
       throw err;
     }
@@ -1076,7 +1125,9 @@ export async function retirerMaCandidature(
 
   // Propriété réelle — jamais se fier uniquement à l'id fourni
   if (row.candidature.idStagiaire !== stagiaire.idStagiaire) {
-    const err = new Error("Vous n'êtes pas autorisé à modifier cette candidature");
+    const err = new Error(
+      "Vous n'êtes pas autorisé à modifier cette candidature",
+    );
     err.status = 403;
     throw err;
   }
@@ -1168,12 +1219,7 @@ export async function retirerMaCandidature(
   }
 
   // Annuler les entretiens encore actifs (planifiés / confirmés…)
-  const STATUTS_ENT_ACTIFS = [
-    "planifie",
-    "valide",
-    "confirme",
-    "reprogramme",
-  ];
+  const STATUTS_ENT_ACTIFS = ["planifie", "valide", "confirme", "reprogramme"];
   for (const ent of entretiensRows) {
     if (STATUTS_ENT_ACTIFS.includes(ent.statut)) {
       await db

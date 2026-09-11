@@ -10,7 +10,7 @@ const urlLinkedin = zUrlField(checkLinkedInUrl)(z.string().optional());
 export const completeOnboardingEntrepriseSchema = z.object({
   // Étape 1
   nomEntreprise: z.string().min(1),
-  secteurActivite: z.string().min(1),
+  secteurActivite: z.string().trim().min(1).max(150),
   tailleEntreprise: z.enum(["1-10", "11-50", "51-200", "201-500", "500+"]),
   pays: z.string().min(1),
   ville: z.string().min(1),
@@ -32,7 +32,7 @@ export const completeOnboardingEntrepriseSchema = z.object({
 
 export const updateProfileEntrepriseSchema = z.object({
   nomEntreprise: z.string().min(1).optional(),
-  secteurActivite: z.string().optional(),
+  secteurActivite: z.string().trim().max(150).optional(),
   tailleEntreprise: z
     .enum(["1-10", "11-50", "51-200", "201-500", "500+"])
     .optional(),

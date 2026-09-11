@@ -6,7 +6,6 @@ import {
   repondre,
   listToutes,
   listEnAttente,
-  valider,
 } from "./offresFinales.controller.js";
 import { requireAuth } from "../../middlewares/auth.middleware.js";
 import { requireRole } from "../../middlewares/role.middleware.js";
@@ -59,14 +58,4 @@ router.get(
   requireAdminScope(ADMIN_SCOPES.OFFRES_FINALES),
   listEnAttente,
 );
-router.patch(
-  "/:id/validation",
-  requireAuth,
-  requireRole("administrateur"),
-  loadAdminProfile,
-  requireAdminScope(ADMIN_SCOPES.OFFRES_FINALES),
-  validate(validationSchema),
-  valider,
-);
-
 export default router;

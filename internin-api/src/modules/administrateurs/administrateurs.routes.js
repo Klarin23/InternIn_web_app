@@ -184,10 +184,30 @@ router.get("/securite/sessions", requireAdminScope(S.SECURITE), listSecuritySess
 router.delete("/securite/sessions/:id", requireAdminScope(S.SECURITE), revokeSecuritySessionHandler);
 router.delete("/securite/utilisateurs/:userId/sessions", requireAdminScope(S.SECURITE), revokeUserSessionsHandler);
 router.get("/securite/admins", requireAdminScope(S.SECURITE), listSecurityAdminsHandler);
-router.get("/securite/comptes-risque", requireAdminScope(S.SECURITE), listComptesARisqueHandler,
+router.get(
+  "/securite/comptes-risque",
+  requireAdminScope(S.SECURITE),
+  listComptesARisqueHandler,
+);
+router.get(
+  "/securite/alertes",
+  requireAdminScope(S.SECURITE),
   listSecurityAlertsHandler,
-  getSecurityAlertHandler,
+);
+router.get(
+  "/securite/alertes/stats",
+  requireAdminScope(S.SECURITE),
   getSecurityAlertsStatsHandler,
-  updateSecurityAlertStatusHandler);
+);
+router.get(
+  "/securite/alertes/:id",
+  requireAdminScope(S.SECURITE),
+  getSecurityAlertHandler,
+);
+router.patch(
+  "/securite/alertes/:id/statut",
+  requireAdminScope(S.SECURITE),
+  updateSecurityAlertStatusHandler,
+);
 
 export default router;

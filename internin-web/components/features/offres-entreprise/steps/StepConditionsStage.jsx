@@ -29,11 +29,7 @@ const todayIso = () => new Date().toISOString().split("T")[0];
 // `useWatch` est l'outil prévu par RHF pour un composant enfant.
 export default function StepConditionsStage({ control, register, errors }) {
   const { t } = useTranslation();
-  const remunerationType = useWatch({ control, name: "remunerationType" });
-  const nombrePostes = useWatch({ control, name: "nombrePostes" }) || 1;
-  const showMontant = REMUNERATION_OPTIONS.find(
-    (o) => o.value === remunerationType,
-  )?.hasMontant;
+  const remunerationType = useWatch({ control, name: "remunerationType" }) || [];
 
   return (
     <motion.div
@@ -168,30 +164,44 @@ export default function StepConditionsStage({ control, register, errors }) {
         </div>
       </div>
 
-      {/* Rémunération — cartes + montant conditionnel (point 7) */}
+      {/* Rémunération — sélection multiple + montant global (point 7) */}
       <div className="space-y-2">
         <Label>{t("entrepriseSpace.offers.remuneration")}</Label>
         <Controller
           name="remunerationType"
           control={control}
-          render={({ field }) => (
-            <div
-              role="radiogroup"
-              aria-label={t("entrepriseSpace.offers.remunerationType")}
-              className="grid grid-cols-2 gap-3 sm:grid-cols-3"
-            >
-              {REMUNERATION_OPTIONS.map((option) => (
-                <SelectableCard
-                  key={option.value}
-                  selected={field.value === option.value}
-                  onSelect={() => field.onChange(option.value)}
-                  icon={option.icon}
-                  label={t(option.labelKey)}
-                  className="p-3"
-                />
-              ))}
-            </div>
-          )}
+          render={({ field }) => {
+            const selectedTypes = Array.isArray(field.value) ? field.value : [];
+            const toggleRemuneration = (value) => {
+              if (value === "aucune") {
+                field.onChange(["aucune"]);
+                return;
+              }
+              const next = selectedTypes.includes(value)
+                ? selectedTypes.filter((item) => item !== value)
+                : [...selectedTypes.filter((item) => item !== "aucune"), value];
+              field.onChange(next);
+            };
+
+            return (
+              <div
+                role="group"
+                aria-label={t("entrepriseSpace.offers.remunerationType")}
+                className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+              >
+                {REMUNERATION_OPTIONS.map((option) => (
+                  <SelectableCard
+                    key={option.value}
+                    selected={selectedTypes.includes(option.value)}
+                    onSelect={() => toggleRemuneration(option.value)}
+                    icon={option.icon}
+                    label={t(option.labelKey)}
+                    className="p-3"
+                  />
+                ))}
+              </div>
+            );
+          }}
         />
         {errors.remunerationType && (
           <p className="text-xs text-destructive">
@@ -200,7 +210,7 @@ export default function StepConditionsStage({ control, register, errors }) {
         )}
 
         <AnimatePresence initial={false}>
-          {showMontant && (
+          {remunerationType.some((value) => value !== "aucune") && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
@@ -209,20 +219,33 @@ export default function StepConditionsStage({ control, register, errors }) {
               className="overflow-hidden"
             >
               <div className="space-y-1.5 pt-3">
-                <Label htmlFor="montantRemuneration">{t("entrepriseSpace.offers.amount")}</Label>
-                <div className="relative w-full sm:w-56">
+                <Label htmlFor="montantRemuneration">
+                  Montant total de la rémunération
+                </Label>
+                <div className="relative w-full sm:w-64">
                   <Input
                     id="montantRemuneration"
                     type="number"
-                    min={0}
+                    min={1}
                     placeholder="Ex. : 50000"
                     className="h-12 rounded-sm pr-16"
-                    {...register("montantRemuneration")}
+                    {...register("montantRemuneration", {
+                      required: "Le montant de la rémunération est requis",
+                      min: { value: 1, message: "Le montant doit être supérieur à 0" },
+                    })}
                   />
                   <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground">
                     FCFA
                   </span>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Ce montant correspond à l'ensemble des rémunérations sélectionnées.
+                </p>
+                {errors.montantRemuneration && (
+                  <p className="text-xs text-destructive">
+                    {errors.montantRemuneration.message}
+                  </p>
+                )}
               </div>
             </motion.div>
           )}

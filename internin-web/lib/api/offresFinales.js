@@ -14,18 +14,6 @@ export function listToutesOffresFinalesRequest(token, statut) {
   return apiFetch(`/offres-finales${query}`, { token });
 }
 
-export function validerOffreFinaleRequest(
-  id,
-  statutValidationPlateforme,
-  token,
-) {
-  return apiFetch(`/offres-finales/${id}/validation`, {
-    method: "PATCH",
-    body: { statutValidationPlateforme },
-    token,
-  });
-}
-
 export function listMesOffresFinalesRequest(token) {
   return apiFetch("/offres-finales/mes-offres", { token });
 }

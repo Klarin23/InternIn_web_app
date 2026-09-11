@@ -93,6 +93,7 @@ export default function DashboardRouter() {
                     entrepriseProfile.statutVerification === "verifiee"
                       ? t("roles.verified")
                       : t("roles.pending"),
+                  logoUrl: entrepriseProfile.logoUrl,
                 }
               : null
           }

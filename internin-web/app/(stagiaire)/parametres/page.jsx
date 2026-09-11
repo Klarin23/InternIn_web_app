@@ -50,7 +50,11 @@ import {
   useUpdateStagiairePrivacy,
 } from "@/lib/queries/useStagiaireProfile";
 import { calculerCompletionProfil } from "@/lib/utils/profilCompletion";
-import { resendEmailVerificationRequest, logoutRequest } from "@/lib/api/auth";
+import {
+  resendEmailVerificationRequest,
+  logoutRequest,
+  deleteStagiaireAccountRequest,
+} from "@/lib/api/auth";
 import { toast } from "@/lib/store/useToastStore";
 import { cn } from "@/lib/utils";
 
@@ -807,6 +811,8 @@ function ConfidentialiteSection({ profil }) {
 function DangerSection({ onLogout }) {
   const { t } = useTranslation();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [confirmation, setConfirmation] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const token = useAuthStore((s) => s.token);
   const clearSession = useAuthStore((s) => s.clearSession);
@@ -825,15 +831,44 @@ function DangerSection({ onLogout }) {
     }
   }
 
+  function openDeleteDialog() {
+    setConfirmation("");
+    setDeleteOpen(true);
+  }
+
+  function closeDeleteDialog() {
+    if (deleting) return;
+    setDeleteOpen(false);
+    setConfirmation("");
+  }
+
+  async function handleDeleteAccount() {
+    if (deleting || confirmation !== "SUPPRIMER" || !token) return;
+
+    setDeleting(true);
+    try {
+      await deleteStagiaireAccountRequest(confirmation, token);
+      clearSession();
+      setDeleteOpen(false);
+      toast.success(t("stagiaireSpace.settings.danger.deleteSuccess"));
+      router.replace("/connexion");
+    } catch (error) {
+      setDeleting(false);
+      toast.error(
+        error?.message || t("stagiaireSpace.settings.danger.deleteError"),
+      );
+    }
+  }
+
   return (
     <div className="space-y-4">
       <SectionCard
-        title={t("stagiaireSpace.settings.logout")}
-        description="Déconnecter votre session actuelle sur cet appareil."
+        title={t("stagiaireSpace.settings.danger.logoutTitle")}
+        description={t("stagiaireSpace.settings.danger.logoutDesc")}
       >
         <SettingRow
           title={t("stagiaireSpace.settings.logoutAction")}
-          description="Vous pourrez vous reconnecter à tout moment."
+          description={t("stagiaireSpace.settings.danger.logoutActionDesc")}
         >
           <Button
             variant="outline"
@@ -843,7 +878,9 @@ function DangerSection({ onLogout }) {
             className="gap-1.5"
           >
             <LogOut className="h-3.5 w-3.5" />
-            {loggingOut ? "Déconnexion..." : "Se déconnecter"}
+            {loggingOut
+              ? t("stagiaireSpace.settings.danger.loggingOut")
+              : t("stagiaireSpace.settings.logoutAction")}
           </Button>
         </SettingRow>
       </SectionCard>
@@ -851,56 +888,80 @@ function DangerSection({ onLogout }) {
       <div className="rounded-md border border-destructive/30 bg-destructive/5">
         <div className="border-b border-destructive/20 px-5 py-4">
           <h2 className="text-base font-semibold text-destructive">
-            Supprimer mon compte
+            {t("stagiaireSpace.settings.danger.deleteTitle")}
           </h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            La suppression du compte est une action sensible. Contactez le
-            support si vous souhaitez poursuivre.
+            {t("stagiaireSpace.settings.danger.deleteDesc")}
           </p>
         </div>
         <div className="p-5">
           <SettingRow
-            title="Suppression définitive"
-            description="Cette action n'est pas encore automatisée dans l'application."
+            title={t("stagiaireSpace.settings.danger.deleteActionTitle")}
+            description={t("stagiaireSpace.settings.danger.deleteActionDesc")}
           >
             <Button
               variant="destructive"
               size="sm"
-              onClick={() => setDeleteOpen(true)}
+              onClick={openDeleteDialog}
+              disabled={deleting}
               className="gap-1.5"
             >
               <Trash2 className="h-3.5 w-3.5" />
-              Supprimer mon compte
+              {t("stagiaireSpace.settings.danger.deleteAction")}
             </Button>
           </SettingRow>
         </div>
       </div>
 
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <Dialog open={deleteOpen} onOpenChange={(open) => !open && closeDeleteDialog()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Supprimer votre compte ?</DialogTitle>
+            <DialogTitle>{t("stagiaireSpace.settings.danger.deleteDialogTitle")}</DialogTitle>
             <DialogDescription>
-              La suppression automatisée n&apos;est pas encore disponible. Pour
-              demander la suppression de vos données, contactez le support
-              InternIn. Aucune action irréversible ne sera effectuée depuis
-              cette boîte de dialogue.
+              {t("stagiaireSpace.settings.danger.deleteDialogDesc")}
             </DialogDescription>
           </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-muted-foreground">
+              {t("stagiaireSpace.settings.danger.deleteWarning")}
+            </div>
+            <label
+              htmlFor="delete-account-confirmation"
+              className="text-sm font-medium text-foreground"
+            >
+              {t("stagiaireSpace.settings.danger.deleteConfirmationLabel")}
+            </label>
+            <input
+              id="delete-account-confirmation"
+              type="text"
+              value={confirmation}
+              onChange={(event) => setConfirmation(event.target.value.toUpperCase())}
+              placeholder="SUPPRIMER"
+              autoComplete="off"
+              spellCheck={false}
+              disabled={deleting}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("stagiaireSpace.settings.danger.deleteConfirmationHint")}
+            </p>
+          </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-              Annuler
+            <Button variant="outline" onClick={closeDeleteDialog} disabled={deleting}>
+              {t("stagiaireSpace.settings.danger.cancel")}
             </Button>
             <Button
               variant="destructive"
-              onClick={() => {
-                setDeleteOpen(false);
-                toast.info(
-                  "Contactez le support pour une demande de suppression de compte.",
-                );
-              }}
+              onClick={handleDeleteAccount}
+              disabled={deleting || confirmation !== "SUPPRIMER" || !token}
+              className="gap-1.5"
             >
-              Compris
+              {deleting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {deleting
+                ? t("stagiaireSpace.settings.danger.deleting")
+                : t("stagiaireSpace.settings.danger.deleteConfirm")}
             </Button>
           </DialogFooter>
         </DialogContent>

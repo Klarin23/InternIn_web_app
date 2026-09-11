@@ -10,9 +10,11 @@ import { Button } from "@/components/ui/button";
 import { useObjectifsDeveloppement } from "@/lib/queries/useObjectifsDeveloppement";
 import { step8Schema } from "@/lib/schemas/onboarding.schema";
 import { useOnboardingStore } from "@/lib/store/useOnboardingStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function Step8Objectifs() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { data, saveStepData } = useOnboardingStore();
   const {
     data: objectifsList,
@@ -40,7 +42,7 @@ export default function Step8Objectifs() {
     return (
       <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
-        Chargement des objectifs...
+        {t("auditUi.onboarding.loadingObjectives")}
       </div>
     );
   }
@@ -48,8 +50,7 @@ export default function Step8Objectifs() {
   if (isError) {
     return (
       <p className="text-sm text-destructive">
-        Impossible de charger les objectifs. Vérifiez que l&apos;API backend
-        tourne bien.
+        {t("auditUi.onboarding.objectivesLoadError")}
       </p>
     );
   }
@@ -61,11 +62,10 @@ export default function Step8Objectifs() {
           <Target className="h-5 w-5" />
         </div>
         <h1 className="mb-1.5 text-2xl font-bold text-foreground">
-          Vos objectifs de développement
+          {t("auditUi.onboarding.objectivesTitle")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Le Coach IA s&apos;appuiera sur ces objectifs pour personnaliser son
-          accompagnement durant votre stage.
+          {t("auditUi.onboarding.objectivesDescription")}
         </p>
       </div>
 
@@ -103,7 +103,7 @@ export default function Step8Objectifs() {
       />
       {errors.objectifsDeveloppement && (
         <p className="text-xs text-destructive">
-          {errors.objectifsDeveloppement.message}
+          {t(errors.objectifsDeveloppement.message)}
         </p>
       )}
 
@@ -121,7 +121,7 @@ export default function Step8Objectifs() {
           disabled={isSubmitting}
           className="h-12 flex-1 rounded-sm"
         >
-          Continuer
+          {t("auditUi.common.continue")}
         </Button>
       </div>
     </form>

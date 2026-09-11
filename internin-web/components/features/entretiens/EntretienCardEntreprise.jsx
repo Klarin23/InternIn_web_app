@@ -603,6 +603,7 @@ export default function EntretienCardEntreprise({
                 <FaireOffreDialog
                   idEntretien={entretien.idEntretien}
                   candidatNom={`${entretien.prenom} ${entretien.nom}`}
+                  offreTitre={entretien.titreOffre}
                 />
                 <RejeterCandidatDialog
                   idEntretien={entretien.idEntretien}
@@ -614,8 +615,7 @@ export default function EntretienCardEntreprise({
 
         {entretien.statutCandidature === "rejetee" && (
           <p className="mt-2 rounded-xl bg-destructive/10 p-3 text-xs font-medium text-destructive">
-            Candidature rejetée — un message a été envoyé au candidat pour
-            l&apos;en informer.
+            {t("entrepriseSpace.candidatures.rejectedNotified")}
           </p>
         )}
 

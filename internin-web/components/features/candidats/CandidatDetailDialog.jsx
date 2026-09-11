@@ -4,7 +4,6 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 
 import { useState } from "react";
 import {
-  FiFileText,
   FiLinkedin,
   FiGlobe,
   FiMapPin,
@@ -12,8 +11,12 @@ import {
   FiMail,
   FiPhone,
   FiBookOpen,
+  FiStar,
+  FiCode,
+  FiTarget,
+  FiUser,
+  FiAward,
 } from "react-icons/fi";
-import ViewCvButton from "@/components/shared/ViewCvButton";
 import { SidePanel } from "@/components/ui/side-panel";
 import StatutSelect from "./StatutSelect";
 import PlanifierEntretienDialog from "@/components/features/entretiens/PlanifierEntretienDialog";
@@ -24,10 +27,8 @@ import { MOTIFS_RETRAIT_LABELS } from "@/lib/candidatures/statut";
 import HistoriqueOffresFinales from "@/components/features/entretiens/HistoriqueOffresFinales";
 import { useEntretiensEntreprise } from "@/lib/queries/useEntretiens";
 import CandidatureTimeline from "./CandidatureTimeline";
-import { useSignalerConsultationCv } from "@/lib/queries/useCandidaturesEntreprise";
 import EvaluationRapide from "./EvaluationRapide";
 import NotesPrivees from "./NotesPrivees";
-import HistoriqueComplet from "./HistoriqueComplet";
 import { safeHref } from "@/lib/utils/urlValidation";
 
 
@@ -54,7 +55,6 @@ const STATUTS_ENTRETIEN_ACTIFS = [
 
 export default function CandidatDetailDialog({ candidature, onClose }) {
   const { t, locale } = useTranslation();
-  const signalerCv = useSignalerConsultationCv();
   const [showLettre, setShowLettre] = useState(false);
   const { data: entretiens } = useEntretiensEntreprise();
 
@@ -80,7 +80,7 @@ export default function CandidatDetailDialog({ candidature, onClose }) {
    >
      <div className="space-y-5">
        <div className="flex items-center gap-3">
-         <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-lg font-bold text-primary-foreground">
+         <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-lg font-bold text-primary-foreground">
            {candidature.photoProfilUrl ? (
              // eslint-disable-next-line @next/next/no-img-element
              <img
@@ -113,14 +113,6 @@ export default function CandidatDetailDialog({ candidature, onClose }) {
          </p>
 
          <div className="flex flex-wrap gap-2">
-           <ViewCvButton
-             cvUrl={candidature.cvUrl}
-             onBeforeOpen={() => signalerCv.mutate(candidature.idCandidature)}
-             className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/70"
-           >
-             <FiFileText className="h-3.5 w-3.5" />
-             {t("entrepriseSpace.candidatures.viewCv")}
-           </ViewCvButton>
            {candidature.linkedinUrl && safeHref(candidature.linkedinUrl) && (
              <a
                href={safeHref(candidature.linkedinUrl)}
@@ -162,23 +154,209 @@ export default function CandidatDetailDialog({ candidature, onClose }) {
            </div>
          )}
 
-         {candidature.competences?.length > 0 && (
-           <div>
-             <h5 className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-               {t("entrepriseSpace.candidatures.skills")}
-             </h5>
-             <div className="flex flex-wrap gap-1.5">
-               {candidature.competences.map((c) => (
-                 <span
-                   key={c}
-                   className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
-                 >
-                   {c}
-                 </span>
-               ))}
+         {/* Profil enrichi : remplace avantageusement le CV tout en gardant
+             les coordonnées personnelles masquées tant que le stage n'a pas commencé. */}
+         <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+           <div className="border-b border-border/70 bg-muted/20 px-4 py-3.5">
+             <div className="flex items-center gap-2.5">
+               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                 <FiUser className="h-4 w-4" />
+               </div>
+               <div>
+                 <h4 className="text-sm font-bold text-foreground">
+                   {t("entrepriseSpace.candidatures.enrichedProfile")}
+                 </h4>
+                 <p className="text-[11px] text-muted-foreground">
+                   {t("entrepriseSpace.candidatures.enrichedProfileHint")}
+                 </p>
+               </div>
              </div>
            </div>
-         )}
+
+           <div className="divide-y divide-border/60">
+             {/* Compétences */}
+             <div className="p-4">
+               <div className="mb-3 flex items-center justify-between gap-3">
+                 <h5 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-foreground">
+                   <FiCode className="h-3.5 w-3.5 text-primary" />
+                   {t("entrepriseSpace.candidatures.skills")}
+                 </h5>
+                 {candidature.competences?.length > 0 && (
+                   <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                     {candidature.competences.length}
+                   </span>
+                 )}
+               </div>
+               {candidature.competences?.length > 0 ? (
+                 <div className="flex flex-wrap gap-1.5">
+                   {candidature.competences.map((c) => (
+                     <span key={c} className="rounded-lg border border-primary/15 bg-primary/5 px-2.5 py-1.5 text-xs font-medium text-foreground">
+                       {c}
+                     </span>
+                   ))}
+                 </div>
+               ) : (
+                 <p className="rounded-lg bg-muted/50 px-3 py-2.5 text-xs text-muted-foreground">
+                   {t("entrepriseSpace.candidatures.noSkills")}
+                 </p>
+               )}
+             </div>
+
+             {/* Formation */}
+             <div className="p-4">
+               <h5 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-foreground">
+                 <FiBookOpen className="h-3.5 w-3.5 text-secondary" />
+                 {t("entrepriseSpace.candidatures.academicPath")}
+               </h5>
+               {candidature.formations?.length > 0 ? (
+                 <div className="space-y-3">
+                   {candidature.formations.map((formation, i) => (
+                     <div key={i} className="relative rounded-xl border border-border/60 bg-muted/20 p-3.5">
+                       <div className="flex items-start gap-3">
+                         <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
+                           <FiAward className="h-3.5 w-3.5" />
+                         </div>
+                         <div className="min-w-0 flex-1 space-y-1">
+                           <p className="text-sm font-semibold text-foreground">
+                             {formation.diplome || t("entrepriseSpace.candidatures.formationFallback")}
+                           </p>
+                           {formation.nomUniversite && (
+                             <p className="text-xs font-medium text-foreground">{formation.nomUniversite}</p>
+                           )}
+                           {(formation.faculte || formation.departement) && (
+                             <p className="text-xs text-muted-foreground">
+                               {[formation.faculte, formation.departement].filter(Boolean).join(" · ")}
+                             </p>
+                           )}
+                           <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1 text-[11px] text-muted-foreground">
+                             {formation.typeFormation === "en_cours" && (
+                               <span className="font-medium text-secondary">
+                                 {t("entrepriseSpace.candidatures.currentTraining")}
+                               </span>
+                             )}
+                             {formation.anneeEtude != null && formation.typeFormation === "en_cours" && (
+                               <span>{t("entrepriseSpace.candidatures.yearOfStudy", { year: formation.anneeEtude })}</span>
+                             )}
+                             {formation.anneeObtention != null && formation.typeFormation === "obtenue" && (
+                               <span>{formation.anneeObtention}</span>
+                             )}
+                           </div>
+                         </div>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               ) : (
+                 <p className="rounded-lg bg-muted/50 px-3 py-2.5 text-xs text-muted-foreground">
+                   {t("entrepriseSpace.candidatures.noEducation")}
+                 </p>
+               )}
+             </div>
+
+             {/* Qualités */}
+             <div className="p-4">
+               <h5 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-foreground">
+                 <FiStar className="h-3.5 w-3.5 text-amber-500" />
+                 {t("entrepriseSpace.candidatures.qualities")}
+               </h5>
+               {candidature.qualites?.length > 0 ? (
+                 <div className="flex flex-wrap gap-1.5">
+                   {candidature.qualites.map((q, i) => (
+                     <span key={i} className="rounded-lg border border-amber-500/15 bg-amber-500/5 px-2.5 py-1.5 text-xs font-medium text-foreground">
+                       {q}
+                     </span>
+                   ))}
+                 </div>
+               ) : (
+                 <p className="rounded-lg bg-muted/50 px-3 py-2.5 text-xs text-muted-foreground">
+                   {t("entrepriseSpace.candidatures.noQualities")}
+                 </p>
+               )}
+             </div>
+
+             {/* Expériences */}
+             <div className="p-4">
+               <h5 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-foreground">
+                 <FiBriefcase className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                 {t("entrepriseSpace.candidatures.professionalExperience")}
+               </h5>
+               {candidature.experiencesProfessionnelles?.length > 0 ? (
+                 <div className="space-y-3">
+                   {candidature.experiencesProfessionnelles.map((e, i) => (
+                     <div key={i} className="rounded-xl border border-border/60 bg-muted/20 p-3.5">
+                       <p className="text-sm font-semibold text-foreground">{e.poste}</p>
+                       {e.entreprise && <p className="text-xs font-medium text-muted-foreground">{e.entreprise}</p>}
+                       <p className="mt-1 text-[11px] text-muted-foreground">
+                         {[e.dateDebut, e.enCours ? t("entrepriseSpace.candidatures.current") : e.dateFin].filter(Boolean).join(" — ")}
+                       </p>
+                       {e.description && <p className="mt-2 whitespace-pre-line text-xs leading-5 text-muted-foreground">{e.description}</p>}
+                     </div>
+                   ))}
+                 </div>
+               ) : (
+                 <p className="rounded-lg bg-muted/50 px-3 py-2.5 text-xs text-muted-foreground">
+                   {t("entrepriseSpace.candidatures.noExperience")}
+                 </p>
+               )}
+             </div>
+
+             {/* Langues */}
+             <div className="p-4">
+               <h5 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-foreground">
+                 <FiGlobe className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+                 {t("entrepriseSpace.candidatures.languages")}
+               </h5>
+               {candidature.langues?.length > 0 ? (
+                 <div className="space-y-2">
+                   {candidature.langues.map((langue, i) => (
+                     <div key={i} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+                       <span className="text-xs font-medium text-foreground">{langue.nom}</span>
+                       {langue.niveau && (
+                         <span className="text-[11px] text-muted-foreground">
+                           {t(`stagiaireSpace.profile.levels.${langue.niveau}`) || langue.niveau}
+                         </span>
+                       )}
+                     </div>
+                   ))}
+                 </div>
+               ) : (
+                 <p className="rounded-lg bg-muted/50 px-3 py-2.5 text-xs text-muted-foreground">
+                   {t("entrepriseSpace.candidatures.noLanguages")}
+                 </p>
+               )}
+             </div>
+
+             {/* Présentation / objectif */}
+             {(candidature.titreProfessionnel || candidature.presentation || candidature.objectifProfessionnel) && (
+               <div className="p-4">
+                 <h5 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-foreground">
+                   <FiTarget className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+                   {t("entrepriseSpace.candidatures.professionalProfile")}
+                 </h5>
+                 <div className="space-y-3">
+                   {candidature.titreProfessionnel && (
+                     <div>
+                       <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{t("entrepriseSpace.candidatures.jobTitle")}</p>
+                       <p className="mt-1 text-sm font-semibold text-foreground">{candidature.titreProfessionnel}</p>
+                     </div>
+                   )}
+                   {candidature.presentation && (
+                     <div>
+                       <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{t("entrepriseSpace.candidatures.presentation")}</p>
+                       <p className="mt-1 whitespace-pre-line text-xs leading-5 text-muted-foreground">{candidature.presentation}</p>
+                     </div>
+                   )}
+                   {candidature.objectifProfessionnel && (
+                     <div>
+                       <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{t("entrepriseSpace.candidatures.professionalObjective")}</p>
+                       <p className="mt-1 whitespace-pre-line text-xs leading-5 text-muted-foreground">{candidature.objectifProfessionnel}</p>
+                     </div>
+                   )}
+                 </div>
+               </div>
+             )}
+           </div>
+         </section>
 
          <div>
            <h5 className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
@@ -194,23 +372,6 @@ export default function CandidatDetailDialog({ candidature, onClose }) {
            <NotesPrivees idCandidature={candidature.idCandidature} />
          </div>
 
-         {(candidature.nomUniversite || candidature.diplome) && (
-           <div>
-             <h5 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-               <FiBookOpen className="h-3.5 w-3.5" />
-               {t("entrepriseSpace.candidatures.academicPath")}
-             </h5>
-             <p className="text-sm text-foreground">
-               {candidature.nomUniversite}
-             </p>
-             <p className="text-sm text-muted-foreground">
-               {candidature.diplome}
-               {candidature.departement && ` · ${candidature.departement}`}
-               {candidature.anneeEtude && ` · ${t("entrepriseSpace.candidatures.yearOfStudy", { year: candidature.anneeEtude })}`}
-             </p>
-           </div>
-         )}
-
          <div>
            <h5 className="mb-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
              {t("entrepriseSpace.candidatures.timeline")}
@@ -222,7 +383,7 @@ export default function CandidatDetailDialog({ candidature, onClose }) {
            <h5 className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
              {t("entrepriseSpace.candidatures.contactInfo")}
            </h5>
-           {candidature.email || candidature.telephone ? (
+           {candidature.coordonneesDisponibles && (candidature.email || candidature.telephone) ? (
              <div className="space-y-1 text-sm text-foreground">
                {candidature.email && (
                  <p className="flex items-center gap-1.5">
@@ -393,7 +554,6 @@ export default function CandidatDetailDialog({ candidature, onClose }) {
            </p>
          )}
        </div>
-       <HistoriqueComplet idCandidature={candidature.idCandidature} />
      </div>
    </SidePanel>
  );

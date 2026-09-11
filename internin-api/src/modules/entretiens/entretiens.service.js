@@ -338,9 +338,9 @@ async function getEntretienOwnership(idEntretien) {
   return row;
 }
 
-// Permet à l'entreprise de consulter les disponibilités ET les préférences
-// du candidat (rémunération, durée, mode de travail, date de début)
-// avant de formuler l'offre finale.
+// Permet à l'entreprise de consulter uniquement les disponibilités du candidat
+// nécessaires à la préparation de l'offre finale. Les préférences de recherche
+// personnelles ne sont pas exposées dans ce flux.
 export async function getDisponibilitesCandidat(
   idUtilisateurEntreprise,
   idEntretien,
@@ -366,32 +366,16 @@ export async function getDisponibilitesCandidat(
     throw err;
   }
 
-  const [disponibilites, [profil]] = await Promise.all([
-    db
-      .select({
-        jourSemaine: disponibilitesStagiaire.jourSemaine,
-        heureDebut: disponibilitesStagiaire.heureDebut,
-        heureFin: disponibilitesStagiaire.heureFin,
-      })
-      .from(disponibilitesStagiaire)
-      .where(eq(disponibilitesStagiaire.idStagiaire, row.idStagiaire)),
+  const disponibilites = await db
+    .select({
+      jourSemaine: disponibilitesStagiaire.jourSemaine,
+      heureDebut: disponibilitesStagiaire.heureDebut,
+      heureFin: disponibilitesStagiaire.heureFin,
+    })
+    .from(disponibilitesStagiaire)
+    .where(eq(disponibilitesStagiaire.idStagiaire, row.idStagiaire));
 
-    db
-      .select({
-        dureeStageSouhaitee: stagiaires.dureeStageSouhaitee,
-        heuresHebdoSouhaitees: stagiaires.heuresHebdoSouhaitees,
-        dateDebutSouhaitee: stagiaires.dateDebutSouhaitee,
-        modalitesTravailSouhaitees: stagiaires.modalitesTravailSouhaitees,
-        remunerationSouhaitee: stagiaires.remunerationSouhaitee,
-      })
-      .from(stagiaires)
-      .where(eq(stagiaires.idStagiaire, row.idStagiaire)),
-  ]);
-
-  return {
-    disponibilites,
-    preferences: profil || null,
-  };
+  return { disponibilites };
 }
 
 // Étape 3a côté stagiaire : accepte la date proposée par l'entreprise telle quelle

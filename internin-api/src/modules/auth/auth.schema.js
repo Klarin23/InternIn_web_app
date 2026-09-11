@@ -68,3 +68,13 @@ export const googleAuthSchema = z
   .refine((data) => Boolean(data.accessToken || data.idToken), {
     message: "accessToken ou idToken requis",
   });
+
+
+export const deleteStagiaireAccountSchema = z.object({
+  confirmation: z.literal("SUPPRIMER"),
+}).strict();
+
+
+export const deleteEntrepriseAccountSchema = z.object({
+  confirmation: z.literal("SUPPRIMER"),
+}).strict();

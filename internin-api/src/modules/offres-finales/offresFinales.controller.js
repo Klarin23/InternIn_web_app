@@ -2,7 +2,6 @@ import {
   createOffreFinale,
   listOffresFinalesEnAttente,
   listToutesOffresFinales,
-  validerOffreFinale,
   listMesOffresFinales,
   repondreOffreFinale,
   listHistoriqueRejets,
@@ -31,19 +30,6 @@ export async function listToutes(req, res, next) {
 export async function listEnAttente(req, res, next) {
   try {
     res.json(await listOffresFinalesEnAttente());
-  } catch (err) {
-    next(err);
-  }
-}
-
-export async function valider(req, res, next) {
-  try {
-    const offreFinale = await validerOffreFinale(
-      req.user.idUtilisateur,
-      req.params.id,
-      req.body.statutValidationPlateforme,
-    );
-    res.json({ offreFinale });
   } catch (err) {
     next(err);
   }

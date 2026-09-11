@@ -17,27 +17,28 @@ import { Button } from "@/components/ui/button";
 import { useOnboardingStore } from "@/lib/store/useOnboardingStore";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { completeOnboardingRequest } from "@/lib/api/stagiaires";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const DUREE_LABELS = {
-  "1_mois": "1 mois",
-  "2_mois": "2 mois",
-  "3_mois": "3 mois",
+  "1_mois": "oneMonth",
+  "2_mois": "twoMonths",
+  "3_mois": "threeMonths",
 };
 const STATUT_LABELS = {
-  etudiant: "Étudiant(e)",
-  jeune_diplome: "Jeune diplômé(e)",
+  etudiant: "student",
+  jeune_diplome: "graduate",
 };
 const JOUR_LABELS = {
-  lundi: "Lundi",
-  mardi: "Mardi",
-  mercredi: "Mercredi",
-  jeudi: "Jeudi",
-  vendredi: "Vendredi",
-  samedi: "Samedi",
-  dimanche: "Dimanche",
+  lundi: "monday",
+  mardi: "tuesday",
+  mercredi: "wednesday",
+  jeudi: "thursday",
+  vendredi: "friday",
+  samedi: "saturday",
+  dimanche: "sunday",
 };
 
-function RecapSection({ title, editHref, children }) {
+function RecapSection({ title, editHref, editLabel, children }) {
   return (
     <div className="rounded-md border border-border bg-card p-5">
       <div className="mb-3 flex items-center justify-between">
@@ -47,7 +48,7 @@ function RecapSection({ title, editHref, children }) {
           className="flex items-center gap-1 text-xs font-semibold text-blue-400 hover:underline"
         >
           <Pencil className="h-3 w-3" />
-          Modifier
+          {editLabel}
         </Link>
       </div>
       <div className="space-y-1 text-sm text-muted-foreground">{children}</div>
@@ -57,6 +58,7 @@ function RecapSection({ title, editHref, children }) {
 
 export default function Step11Recapitulatif() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { data, resetOnboarding } = useOnboardingStore();
   const { token, user, setSession } = useAuthStore();
 
@@ -96,11 +98,10 @@ export default function Step11Recapitulatif() {
           <CheckCircle2 className="h-5 w-5" />
         </div>
         <h1 className="mb-1.5 text-2xl font-bold text-foreground">
-          Vérifiez votre profil
+          {t("auditUi.onboarding.reviewTitle")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Dernière étape — relisez vos informations avant de finaliser votre
-          inscription.
+          {t("auditUi.onboarding.reviewDescription")}
         </p>
       </div>
 
@@ -111,9 +112,15 @@ export default function Step11Recapitulatif() {
         </div>
       )}
 
-      <RecapSection title="Disponibilités" editHref="/onboarding/9">
+      <RecapSection
+        title={t("auditUi.onboarding.availabilityTitle")}
+        editLabel={t("auditUi.onboarding.edit")}
+        editHref="/onboarding/9"
+      >
         <p>
-          {data.joursDisponibles?.map((j) => JOUR_LABELS[j]).join(", ") || "—"}
+          {data.joursDisponibles
+            ?.map((j) => t(`auditUi.onboarding.days.${JOUR_LABELS[j]}`))
+            .join(", ") || "—"}
           {data.heureDebutDisponible && data.heureFinDisponible && (
             <>
               {" "}
@@ -123,11 +130,23 @@ export default function Step11Recapitulatif() {
         </p>
       </RecapSection>
 
-      <RecapSection title="Statut académique" editHref="/onboarding/2">
-        <p>{STATUT_LABELS[data.statutAcademique] || "—"}</p>
+      <RecapSection
+        title={t("auditUi.onboarding.academicStatus")}
+        editLabel={t("auditUi.onboarding.edit")}
+        editHref="/onboarding/2"
+      >
+        <p>
+          {STATUT_LABELS[data.statutAcademique]
+            ? t(`auditUi.onboarding.${STATUT_LABELS[data.statutAcademique]}`)
+            : "—"}
+        </p>
       </RecapSection>
 
-      <RecapSection title="Formation" editHref="/onboarding/3">
+      <RecapSection
+        title={t("auditUi.onboarding.education")}
+        editLabel={t("auditUi.onboarding.edit")}
+        editHref="/onboarding/3"
+      >
         {data.formations?.map((f, i) => (
           <p key={i}>
             {f.diplome} — {f.nomUniversite}
@@ -135,11 +154,19 @@ export default function Step11Recapitulatif() {
         ))}
       </RecapSection>
 
-      <RecapSection title="CV" editHref="/onboarding/4">
-        <p>{data.cvNomFichier || "Aucun fichier"}</p>
+      <RecapSection
+        title={t("auditUi.onboarding.cv")}
+        editLabel={t("auditUi.onboarding.edit")}
+        editHref="/onboarding/4"
+      >
+        <p>{data.cvNomFichier || t("auditUi.onboarding.noFile")}</p>
       </RecapSection>
 
-      <RecapSection title="Liens professionnels" editHref="/onboarding/5">
+      <RecapSection
+        title={t("auditUi.onboarding.professionalLinks")}
+        editLabel={t("auditUi.onboarding.edit")}
+        editHref="/onboarding/5"
+      >
         {[
           data.linkedinUrl,
           data.githubUrl,
@@ -157,39 +184,88 @@ export default function Step11Recapitulatif() {
                 data.behanceUrl,
               ].filter(Boolean).length
             }{" "}
-            lien(s) renseigné(s)
+            {t("auditUi.onboarding.linksCount", {
+              count: [
+                data.linkedinUrl,
+                data.githubUrl,
+                data.portfolioUrl,
+                data.siteWebUrl,
+                data.behanceUrl,
+              ].filter(Boolean).length,
+            })}
           </p>
         ) : (
-          <p>Aucun lien renseigné</p>
+          <p>{t("auditUi.onboarding.noLinks")}</p>
         )}
       </RecapSection>
 
-      <RecapSection title="Compétences" editHref="/onboarding/6">
-        <p>{data.competences?.length || 0} compétence(s) sélectionnée(s)</p>
-      </RecapSection>
-
-      <RecapSection title="Centres d'intérêt" editHref="/onboarding/7">
-        <p>{data.centresInteret?.length || 0} domaine(s) sélectionné(s)</p>
-      </RecapSection>
-
-      <RecapSection title="Objectifs de développement" editHref="/onboarding/8">
+      <RecapSection
+        title={t("auditUi.onboarding.skillsTitle")}
+        editLabel={t("auditUi.onboarding.edit")}
+        editHref="/onboarding/6"
+      >
         <p>
-          {data.objectifsDeveloppement?.length || 0} objectif(s) sélectionné(s)
+          {t("auditUi.onboarding.skillsCount", {
+            count: data.competences?.length || 0,
+          })}
         </p>
       </RecapSection>
 
-      <RecapSection title="Disponibilités" editHref="/onboarding/9">
+      <RecapSection
+        title={t("auditUi.onboarding.interestsTitle")}
+        editLabel={t("auditUi.onboarding.edit")}
+        editHref="/onboarding/7"
+      >
         <p>
-          {data.joursDisponibles?.map((j) => JOUR_LABELS[j]).join(", ") || "—"}
+          {t("auditUi.onboarding.interestsCount", {
+            count: data.centresInteret?.length || 0,
+          })}
         </p>
       </RecapSection>
 
-      <RecapSection title="Préférences de stage" editHref="/onboarding/10">
+      <RecapSection
+        title={t("auditUi.onboarding.objectivesTitle")}
+        editLabel={t("auditUi.onboarding.edit")}
+        editHref="/onboarding/8"
+      >
         <p>
-          {DUREE_LABELS[data.dureeStageSouhaitee] || "—"} ·{" "}
-          {data.heuresHebdoSouhaitees}h/semaine
+          {t("auditUi.onboarding.objectivesCount", {
+            count: data.objectifsDeveloppement?.length || 0,
+          })}
         </p>
-        <p>Début souhaité : {data.dateDebutSouhaitee || "—"}</p>
+      </RecapSection>
+
+      <RecapSection
+        title={t("auditUi.onboarding.availabilityTitle")}
+        editLabel={t("auditUi.onboarding.edit")}
+        editHref="/onboarding/9"
+      >
+        <p>
+          {data.joursDisponibles
+            ?.map((j) => t(`auditUi.onboarding.days.${JOUR_LABELS[j]}`))
+            .join(", ") || "—"}
+        </p>
+      </RecapSection>
+
+      <RecapSection
+        title={t("auditUi.onboarding.preferencesTitle")}
+        editLabel={t("auditUi.onboarding.edit")}
+        editHref="/onboarding/10"
+      >
+        <p>
+          {DUREE_LABELS[data.dureeStageSouhaitee]
+            ? t(`auditUi.common.${DUREE_LABELS[data.dureeStageSouhaitee]}`)
+            : "—"}{" "}
+          ·{" "}
+          {t("auditUi.onboarding.hoursPerWeekValue", {
+            n: data.heuresHebdoSouhaitees,
+          })}
+        </p>
+        <p>
+          {t("auditUi.onboarding.desiredStartDateValue", {
+            date: data.dateDebutSouhaitee || "—",
+          })}
+        </p>
       </RecapSection>
 
       <div className="flex gap-3 pt-2">
@@ -211,10 +287,10 @@ export default function Step11Recapitulatif() {
           {isSubmitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Création du profil...
+              {t("auditUi.onboarding.creatingProfile")}
             </>
           ) : (
-            "Confirmer et finaliser mon profil"
+            t("auditUi.onboarding.confirmProfile")
           )}
         </Button>
       </div>

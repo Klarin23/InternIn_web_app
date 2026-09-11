@@ -33,7 +33,7 @@ export default function RejeterCandidatDialog({ idEntretien, candidatNom }) {
           className="rounded-sm border-destructive/40 text-destructive hover:bg-destructive/5"
         >
           <FiXCircle className="h-4 w-4" />
-          Rejeter
+          {t("entrepriseSpace.candidatures.rejectCandidate")}
         </Button>
       </DialogTrigger>
       <DialogContent className="rounded-md sm:max-w-[440px]">
@@ -45,10 +45,9 @@ export default function RejeterCandidatDialog({ idEntretien, candidatNom }) {
           <div className="flex items-start gap-2.5 rounded-sm border border-border bg-muted/40 p-3.5 text-sm text-muted-foreground">
             <FiMail className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
             <p>
-              Un message professionnel sera automatiquement envoyé à{" "}
-              <b className="text-foreground">{candidatNom}</b> pour
-              l&apos;informer que sa candidature n&apos;a pas été retenue pour
-              ce stage. Cette action est définitive.
+              {t("entrepriseSpace.candidatures.rejectDescription", {
+                name: candidatNom,
+              })}
             </p>
           </div>
 
@@ -67,7 +66,7 @@ export default function RejeterCandidatDialog({ idEntretien, candidatNom }) {
               onClick={() => setOpen(false)}
               disabled={mutation.isPending}
             >
-              Annuler
+              {t("entrepriseSpace.candidatures.cancel")}
             </Button>
             <Button
               type="button"

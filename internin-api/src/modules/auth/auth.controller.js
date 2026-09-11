@@ -9,6 +9,7 @@ import {
   logoutUser,
   loginWithGoogle,
 } from "./auth.service.js";
+import { deleteStagiaireAccount, deleteEntrepriseAccount } from "./accountDeletion.service.js";
 
 export async function register(req, res, next) {
   try {
@@ -177,6 +178,61 @@ export async function googleAuth(req, res, next) {
 
     const { refreshToken, ...safeResult } = result;
     res.status(result.isNewUser ? 201 : 200).json(safeResult);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function deleteStagiaireAccountController(req, res, next) {
+  try {
+    const result = await deleteStagiaireAccount(
+      req.user.idUtilisateur,
+      req.body?.confirmation,
+    );
+
+    res.clearCookie("internin_refresh", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Compte stagiaire supprimé définitivement.",
+      cleanup: {
+        files: result.filesToDelete.length,
+        conventions: result.conventionIds.length,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+
+export async function deleteEntrepriseAccountController(req, res, next) {
+  try {
+    const result = await deleteEntrepriseAccount(
+      req.user.idUtilisateur,
+      req.body?.confirmation,
+    );
+
+    res.clearCookie("internin_refresh", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Compte entreprise supprimé définitivement.",
+      cleanup: {
+        files: result.filesToDelete.length,
+        conventions: result.conventionIds.length,
+      },
+    });
   } catch (err) {
     next(err);
   }

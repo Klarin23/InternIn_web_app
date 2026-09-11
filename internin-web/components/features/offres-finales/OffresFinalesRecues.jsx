@@ -9,6 +9,8 @@ import {
   FiLoader,
   FiClock,
   FiInbox,
+  FiCalendar,
+  FiVideo,
 } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +30,19 @@ const MODE_KEYS = {
   hybride: "workMode.hybride",
   presentiel: "workMode.presentiel",
 };
+const JOUR_LABELS = {
+  lundi: "Lundi",
+  mardi: "Mardi",
+  mercredi: "Mercredi",
+  jeudi: "Jeudi",
+  vendredi: "Vendredi",
+  samedi: "Samedi",
+  dimanche: "Dimanche",
+};
+
+function formatTime(value) {
+  return value ? String(value).slice(0, 5) : "—";
+}
 
 function formatDate(value, locale) {
   if (!value) return "—";
@@ -108,6 +123,52 @@ export default function OffresFinalesRecues() {
                     date: o.dateDebut,
                   })}
                 </p>
+                <div className="mb-4 rounded-sm border border-border bg-muted/30 p-3">
+                  <p className="mb-2 flex items-center gap-2 text-xs font-semibold text-foreground">
+                    <FiCalendar className="h-3.5 w-3.5 text-primary" />
+                    {t("stagiaireSpace.finalOffers.scheduleTitle")}
+                  </p>
+                  {Array.isArray(o.horairesStage) &&
+                  o.horairesStage.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-1.5 text-xs text-muted-foreground sm:grid-cols-2">
+                      {o.horairesStage.map((horaire) => (
+                        <div
+                          key={horaire.jourSemaine}
+                          className="flex justify-between gap-3"
+                        >
+                          <span>
+                            {JOUR_LABELS[horaire.jourSemaine] ||
+                              horaire.jourSemaine}
+                          </span>
+                          <span className="font-medium text-foreground">
+                            {formatTime(horaire.heureDebut)} -{" "}
+                            {formatTime(horaire.heureFin)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      {t("stagiaireSpace.finalOffers.scheduleUnavailable")}
+                    </p>
+                  )}
+                </div>
+                {o.modeTravail === "distance" && o.lienReunionOnline && (
+                  <div className="mb-4 rounded-sm border border-primary/25 bg-primary/5 p-3">
+                    <p className="mb-1 flex items-center gap-2 text-xs font-semibold text-foreground">
+                      <FiVideo className="h-3.5 w-3.5 text-primary" />
+                      {t("stagiaireSpace.finalOffers.meetingLinkTitle")}
+                    </p>
+                    <a
+                      href={o.lienReunionOnline}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block break-all text-sm font-medium text-primary underline underline-offset-2"
+                    >
+                      {o.lienReunionOnline}
+                    </a>
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"

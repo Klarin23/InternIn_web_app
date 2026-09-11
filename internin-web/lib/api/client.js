@@ -61,10 +61,28 @@ export async function apiFetch(
   path,
   { method = "GET", body, token, _retried = false } = {},
 ) {
+  // Certains appels historiques (notamment les hooks de lecture des états
+  // vus/non-vus) n'envoient pas explicitement le token. Depuis que le token
+  // n'est plus persisté dans localStorage, cela provoquait un 401 alors que
+  // la session était bien active.
+  //
+  // On récupère donc le token courant du store en navigateur lorsqu'aucun
+  // token n'a été fourni explicitement. Cela ne change rien aux routes
+  // publiques : sans session, aucun header Authorization n'est ajouté.
+  let accessToken = token;
+  if (!accessToken && typeof window !== "undefined") {
+    try {
+      const { useAuthStore } = await import("@/lib/store/useAuthStore");
+      accessToken = useAuthStore.getState().token || null;
+    } catch {
+      accessToken = null;
+    }
+  }
+
   const isForm = typeof FormData !== "undefined" && body instanceof FormData;
   const headers = {};
   if (!isForm) headers["Content-Type"] = "application/json";
-  if (token) headers.Authorization = `Bearer ${token}`;
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
   const response = await fetch(`${API_URL}${path}`, {
     method,
@@ -76,13 +94,18 @@ export async function apiFetch(
   // Token expiré → tenter un refresh une seule fois (sauf sur la route refresh elle-même)
   if (
     response.status === 401 &&
-    token &&
+    accessToken &&
     !_retried &&
     !path.includes("/auth/refresh")
   ) {
     const newToken = await tryRefreshAccessToken();
     if (newToken) {
-      return apiFetch(path, { method, body, token: newToken, _retried: true });
+      return apiFetch(path, {
+        method,
+        body,
+        token: newToken,
+        _retried: true,
+      });
     }
     // Refresh impossible → déconnexion propre
     try {

@@ -13,15 +13,16 @@ import { useOnboardingStore } from "@/lib/store/useOnboardingStore";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { completeOnboardingRequest } from "@/lib/api/stagiaires";
 import { toast } from "@/lib/store/useToastStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const JOURS = [
-  { value: "lundi", label: "Lundi" },
-  { value: "mardi", label: "Mardi" },
-  { value: "mercredi", label: "Mercredi" },
-  { value: "jeudi", label: "Jeudi" },
-  { value: "vendredi", label: "Vendredi" },
-  { value: "samedi", label: "Samedi" },
-  { value: "dimanche", label: "Dimanche" },
+  { value: "lundi", key: "monday" },
+  { value: "mardi", key: "tuesday" },
+  { value: "mercredi", key: "wednesday" },
+  { value: "jeudi", key: "thursday" },
+  { value: "vendredi", key: "friday" },
+  { value: "samedi", key: "saturday" },
+  { value: "dimanche", key: "sunday" },
 ];
 
 const schema = z.object({
@@ -34,6 +35,7 @@ const schema = z.object({
 });
 
 export default function Step4FinalSubmit() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { data, saveStepData, resetOnboarding } = useOnboardingStore();
   const token = useAuthStore((s) => s.token);
@@ -75,32 +77,32 @@ export default function Step4FinalSubmit() {
       objectifsDeveloppement: data.objectifsDeveloppement || [],
     };
 
-        try {
-          const result = await completeOnboardingRequest(payload, token);
+    try {
+      const result = await completeOnboardingRequest(payload, token);
 
-          // Toujours prendre le statut renvoyé par l'API (score → actif/inactif)
-          // Ne JAMAIS forcer "actif" côté client
-          const statutCompte = result?.stagiaire?.statutCompte || "inactif";
+      // Toujours prendre le statut renvoyé par l'API (score → actif/inactif)
+      // Ne JAMAIS forcer "actif" côté client
+      const statutCompte = result?.stagiaire?.statutCompte || "inactif";
 
-          setSession(
-            {
-              ...user,
-              statutCompte,
-            },
-            token,
-          );
+      setSession(
+        {
+          ...user,
+          statutCompte,
+        },
+        token,
+      );
 
-            resetOnboarding();
-            router.push("/tableau-de-bord");
-          toast.success(
-            statutCompte === "actif"
-              ? "Profil complété !"
-              : "Profil enregistré — complétez-le pour débloquer toutes les fonctionnalités",
-          );
-          router.push("/tableau-de-bord");
-        } catch (err) {
-          toast.error(err.message || "Impossible de finaliser l'onboarding");
-        }
+      resetOnboarding();
+      router.push("/tableau-de-bord");
+      toast.success(
+        statutCompte === "actif"
+          ? t("auditUi.onboarding.profileCompleted")
+          : t("auditUi.onboarding.profileSavedIncomplete"),
+      );
+      router.push("/tableau-de-bord");
+    } catch (err) {
+      toast.error(err.message || t("auditUi.onboarding.finalizationError"));
+    }
   };
 
   return (
@@ -140,7 +142,7 @@ export default function Step4FinalSubmit() {
                       : "border-border text-muted-foreground hover:border-primary/40"
                   }`}
                 >
-                  {j.label}
+                  {t(`auditUi.onboarding.days.${j.key}`)}
                 </button>
               );
             })}
@@ -155,7 +157,7 @@ export default function Step4FinalSubmit() {
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label>Heure début</Label>
+          <Label>{t("auditUi.onboarding.startTime")}</Label>
           <Input
             type="time"
             className="h-12 rounded-sm"
@@ -163,7 +165,7 @@ export default function Step4FinalSubmit() {
           />
         </div>
         <div className="space-y-1.5">
-          <Label>Heure fin</Label>
+          <Label>{t("auditUi.onboarding.endTime")}</Label>
           <Input
             type="time"
             className="h-12 rounded-sm"
@@ -173,16 +175,16 @@ export default function Step4FinalSubmit() {
       </div>
 
       <div className="space-y-2">
-        <Label>Durée de stage souhaitée</Label>
+        <Label>{t("auditUi.onboarding.desiredDuration")}</Label>
         <Controller
           name="dureeStageSouhaitee"
           control={control}
           render={({ field }) => (
             <div className="flex flex-wrap gap-2">
               {[
-                { value: "1_mois", label: "1 mois" },
-                { value: "2_mois", label: "2 mois" },
-                { value: "3_mois", label: "3 mois" },
+                { value: "1_mois", label: t("auditUi.common.oneMonth") },
+                { value: "2_mois", label: t("auditUi.common.twoMonths") },
+                { value: "3_mois", label: t("auditUi.common.threeMonths") },
               ].map((opt) => (
                 <button
                   key={opt.value}
@@ -204,7 +206,7 @@ export default function Step4FinalSubmit() {
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <Label>Heures / semaine</Label>
+          <Label>{t("auditUi.onboarding.hoursPerWeek")}</Label>
           <Controller
             name="heuresHebdoSouhaitees"
             control={control}
@@ -231,7 +233,9 @@ export default function Step4FinalSubmit() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="dateDebutSouhaitee">Date de début souhaitée</Label>
+        <Label htmlFor="dateDebutSouhaitee">
+          {t("auditUi.onboarding.desiredStartDate")}
+        </Label>
         <Input
           id="dateDebutSouhaitee"
           type="date"
@@ -250,7 +254,7 @@ export default function Step4FinalSubmit() {
           type="button"
           variant="outline"
           className="h-12 rounded-sm"
-          onClick={() => router.push("/onboarding/3")}
+          onClick={() => router.push("/onboarding/9")}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
@@ -265,7 +269,7 @@ export default function Step4FinalSubmit() {
               Envoi…
             </>
           ) : (
-            "Terminer mon inscription"
+            t("auditUi.onboarding.finishRegistration")
           )}
         </Button>
       </div>

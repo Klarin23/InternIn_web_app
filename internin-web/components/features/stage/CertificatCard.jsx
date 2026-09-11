@@ -41,12 +41,15 @@ export default function CertificatCard({ certificat, idStage }) {
     <div className="rounded-2xl border border-primary/25 bg-primary/[0.04] p-5">
       <div className="mb-3 flex items-center gap-2">
         <FiAward className="h-5 w-5 text-primary" />
-        <h6 className="font-semibold text-foreground">Certificat de stage</h6>
+        <h6 className="font-semibold text-foreground">
+          {t("auditUi.stage.certificate")}
+        </h6>
       </div>
       {certificat.codeVerification && (
         <p className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
           <FiShield className="h-3.5 w-3.5" />
-          {t("stagiaireSpace.stage.verificationCode")} {certificat.codeVerification}
+          {t("stagiaireSpace.stage.verificationCode")}{" "}
+          {certificat.codeVerification}
         </p>
       )}
       <button
@@ -60,7 +63,9 @@ export default function CertificatCard({ certificat, idStage }) {
         ) : (
           <FiDownload className="h-4 w-4" />
         )}
-        {busy ? t("stagiaireSpace.stage.preparing") : t("stagiaireSpace.stage.downloadCert")}
+        {busy
+          ? t("stagiaireSpace.stage.preparing")
+          : t("stagiaireSpace.stage.downloadCert")}
       </button>
     </div>
   );

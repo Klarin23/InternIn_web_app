@@ -13,15 +13,13 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { step10Schema } from "@/lib/schemas/onboarding.schema";
 import { useOnboardingStore } from "@/lib/store/useOnboardingStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
-const DUREES = [
-  { value: "1_mois", label: "1 mois" },
-  { value: "2_mois", label: "2 mois" },
-  { value: "3_mois", label: "3 mois" },
-];
+const DUREES = ["oneMonth", "twoMonths", "threeMonths"];
 
 export default function Step10Preferences() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { data, saveStepData } = useOnboardingStore();
 
   const {
@@ -50,34 +48,33 @@ export default function Step10Preferences() {
           <Clock className="h-5 w-5" />
         </div>
         <h1 className="mb-1.5 text-2xl font-bold text-foreground">
-          Vos préférences de stage
+          {t("auditUi.onboarding.preferencesTitle")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Ces critères nous aident à vous proposer des offres qui correspondent
-          à votre emploi du temps.
+          {t("auditUi.onboarding.preferencesDescription")}
         </p>
       </div>
 
       {/* Durée souhaitée : 3 cartes cliquables */}
       <div className="space-y-1.5">
-        <Label>Durée souhaitée</Label>
+        <Label>{t("auditUi.onboarding.desiredDuration")}</Label>
         <Controller
           name="dureeStageSouhaitee"
           control={control}
           render={({ field }) => (
             <div className="grid grid-cols-3 gap-3">
-              {DUREES.map((d) => (
+              {DUREES.map((d, index) => (
                 <button
                   type="button"
-                  key={d.value}
-                  onClick={() => field.onChange(d.value)}
+                  key={d}
+                  onClick={() => field.onChange(`${index + 1}_mois`)}
                   className={`rounded-md border p-3.5 text-center text-sm font-semibold transition ${
                     field.value === d.value
                       ? "border-primary bg-primary/5 text-primary"
                       : "border-border bg-card text-foreground hover:border-primary/40"
                   }`}
                 >
-                  {d.label}
+                  {t(`auditUi.common.${d}`)}
                 </button>
               ))}
             </div>
@@ -85,7 +82,7 @@ export default function Step10Preferences() {
         />
         {errors.dureeStageSouhaitee && (
           <p className="text-xs text-destructive">
-            {errors.dureeStageSouhaitee.message}
+            {t(errors.dureeStageSouhaitee.message)}
           </p>
         )}
       </div>
@@ -93,13 +90,13 @@ export default function Step10Preferences() {
       {/* Volume horaire hebdomadaire : slider de 15 à 40, pas de 5 */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <Label>Heures par semaine</Label>
+          <Label>{t("auditUi.onboarding.hoursPerWeek")}</Label>
           <Controller
             name="heuresHebdoSouhaitees"
             control={control}
             render={({ field }) => (
               <span className="text-sm font-semibold text-primary">
-                {field.value}h / semaine
+                {t("auditUi.onboarding.hoursPerWeekValue", { n: field.value })}
               </span>
             )}
           />
@@ -123,14 +120,16 @@ export default function Step10Preferences() {
         </div>
         {errors.heuresHebdoSouhaitees && (
           <p className="text-xs text-destructive">
-            {errors.heuresHebdoSouhaitees.message}
+            {t(errors.heuresHebdoSouhaitees.message)}
           </p>
         )}
       </div>
 
       {/* Date de début souhaitée */}
       <div className="space-y-1.5">
-        <Label htmlFor="dateDebutSouhaitee">Date de début souhaitée</Label>
+        <Label htmlFor="dateDebutSouhaitee">
+          {t("auditUi.onboarding.desiredStartDate")}
+        </Label>
         <Input
           id="dateDebutSouhaitee"
           type="date"
@@ -139,7 +138,7 @@ export default function Step10Preferences() {
         />
         {errors.dateDebutSouhaitee && (
           <p className="text-xs text-destructive">
-            {errors.dateDebutSouhaitee.message}
+            {t(errors.dateDebutSouhaitee.message)}
           </p>
         )}
       </div>
@@ -158,7 +157,7 @@ export default function Step10Preferences() {
           disabled={isSubmitting}
           className="h-12 flex-1 rounded-sm"
         >
-          Continuer
+          {t("auditUi.common.continue")}
         </Button>
       </div>
     </form>

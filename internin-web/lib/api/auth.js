@@ -114,3 +114,19 @@ export async function googleAuthRequest({
 
   return data; // { user, token, isNewUser }
 }
+export function deleteStagiaireAccountRequest(confirmation, token) {
+  return apiFetch("/auth/delete-stagiaire-account", {
+    method: "POST",
+    body: { confirmation },
+    token,
+  });
+}
+
+
+export function deleteEntrepriseAccountRequest(confirmation, token) {
+  return apiFetch("/auth/delete-entreprise-account", {
+    method: "POST",
+    body: { confirmation },
+    token,
+  });
+}

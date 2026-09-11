@@ -17,16 +17,10 @@ import { Button } from "@/components/ui/button";
 import { useOnboardingEntrepriseStore } from "@/lib/store/useOnboardingEntrepriseStore";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { completeOnboardingEntrepriseRequest } from "@/lib/api/entreprises";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+import { SECTEUR_OPTIONS } from "@/components/features/offres-entreprise/offreForm.constants";
 
-const TAILLE_LABELS = {
-  "1-10": "1 à 10 employés",
-  "11-50": "11 à 50 employés",
-  "51-200": "51 à 200 employés",
-  "201-500": "201 à 500 employés",
-  "500+": "Plus de 500 employés",
-};
-
-function RecapSection({ title, editHref, children }) {
+function RecapSection({ title, editHref, editLabel, children }) {
   return (
     <div className="rounded-md border border-border bg-card p-5">
       <div className="mb-3 flex items-center justify-between">
@@ -36,7 +30,7 @@ function RecapSection({ title, editHref, children }) {
           className="flex items-center gap-1 text-xs font-semibold text-blue-400 hover:underline"
         >
           <FiEdit2 className="h-3 w-3" />
-          Modifier
+          {editLabel}
         </Link>
       </div>
       <div className="space-y-1 text-sm text-muted-foreground">{children}</div>
@@ -48,6 +42,7 @@ export default function EntrepriseStep5Recapitulatif() {
   const router = useRouter();
   const { data, resetOnboarding } = useOnboardingEntrepriseStore();
   const { token, user, setSession } = useAuthStore();
+  const { t } = useTranslation();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -67,6 +62,19 @@ export default function EntrepriseStep5Recapitulatif() {
     }
   }
 
+  const secteurOption = SECTEUR_OPTIONS.find(
+    (option) => option.value === data.secteurActivite,
+  );
+  const secteurLabel = secteurOption
+    ? t(secteurOption.labelKey)
+    : data.secteurActivite || "—";
+  const tailleLabel =
+    t(`onboardingEntreprise.step5.companySize.${data.tailleEntreprise}`) || "—";
+  const paysLabel =
+    data.pays === "Cameroun"
+      ? t("auditUi.onboarding.entrepriseOnboarding.step1.countryCameroon")
+      : data.pays || "—";
+
   return (
     <div className="space-y-6">
       <div>
@@ -74,11 +82,10 @@ export default function EntrepriseStep5Recapitulatif() {
           <FiCheckCircle className="h-5 w-5" />
         </div>
         <h1 className="mb-1.5 text-2xl font-bold text-foreground">
-          Vérifiez votre profil
+          {t("onboardingEntreprise.step5.title")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Dernière étape — relisez vos informations avant de finaliser votre
-          inscription.
+          {t("onboardingEntreprise.step5.description")}
         </p>
       </div>
 
@@ -90,29 +97,46 @@ export default function EntrepriseStep5Recapitulatif() {
       )}
 
       <RecapSection
-        title="Informations de l'entreprise"
+        title={t("onboardingEntreprise.step5.companyInfo")}
         editHref="/onboarding/1"
+        editLabel={t("onboardingEntreprise.step5.edit")}
       >
         <p>{data.nomEntreprise}</p>
         <p>
-          {data.secteurActivite} · {TAILLE_LABELS[data.tailleEntreprise] || "—"}
+          {secteurLabel} · {tailleLabel}
         </p>
         <p>
-          {data.ville}, {data.pays}
+          {data.ville}, {paysLabel}
         </p>
       </RecapSection>
 
-      <RecapSection title="Présence en ligne" editHref="/onboarding/2">
-        <p>{data.siteWeb || "Aucun site web renseigné"}</p>
-        <p>{data.linkedinUrl || "Aucun LinkedIn renseigné"}</p>
-        <p>{data.logoUrl ? "Logo ajouté" : "Aucun logo"}</p>
+      <RecapSection
+        title={t("onboardingEntreprise.step5.onlinePresence")}
+        editHref="/onboarding/2"
+        editLabel={t("onboardingEntreprise.step5.edit")}
+      >
+        <p>{data.siteWeb || t("onboardingEntreprise.step5.noWebsite")}</p>
+        <p>{data.linkedinUrl || t("onboardingEntreprise.step5.noLinkedin")}</p>
+        <p>
+          {data.logoUrl
+            ? t("onboardingEntreprise.step5.logoAdded")
+            : t("onboardingEntreprise.step5.noLogo")}
+        </p>
       </RecapSection>
 
-      <RecapSection title="À propos" editHref="/onboarding/3">
+      <RecapSection
+        title={t("onboardingEntreprise.step5.about")}
+        editHref="/onboarding/3"
+        editLabel={t("onboardingEntreprise.step5.edit")}
+      >
         <p className="line-clamp-2">{data.aPropos}</p>
       </RecapSection>
 
-      <RecapSection title="Contact principal" editHref="/onboarding/4">
+      <RecapSection
+        title={t("onboardingEntreprise.step5.primaryContact")}
+        editHref="/onboarding/4"
+        editLabel={t("onboardingEntreprise.step5.edit")}
+      >
         <p>
           {data.contactNom} — {data.contactFonction}
         </p>
@@ -121,8 +145,7 @@ export default function EntrepriseStep5Recapitulatif() {
       </RecapSection>
 
       <div className="rounded-sm border border-accent/40 bg-accent/10 px-4 py-3 text-xs text-amber-800">
-        Votre entreprise sera vérifiée par notre équipe avant de pouvoir publier
-        des offres de stage.
+        {t("onboardingEntreprise.step5.verificationNotice")}
       </div>
 
       <div className="flex gap-3 pt-2">
@@ -134,6 +157,7 @@ export default function EntrepriseStep5Recapitulatif() {
           disabled={isSubmitting}
         >
           <FiArrowLeft className="h-4 w-4" />
+          <span className="sr-only">{t("onboardingEntreprise.step5.back")}</span>
         </Button>
         <Button
           type="button"
@@ -144,10 +168,10 @@ export default function EntrepriseStep5Recapitulatif() {
           {isSubmitting ? (
             <>
               <FiLoader className="h-4 w-4 animate-spin" />
-              Création du profil...
+              {t("onboardingEntreprise.step5.creatingProfile")}
             </>
           ) : (
-            "Confirmer et finaliser mon profil"
+            t("onboardingEntreprise.step5.confirm")
           )}
         </Button>
       </div>

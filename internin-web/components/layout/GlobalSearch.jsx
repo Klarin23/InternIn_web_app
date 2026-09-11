@@ -42,58 +42,190 @@ function getStaticNavForRole(type, t) {
   switch (type) {
     case "stagiaire":
       return [
-        { href: "/tableau-de-bord", label: t("sidebar.dashboard"), icon: FiGrid },
-        { href: "/offres", label: t("sidebar.internshipOffers"), icon: FiBriefcase },
-        { href: "/candidatures", label: t("sidebar.applications"), icon: FiFileText },
-        { href: "/entretiens", label: t("sidebar.interviews"), icon: FiCalendar },
+        {
+          href: "/tableau-de-bord",
+          label: t("sidebar.dashboard"),
+          icon: FiGrid,
+        },
+        {
+          href: "/offres",
+          label: t("sidebar.internshipOffers"),
+          icon: FiBriefcase,
+        },
+        {
+          href: "/candidatures",
+          label: t("sidebar.applications"),
+          icon: FiFileText,
+        },
+        {
+          href: "/entretiens",
+          label: t("sidebar.interviews"),
+          icon: FiCalendar,
+        },
         { href: "/stage", label: t("sidebar.myInternship"), icon: FiBriefcase },
-        { href: "/certificats", label: t("sidebar.certificates"), icon: FiAward },
-        { href: "/messages", label: t("sidebar.messages"), icon: FiMessageSquare },
+        {
+          href: "/certificats",
+          label: t("sidebar.certificates"),
+          icon: FiAward,
+        },
+        {
+          href: "/messages",
+          label: t("sidebar.messages"),
+          icon: FiMessageSquare,
+        },
         { href: "/profil", label: t("sidebar.myProfile"), icon: FiUser },
       ];
     case "entreprise":
       return [
-        { href: "/tableau-de-bord", label: t("sidebar.dashboard"), icon: FiGrid },
-        { href: "/offres-entreprise", label: t("sidebar.internshipOffers"), icon: FiBriefcase },
+        {
+          href: "/tableau-de-bord",
+          label: t("sidebar.dashboard"),
+          icon: FiGrid,
+        },
+        {
+          href: "/offres-entreprise",
+          label: t("sidebar.internshipOffers"),
+          icon: FiBriefcase,
+        },
         { href: "/candidats", label: t("sidebar.applications"), icon: FiUsers },
-        { href: "/entretiens-entreprise", label: t("sidebar.interviews"), icon: FiCalendar },
-        { href: "/partenariats-universites", label: t("sidebar.universityPartnerships"), icon: FiUserCheck },
-        { href: "/supervision/mes-stagiaires", label: t("sidebar.myInterns") || "Mes stagiaires", icon: FiUsers },
-        { href: "/supervision/evaluations", label: t("sidebar.evaluations") || "Évaluations", icon: FiClipboard },
-        { href: "/supervision/calendrier", label: "Calendrier", icon: FiCalendar },
-        { href: "/suivi-stagiaires", label: t("sidebar.internTracking"), icon: FiBarChart2 },
-        { href: "/messages-entreprise", label: t("sidebar.messages"), icon: FiMessageSquare },
+        {
+          href: "/entretiens-entreprise",
+          label: t("sidebar.interviews"),
+          icon: FiCalendar,
+        },
+        {
+          href: "/partenariats-universites",
+          label: t("sidebar.universityPartnerships"),
+          icon: FiUserCheck,
+        },
+        {
+          href: "/supervision/mes-stagiaires",
+          label: t("sidebar.myInterns") || "Mes stagiaires",
+          icon: FiUsers,
+        },
+        {
+          href: "/supervision/evaluations",
+          label: t("sidebar.evaluations") || "Évaluations",
+          icon: FiClipboard,
+        },
+        {
+          href: "/supervision/calendrier",
+          label: "Calendrier",
+          icon: FiCalendar,
+        },
+        {
+          href: "/suivi-stagiaires",
+          label: t("sidebar.internTracking"),
+          icon: FiBarChart2,
+        },
+        {
+          href: "/messages-entreprise",
+          label: t("sidebar.messages"),
+          icon: FiMessageSquare,
+        },
         { href: "/equipe", label: t("sidebar.team"), icon: FiUserPlus },
         { href: "/profil-entreprise", label: "Mon profil", icon: Building2 },
-        { href: "/parametres-entreprise", label: t("sidebar.settings"), icon: FiSettings },
+        {
+          href: "/parametres-entreprise",
+          label: t("sidebar.settings"),
+          icon: FiSettings,
+        },
       ];
     case "membre_entreprise":
       return [
-        { href: "/tableau-de-bord", label: t("sidebar.dashboard"), icon: FiGrid },
-        { href: "/mes-stagiaires", label: t("sidebar.myInterns"), icon: FiUsers },
-        { href: "/mes-stagiaires/evaluations", label: t("sidebar.evaluations"), icon: FiClipboard },
-        { href: "/calendrier-supervision", label: "Calendrier", icon: FiCalendar },
+        {
+          href: "/tableau-de-bord",
+          label: t("sidebar.dashboard"),
+          icon: FiGrid,
+        },
+        {
+          href: "/mes-stagiaires",
+          label: t("sidebar.myInterns"),
+          icon: FiUsers,
+        },
+        {
+          href: "/mes-stagiaires/evaluations",
+          label: t("sidebar.evaluations"),
+          icon: FiClipboard,
+        },
+        {
+          href: "/calendrier-supervision",
+          label: "Calendrier",
+          icon: FiCalendar,
+        },
       ];
     case "universite":
       return [
-        { href: "/tableau-de-bord", label: t("sidebar.dashboard"), icon: FiGrid },
-        { href: "/etudiants-universite", label: t("sidebar.studentsUniv"), icon: FiUsers },
-        { href: "/entreprises-universite", label: t("sidebar.companiesUniv"), icon: FiBriefcase },
-        { href: "/conventions", label: t("sidebar.conventions"), icon: FiFileText },
-        { href: "/maitres-de-stage", label: t("sidebar.internshipSupervisors"), icon: FiUserPlus },
+        {
+          href: "/tableau-de-bord",
+          label: t("sidebar.dashboard"),
+          icon: FiGrid,
+        },
+        {
+          href: "/etudiants-universite",
+          label: t("sidebar.studentsUniv"),
+          icon: FiUsers,
+        },
+        {
+          href: "/entreprises-universite",
+          label: t("sidebar.companiesUniv"),
+          icon: FiBriefcase,
+        },
+        {
+          href: "/conventions",
+          label: t("sidebar.conventions"),
+          icon: FiFileText,
+        },
+        {
+          href: "/maitres-de-stage",
+          label: t("sidebar.internshipSupervisors"),
+          icon: FiUserPlus,
+        },
         { href: "/rapports", label: t("sidebar.reports"), icon: FiClipboard },
-        { href: "/statistiques", label: t("sidebar.statistics"), icon: FiBarChart2 },
-        { href: "/parametres-universite", label: t("sidebar.settings"), icon: FiSettings },
+        {
+          href: "/statistiques",
+          label: t("sidebar.statistics"),
+          icon: FiBarChart2,
+        },
+        {
+          href: "/parametres-universite",
+          label: t("sidebar.settings"),
+          icon: FiSettings,
+        },
       ];
     case "administrateur":
       return [
-        { href: "/tableau-de-bord", label: t("sidebar.dashboard"), icon: FiGrid },
-        { href: "/verifications/offres-finales", label: t("sidebar.internshipOffers"), icon: FiFileText },
-        { href: "/gestion-universites", label: t("sidebar.universitiesMgmt"), icon: FiHome },
-        { href: "/gestion-entreprises", label: t("sidebar.companiesMgmt"), icon: FiBriefcase },
+        {
+          href: "/tableau-de-bord",
+          label: t("sidebar.dashboard"),
+          icon: FiGrid,
+        },
+        {
+          href: "/verifications/offres-finales",
+          label: t("sidebar.internshipOffers"),
+          icon: FiFileText,
+        },
+        {
+          href: "/gestion-universites",
+          label: t("sidebar.universitiesMgmt"),
+          icon: FiHome,
+        },
+        {
+          href: "/gestion-entreprises",
+          label: t("sidebar.companiesMgmt"),
+          icon: FiBriefcase,
+        },
         { href: "/utilisateurs", label: t("sidebar.users"), icon: FiUsers },
-        { href: "/signalements", label: t("sidebar.flaggedReports"), icon: FiAlertTriangle },
-        { href: "/parametres-admin", label: t("sidebar.settings"), icon: FiSettings },
+        {
+          href: "/signalements",
+          label: t("sidebar.flaggedReports"),
+          icon: FiAlertTriangle,
+        },
+        {
+          href: "/parametres-admin",
+          label: t("sidebar.settings"),
+          icon: FiSettings,
+        },
       ];
     default:
       return [];
@@ -139,8 +271,7 @@ function ResultIcon({ type }) {
 function collectCachedEntities(queryClient, type, q) {
   const results = [];
 
-  const stagiaires =
-    queryClient.getQueryData(["mesStagiaires"]) || null;
+  const stagiaires = queryClient.getQueryData(["mesStagiaires"]) || null;
   if (Array.isArray(stagiaires)) {
     for (const s of stagiaires) {
       const nom = `${s.prenom || ""} ${s.nom || ""}`.trim();
@@ -175,7 +306,9 @@ function collectCachedEntities(queryClient, type, q) {
           type: "offre",
           label: o.titre || "Offre",
           description: o.statut || "Offre de stage",
-          href: o.idOffre ? `/offres-entreprise/${o.idOffre}` : "/offres-entreprise",
+          href: o.idOffre
+            ? `/offres-entreprise/${o.idOffre}`
+            : "/offres-entreprise",
           score,
         });
       }
@@ -184,7 +317,8 @@ function collectCachedEntities(queryClient, type, q) {
     const candidatures = queryClient.getQueryData(["candidaturesEntreprise"]);
     if (Array.isArray(candidatures)) {
       for (const c of candidatures.slice(0, 80)) {
-        const nom = `${c.prenom || c.stagiaire?.prenom || ""} ${c.nom || c.stagiaire?.nom || ""}`.trim();
+        const nom =
+          `${c.prenom || c.stagiaire?.prenom || ""} ${c.nom || c.stagiaire?.nom || ""}`.trim();
         const titre = c.titreOffre || c.offre?.titre || "";
         const score = scoreMatch(q, `${nom} ${titre} ${c.statut || ""}`);
         if (score <= 0) continue;
@@ -244,10 +378,7 @@ export default function GlobalSearch({ className, placeholder }) {
   const placeholderText =
     placeholder || t("header.searchPlaceholder") || "Rechercher...";
 
-  const navItems = useMemo(
-    () => getStaticNavForRole(type, t),
-    [type, t],
-  );
+  const navItems = useMemo(() => getStaticNavForRole(type, t), [type, t]);
 
   const results = useMemo(() => {
     const q = query.trim();
@@ -348,7 +479,7 @@ export default function GlobalSearch({ className, placeholder }) {
   return (
     <div
       ref={containerRef}
-      className={cn("relative w-full max-w-[360px]", className)}
+      className={cn("relative w-full max-w-90", className)}
     >
       <div
         className={cn(
@@ -356,7 +487,7 @@ export default function GlobalSearch({ className, placeholder }) {
           open && "ring-2 ring-primary/30",
         )}
       >
-        <FiSearch className="h-4 w-4 flex-shrink-0" aria-hidden />
+        <FiSearch className="h-4 w-4 shrink-0" aria-hidden />
         <input
           ref={inputRef}
           type="search"
@@ -412,7 +543,11 @@ export default function GlobalSearch({ className, placeholder }) {
               {results.map((r, i) => {
                 const Icon = r.icon;
                 return (
-                  <li key={r.id} role="option" aria-selected={i === safeActiveIndex}>
+                  <li
+                    key={r.id}
+                    role="option"
+                    aria-selected={i === safeActiveIndex}
+                  >
                     <button
                       type="button"
                       onMouseEnter={() => setActiveIndex(i)}
@@ -456,9 +591,9 @@ export default function GlobalSearch({ className, placeholder }) {
             </ul>
           )}
           <div className="mt-1 border-t border-border px-3 py-2 text-[10px] text-muted-foreground">
-            <span className="mr-3">↑↓ naviguer</span>
-            <span className="mr-3">↵ ouvrir</span>
-            <span>esc fermer</span>
+            <span className="mr-3">↑↓ {t("auditUi.search.navigate")}</span>
+            <span className="mr-3">↵ {t("auditUi.search.open")}</span>
+            <span>esc {t("auditUi.search.close")}</span>
           </div>
         </div>
       )}

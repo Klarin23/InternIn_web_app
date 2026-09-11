@@ -3,21 +3,24 @@
 import { useEffect, useState } from "react";
 import { FiTool } from "react-icons/fi";
 import { useAuthStore } from "@/lib/store/useAuthStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 /**
  * Écran plein page affiché pendant la maintenance (icône outil + message).
  * Réutilisé par MaintenanceGate et les pages hors layout (ex. tableau de bord).
  */
 export function MaintenanceScreen({ message }) {
+  const { t } = useTranslation();
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 bg-background px-6 py-16 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-700 dark:text-amber-400">
         <FiTool className="h-7 w-7" aria-hidden />
       </div>
-      <h1 className="text-xl font-bold text-foreground">Maintenance en cours</h1>
+      <h1 className="text-xl font-bold text-foreground">
+        {t("auditUi.shared.maintenanceTitle")}
+      </h1>
       <p className="max-w-md text-sm text-muted-foreground">
-        {message ||
-          "InternIn est actuellement en maintenance. Nous serons de retour très bientôt."}
+        {message || t("auditUi.shared.maintenanceMessage")}
       </p>
     </div>
   );

@@ -8,6 +8,15 @@ const urlLinkedin = zUrlField(checkLinkedInUrl)(z.string().optional());
 const urlGithub = zUrlField(checkGitHubUrl)(z.string().optional());
 const urlGenerique = zUrlField(checkExternalUrl)(z.string().optional());
 
+const experienceProfessionnelleSchema = z.object({
+  poste: z.string().trim().min(1).max(150),
+  entreprise: z.string().trim().max(150).optional(),
+  dateDebut: z.string().trim().max(30).optional(),
+  dateFin: z.string().trim().max(30).optional(),
+  enCours: z.boolean().optional(),
+  description: z.string().trim().max(2000).optional(),
+});
+
 const formationSchema = z.object({
   typeFormation: z.enum(["en_cours", "obtenue"]),
   nomUniversite: z.string().min(1),
@@ -80,6 +89,10 @@ export const updateProfileSchema = z.object({
 
   // 5. CV
   cvUrl: z.string().min(1).optional(),
+
+  // 3 bis. Expériences et qualités : données professionnelles structurées
+  experiencesProfessionnelles: z.array(experienceProfessionnelleSchema).max(20).optional(),
+  qualites: z.array(z.string().trim().min(1).max(100)).max(30).optional(),
 
   // 6. Liens professionnels
   linkedinUrl: urlLinkedin,

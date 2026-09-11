@@ -1,11 +1,16 @@
 "use client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
-
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
-import { FiCheck, FiChevronRight, FiInbox, FiLoader, FiTrash2 } from "react-icons/fi";
+import {
+  FiCheck,
+  FiChevronRight,
+  FiInbox,
+  FiLoader,
+  FiTrash2,
+} from "react-icons/fi";
 import AppHeader from "@/components/layout/AppHeader";
 import {
   useNotifications,
@@ -16,7 +21,12 @@ import {
 } from "@/lib/queries/useNotifications";
 import { useToastStore } from "@/lib/store/useToastStore";
 import { cn } from "@/lib/utils";
-import { getNotifMeta, TONE_CLASS, TONE_DOT, formatNotifDate } from "@/lib/notifications/notifMeta";
+import {
+  getNotifMeta,
+  TONE_CLASS,
+  TONE_DOT,
+  formatNotifDate,
+} from "@/lib/notifications/notifMeta";
 import { translateNotification } from "@/lib/notifications/translateNotif";
 
 const FILTRE_DEFS = [
@@ -38,7 +48,9 @@ export default function NotificationsPage() {
   const supprimer = useSupprimerNotification();
   const supprimerToutes = useSupprimerToutesNotifications();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const notifications = Array.isArray(liste) ? liste : liste?.notifications || [];
+  const notifications = Array.isArray(liste)
+    ? liste
+    : liste?.notifications || [];
   const filtered = useMemo(() => {
     if (filtre === "non_lues") return notifications.filter((n) => !n.lu);
     if (filtre === "lues") return notifications.filter((n) => n.lu);
@@ -61,7 +73,9 @@ export default function NotificationsPage() {
       <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("notifications.title")}</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              {t("notifications.title")}
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {nonLues > 0
                 ? t(
@@ -80,23 +94,29 @@ export default function NotificationsPage() {
                 onClick={() =>
                   marquerToutes.mutate(undefined, {
                     onSuccess: () =>
-                      showToast?.({ message: t("notifications.markAllReadSuccess"), variant: "success" }),
+                      showToast?.({
+                        message: t("notifications.markAllReadSuccess"),
+                        variant: "success",
+                      }),
                   })
                 }
                 className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold shadow-sm hover:bg-muted"
               >
-                <FiCheck className="h-3.5 w-3.5" /> {t("notifications.markAllRead")}
+                <FiCheck className="h-3.5 w-3.5" />{" "}
+                {t("notifications.markAllRead")}
               </button>
             )}
             {notifications.length > 0 && (
               <button
                 type="button"
                 onClick={() => {
-                  if (confirm(t("notifications.deleteAllConfirm"))) supprimerToutes.mutate();
+                  if (confirm(t("notifications.deleteAllConfirm")))
+                    supprimerToutes.mutate();
                 }}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/5"
               >
-                <FiTrash2 className="h-3.5 w-3.5" /> {t("notifications.deleteAll")}
+                <FiTrash2 className="h-3.5 w-3.5" />{" "}
+                {t("notifications.deleteAll")}
               </button>
             )}
           </div>
@@ -113,7 +133,9 @@ export default function NotificationsPage() {
                   onClick={() => setFiltre(f.id)}
                   className={cn(
                     "relative z-0 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors",
-                    actif ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                    actif
+                      ? "text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   {actif && (
@@ -136,13 +158,17 @@ export default function NotificationsPage() {
               <FiLoader className="h-5 w-5 animate-spin" /> Chargement…
             </div>
           ) : isError ? (
-            <p className="px-4 py-12 text-center text-sm text-destructive">Erreur de chargement.</p>
+            <p className="px-4 py-12 text-center text-sm text-destructive">
+              {t("auditUi.notifications.loadError")}
+            </p>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-16">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
                 <FiInbox className="h-5 w-5" />
               </div>
-              <p className="text-sm font-medium">Aucune notification</p>
+              <p className="text-sm font-medium">
+                {t("auditUi.notifications.empty")}
+              </p>
             </div>
           ) : (
             <ul className="divide-y divide-border/50">
@@ -153,33 +179,68 @@ export default function NotificationsPage() {
                     key={n.idNotification}
                     initial={reduceMotion ? false : { opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: reduceMotion ? 0 : Math.min(idx, 10) * 0.025 }}
+                    transition={{
+                      delay: reduceMotion ? 0 : Math.min(idx, 10) * 0.025,
+                    }}
                     className={cn(
                       "group flex items-start gap-3 px-4 py-3.5 transition hover:bg-muted/40",
                       !n.lu && "bg-primary/3",
                     )}
                   >
-                    <button type="button" onClick={() => openNotif(n)} className="flex min-w-0 flex-1 items-start gap-3 text-left">
-                      <span className={cn("mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1", TONE_CLASS[meta.tone])}>
-                        <span className={cn("h-2.5 w-2.5 rounded-full", TONE_DOT[meta.tone])} />
+                    <button
+                      type="button"
+                      onClick={() => openNotif(n)}
+                      className="flex min-w-0 flex-1 items-start gap-3 text-left"
+                    >
+                      <span
+                        className={cn(
+                          "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1",
+                          TONE_CLASS[meta.tone],
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "h-2.5 w-2.5 rounded-full",
+                            TONE_DOT[meta.tone],
+                          )}
+                        />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-2">
-                          {!n.lu && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
-                          <span className={cn("text-sm text-foreground", !n.lu ? "font-semibold" : "font-medium")}>{translateNotification(n, t).titre}</span>
+                          {!n.lu && (
+                            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                          )}
+                          <span
+                            className={cn(
+                              "text-sm text-foreground",
+                              !n.lu ? "font-semibold" : "font-medium",
+                            )}
+                          >
+                            {translateNotification(n, t).titre}
+                          </span>
                         </span>
-                        {n.message && <span className="mt-0.5 block text-xs text-muted-foreground">{translateNotification(n, t).message}</span>}
+                        {n.message && (
+                          <span className="mt-0.5 block text-xs text-muted-foreground">
+                            {translateNotification(n, t).message}
+                          </span>
+                        )}
                         <span className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
                           {formatNotifDate(n.dateCreation)}
                           {n.lien && (
                             <span className="inline-flex items-center gap-0.5 font-semibold text-primary">
-                              {t(meta.labelKey)} <FiChevronRight className="h-3 w-3" />
+                              {t(meta.labelKey)}{" "}
+                              <FiChevronRight className="h-3 w-3" />
                             </span>
                           )}
                         </span>
                       </span>
                     </button>
-                    <button type="button" onClick={() => supprimer.mutate(n.idNotification)} className="rounded-lg p-2 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100" aria-label={t("notifications.delete")}>
+                    <button
+                      type="button"
+                      onClick={() => supprimer.mutate(n.idNotification)}
+                      className="rounded-lg p-2 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                      aria-label={t("notifications.delete")}
+                    >
                       <FiTrash2 className="h-4 w-4" />
                     </button>
                   </motion.li>
@@ -192,4 +253,3 @@ export default function NotificationsPage() {
     </>
   );
 }
-

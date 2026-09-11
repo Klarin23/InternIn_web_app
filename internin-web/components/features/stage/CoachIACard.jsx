@@ -9,7 +9,7 @@ export default function CoachIACard({ sessions }) {
     return (
       <p className="text-sm text-muted-foreground">
         {t("stagiaireSpace.stage.coachWaiting")}
-        soumise.
+        {t("auditUi.stage.submittedSuffix")}
       </p>
     );
   }
@@ -29,21 +29,25 @@ export default function CoachIACard({ sessions }) {
         <div className="flex gap-2.5">
           <FiTrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <p className="text-muted-foreground">
-            <b className="text-foreground">Force : </b>
+            <b className="text-foreground">{t("auditUi.stage.strength")} </b>
             {derniere.forces}
           </p>
         </div>
         <div className="flex gap-2.5">
           <FiTarget className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
           <p className="text-muted-foreground">
-            <b className="text-foreground">{t("stagiaireSpace.stage.coachImprovement")} </b>
+            <b className="text-foreground">
+              {t("stagiaireSpace.stage.coachImprovement")}{" "}
+            </b>
             {derniere.axesAmelioration}
           </p>
         </div>
         <div className="flex gap-2.5">
           <FiCompass className="mt-0.5 h-4 w-4 shrink-0 text-secondary" />
           <p className="text-muted-foreground">
-            <b className="text-foreground">{t("stagiaireSpace.stage.coachAction")} </b>
+            <b className="text-foreground">
+              {t("stagiaireSpace.stage.coachAction")}{" "}
+            </b>
             {derniere.actionsRecommandees}
           </p>
         </div>

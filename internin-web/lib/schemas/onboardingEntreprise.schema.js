@@ -9,13 +9,17 @@ import {
 } from "@/lib/utils/urlValidation";
 
 export const entrepriseStep1Schema = z.object({
-  nomEntreprise: z.string().min(1, "Le nom de l'entreprise est requis"),
-  secteurActivite: z.string().min(1, "Le secteur d'activité est requis"),
+  nomEntreprise: z.string().min(1, "auditUi.onboarding.entrepriseOnboarding.step1.errors.companyName"),
+  secteurActivite: z
+    .string()
+    .trim()
+    .min(1, "auditUi.onboarding.entrepriseOnboarding.step1.errors.sector")
+    .max(150, "auditUi.onboarding.entrepriseOnboarding.step1.errors.sectorTooLong"),
   tailleEntreprise: z.enum(["1-10", "11-50", "51-200", "201-500", "500+"], {
-    errorMap: () => ({ message: "Sélectionnez une taille d'entreprise" }),
+    errorMap: () => ({ message: "auditUi.onboarding.entrepriseOnboarding.step1.errors.companySize" }),
   }),
-  pays: z.string().min(1, "Le pays est requis"),
-  ville: z.string().min(1, "La ville est requise"),
+  pays: z.string().min(1, "auditUi.onboarding.entrepriseOnboarding.step1.errors.country"),
+  ville: z.string().min(1, "auditUi.onboarding.entrepriseOnboarding.step1.errors.city"),
 });
 
 const optionalUrl = zUrlField(checkExternalUrl)(z.string().optional());
@@ -32,19 +36,19 @@ export const entrepriseStep3Schema = z.object({
     .string()
     .min(
       20,
-      "Décrivez votre entreprise en quelques phrases (20 caractères minimum)",
+      "onboardingEntreprise.step3.aboutTooShort",
     ),
   mission: z.string().optional(),
   cultureEntreprise: z.string().optional(),
 });
 
 export const entrepriseStep4Schema = z.object({
-  contactNom: z.string().min(1, "Le nom du contact est requis"),
-  contactFonction: z.string().min(1, "La fonction est requise"),
+  contactNom: z.string().min(1, "auditUi.onboarding.entrepriseOnboarding.step4.errors.nameRequired"),
+  contactFonction: z.string().min(1, "auditUi.onboarding.entrepriseOnboarding.step4.errors.functionRequired"),
   contactEmail: z
     .string()
-    .min(1, "L'e-mail est requis")
-    .email("Adresse e-mail invalide"),
-  contactTelephone: z.string().min(6, "Numéro de téléphone invalide"),
+    .min(1, "auditUi.onboarding.entrepriseOnboarding.step4.errors.emailRequired")
+    .email("auditUi.onboarding.entrepriseOnboarding.step4.errors.emailInvalid"),
+  contactTelephone: z.string().min(6, "auditUi.onboarding.entrepriseOnboarding.step4.errors.phoneInvalid"),
   peutEtreSuperviseur: z.boolean().optional(),
 });

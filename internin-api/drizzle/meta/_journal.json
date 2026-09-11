@@ -372,6 +372,41 @@
       "when": 1788469706667,
       "tag": "0052_lying_gauntlet",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1788862548053,
+      "tag": "0053_notifications_user_lu_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1788862548054,
+      "tag": "0054_remuneration_options",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1789000000001,
+      "tag": "0055_offres_finales_horaires",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1789000000002,
+      "tag": "0056_offres_finales_lien_reunion",
+      "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1788994322090,
+      "tag": "0057_profil_professionnel_stagiaire",
+      "breakpoints": true
     }
   ]
 }

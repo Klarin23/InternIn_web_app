@@ -12,20 +12,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { step9Schema } from "@/lib/schemas/onboarding.schema";
 import { useOnboardingStore } from "@/lib/store/useOnboardingStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 // Valeurs alignées sur l'ENUM jour_semaine de la base (lundi...dimanche)
 const JOURS = [
-  { value: "lundi", label: "Lundi" },
-  { value: "mardi", label: "Mardi" },
-  { value: "mercredi", label: "Mercredi" },
-  { value: "jeudi", label: "Jeudi" },
-  { value: "vendredi", label: "Vendredi" },
-  { value: "samedi", label: "Samedi" },
-  { value: "dimanche", label: "Dimanche" },
+  { value: "lundi", key: "monday" },
+  { value: "mardi", key: "tuesday" },
+  { value: "mercredi", key: "wednesday" },
+  { value: "jeudi", key: "thursday" },
+  { value: "vendredi", key: "friday" },
+  { value: "samedi", key: "saturday" },
+  { value: "dimanche", key: "sunday" },
 ];
 
 export default function Step9Disponibilites() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { data, saveStepData } = useOnboardingStore();
 
   const {
@@ -54,11 +56,10 @@ export default function Step9Disponibilites() {
           <CalendarDays className="h-5 w-5" />
         </div>
         <h1 className="mb-1.5 text-2xl font-bold text-foreground">
-          Vos disponibilités
+          {t("auditUi.onboarding.availabilityTitle")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Quels jours de la semaine êtes-vous disponible pour effectuer votre
-          stage ?
+          {t("auditUi.onboarding.availabilityDescription")}
         </p>
       </div>
 
@@ -86,7 +87,7 @@ export default function Step9Disponibilites() {
                       : "border-border bg-card text-foreground hover:border-primary/40"
                   }`}
                 >
-                  {jour.label}
+                  {t(`auditUi.onboarding.days.${jour.key}`)}
                   <span
                     className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition ${
                       active
@@ -104,19 +105,21 @@ export default function Step9Disponibilites() {
       />
       {errors.joursDisponibles && (
         <p className="text-xs text-destructive">
-          {errors.joursDisponibles.message}
+          {t(errors.joursDisponibles.message)}
         </p>
       )}
 
       <div className="space-y-1.5">
-        <Label>Créneau horaire habituel (appliqué aux jours choisis)</Label>
+        <Label>{t("auditUi.onboarding.availabilityTimeRange")}</Label>
         <div className="flex items-center gap-3">
           <Input
             type="time"
             className="h-11 rounded-sm"
             {...register("heureDebutDisponible")}
           />
-          <span className="text-sm text-muted-foreground">à</span>
+          <span className="text-sm text-muted-foreground">
+            {t("auditUi.onboarding.to")}
+          </span>
           <Input
             type="time"
             className="h-11 rounded-sm"
@@ -125,8 +128,10 @@ export default function Step9Disponibilites() {
         </div>
         {(errors.heureDebutDisponible || errors.heureFinDisponible) && (
           <p className="text-xs text-destructive">
-            {errors.heureDebutDisponible?.message ||
-              errors.heureFinDisponible?.message}
+            {t(
+              errors.heureDebutDisponible?.message ||
+                errors.heureFinDisponible?.message,
+            )}
           </p>
         )}
       </div>
@@ -145,7 +150,7 @@ export default function Step9Disponibilites() {
           disabled={isSubmitting}
           className="h-12 flex-1 rounded-sm"
         >
-          Continuer
+          {t("auditUi.common.continue")}
         </Button>
       </div>
     </form>

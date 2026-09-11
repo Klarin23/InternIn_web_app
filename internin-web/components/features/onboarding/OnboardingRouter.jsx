@@ -7,6 +7,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuthStore } from "@/lib/store/useAuthStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 // Étapes stagiaire (déjà construites)
 import Step1InfosPersonnelles from "./steps/Step1InfosPersonnelles";
@@ -22,7 +23,7 @@ import Step9Disponibilites from "./steps/Step9Disponibilites";
 import Step10Preferences from "./steps/Step10Preferences";
 import Step11Recapitulatif from "./steps/Step11Recapitulatif";
 
-// Étapes entreprise 
+// Étapes entreprise
 import EntrepriseStep1Infos from "./steps/entreprise/EntrepriseStep1Infos";
 import EntrepriseStep2Presence from "./steps/entreprise/EntrepriseStep2Presence";
 import EntrepriseStep3APropos from "./steps/entreprise/EntrepriseStep3APropos";
@@ -38,9 +39,16 @@ import UniversiteStep4Recapitulatif from "./steps/universite/UniversiteStep4Reca
 const STEPS_BY_ROLE = {
   stagiaire: {
     1: Step1InfosPersonnelles,
-    2: Step3Formation,
-    3: Step4Cv,
-    4: Step4FinalSubmit, // nouveau fichier (voir étape E)
+    2: Step2StatutAcademique,
+    3: Step3Formation,
+    4: Step4Cv,
+    5: Step5Liens,
+    6: Step6Competences,
+    7: Step7CentresInteret,
+    8: Step8Objectifs,
+    9: Step9Disponibilites,
+    10: Step10Preferences,
+    11: Step11Recapitulatif,
   },
   entreprise: {
     1: EntrepriseStep1Infos,
@@ -61,6 +69,7 @@ const STEPS_BY_ROLE = {
 
 export default function OnboardingRouter({ etape }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
@@ -76,7 +85,7 @@ export default function OnboardingRouter({ etape }) {
   if (!StepComponent) {
     return (
       <p className="text-sm text-muted-foreground">
-        Cette étape n&apos;est pas encore disponible pour votre profil.
+        {t("auditUi.onboarding.unavailable")}
       </p>
     );
   }

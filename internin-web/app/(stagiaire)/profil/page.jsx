@@ -13,6 +13,9 @@ import CvSection from "@/components/features/profil/CvSection";
 import LiensProfessionnelsSection from "@/components/features/profil/LiensProfessionnelsSection";
 import CentresInteretSection from "@/components/features/profil/CentresInteretSection";
 import PreferencesRechercheSection from "@/components/features/profil/PreferencesRechercheSection";
+import ExperiencesProfessionnellesSection from "@/components/features/profil/ExperiencesProfessionnellesSection";
+import QualitesSection from "@/components/features/profil/QualitesSection";
+import ProfilEvaluationCompletionAlert from "@/components/features/profil/ProfilEvaluationCompletionAlert";
 
 export default function ProfilPage() {
   const { t } = useTranslation();
@@ -30,9 +33,12 @@ export default function ProfilPage() {
         {profil && (
           <>
             <ProfilHeader profil={profil} />
+            <ProfilEvaluationCompletionAlert profil={profil} />
             <ProfilProfessionnelSection profil={profil} />
             <InfosPersonnellesSection profil={profil} />
             <ParcoursAcademiqueSection profil={profil} />
+            <ExperiencesProfessionnellesSection profil={profil} />
+            <QualitesSection profil={profil} />
             <CompetencesSection profil={profil} />
             <CvSection profil={profil} />
             <LiensProfessionnelsSection profil={profil} />

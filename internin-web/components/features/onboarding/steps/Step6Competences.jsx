@@ -11,18 +11,19 @@ import { Input } from "@/components/ui/input";
 import { useCompetences } from "@/lib/queries/useCompetences";
 import { step6Schema } from "@/lib/schemas/onboarding.schema";
 import { useOnboardingStore } from "@/lib/store/useOnboardingStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const TYPE_LABELS = {
-  technique: "Compétences techniques",
-  professionnelle: "Compétences professionnelles",
-  langue: "Langues",
+  technique: "auditUi.onboarding.technicalSkills",
+  professionnelle: "auditUi.onboarding.professionalSkills",
+  langue: "auditUi.onboarding.languages",
 };
 
 const NIVEAUX = ["debutant", "intermediaire", "avance"];
 const NIVEAU_LABELS = {
-  debutant: "Débutant",
-  intermediaire: "Intermédiaire",
-  avance: "Avancé",
+  debutant: "auditUi.onboarding.beginner",
+  intermediaire: "auditUi.onboarding.intermediate",
+  avance: "auditUi.onboarding.advanced",
 };
 
 function slugCustom(nom) {
@@ -31,6 +32,7 @@ function slugCustom(nom) {
 
 export default function Step6Competences() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { data, saveStepData } = useOnboardingStore();
   const { data: competencesResponse, isLoading, isError } = useCompetences();
   const [customInput, setCustomInput] = useState("");
@@ -64,7 +66,7 @@ export default function Step6Competences() {
     return (
       <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
-        Chargement des compétences...
+        {t("auditUi.onboarding.loadingSkills")}
       </div>
     );
   }
@@ -72,8 +74,7 @@ export default function Step6Competences() {
   if (isError) {
     return (
       <p className="text-sm text-destructive">
-        Impossible de charger les compétences. Vérifiez que l&apos;API backend
-        tourne bien.
+        {t("auditUi.onboarding.skillsLoadError")}
       </p>
     );
   }
@@ -179,11 +180,10 @@ export default function Step6Competences() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div>
         <h1 className="mb-1.5 text-2xl font-bold text-foreground">
-          Vos compétences
+          {t("auditUi.onboarding.skillsTitle")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Choisissez parmi les suggestions, ajoutez les vôtres, ou passez cette
-          étape si vous n&apos;en avez pas encore.
+          {t("auditUi.onboarding.skillsDescription")}
         </p>
       </div>
 
@@ -212,10 +212,10 @@ export default function Step6Competences() {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold text-foreground">
-            Aucune compétence pour le moment
+            {t("auditUi.onboarding.noSkills")}
           </span>
           <span className="block text-xs text-muted-foreground">
-            Vous pourrez en ajouter plus tard depuis votre profil
+            {t("auditUi.onboarding.noSkillsDescription")}
           </span>
         </span>
       </button>
@@ -223,7 +223,7 @@ export default function Step6Competences() {
       {/* Saisie libre */}
       <div className="rounded-md border border-border bg-card p-4">
         <p className="mb-2 text-sm font-semibold text-foreground">
-          Ajouter une compétence absente de la liste
+          {t("auditUi.onboarding.addCustomSkill")}
         </p>
         <div className="flex flex-col gap-2 sm:flex-row">
           <select
@@ -231,9 +231,13 @@ export default function Step6Competences() {
             onChange={(e) => setCustomType(e.target.value)}
             className="h-11 rounded-sm border border-border bg-background px-3 text-sm text-foreground sm:w-44"
           >
-            <option value="technique">Technique</option>
-            <option value="professionnelle">Professionnelle</option>
-            <option value="langue">Langue</option>
+            <option value="technique">
+              {t("auditUi.onboarding.technical")}
+            </option>
+            <option value="professionnelle">
+              {t("auditUi.onboarding.professional")}
+            </option>
+            <option value="langue">{t("auditUi.onboarding.language")}</option>
           </select>
           <Input
             value={customInput}
@@ -244,7 +248,7 @@ export default function Step6Competences() {
                 addCustom();
               }
             }}
-            placeholder="Ex. Figma, Comptabilité, Wolof…"
+            placeholder={t("auditUi.onboarding.skillPlaceholder")}
             className="h-11 flex-1 rounded-sm"
           />
           <Button
@@ -254,7 +258,7 @@ export default function Step6Competences() {
             className="h-11 rounded-sm"
           >
             <Plus className="h-4 w-4" />
-            Ajouter
+            {t("auditUi.onboarding.add")}
           </Button>
         </div>
       </div>
@@ -263,7 +267,7 @@ export default function Step6Competences() {
       {selected.length > 0 && (
         <div className="space-y-3 rounded-md border border-border bg-muted/30 p-4">
           <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-            Sélectionnées ({selected.length})
+            {t("auditUi.onboarding.selectedSkills", { count: selected.length })}
           </p>
           <div className="space-y-2">
             {selected.map((c) => (
@@ -277,11 +281,11 @@ export default function Step6Competences() {
                       competencesList.find(
                         (x) => x.idCompetence === c.idCompetence,
                       )?.nom ||
-                      "Compétence"}
+                      t("auditUi.onboarding.skill")}
                   </span>
                   {c.isCustom && (
                     <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-600">
-                      Personnalisée
+                      {t("auditUi.onboarding.custom")}
                     </span>
                   )}
                 </div>
@@ -298,7 +302,7 @@ export default function Step6Competences() {
                             : "text-muted-foreground hover:text-foreground"
                         }`}
                       >
-                        {NIVEAU_LABELS[n]}
+                        {t(NIVEAU_LABELS[n])}
                       </button>
                     ))}
                   </div>
@@ -306,7 +310,7 @@ export default function Step6Competences() {
                     type="button"
                     onClick={() => removeSelected(c.idCompetence)}
                     className="rounded-sm p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                    aria-label="Retirer"
+                    aria-label={t("auditUi.onboarding.remove")}
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -326,7 +330,7 @@ export default function Step6Competences() {
             {Object.entries(grouped).map(([type, items]) => (
               <div key={type}>
                 <h5 className="mb-3 text-sm font-semibold text-foreground">
-                  {TYPE_LABELS[type] || type}
+                  {TYPE_LABELS[type] ? t(TYPE_LABELS[type]) : type}
                 </h5>
                 <div className="flex flex-wrap gap-2">
                   {items.map((comp) => {
@@ -366,14 +370,14 @@ export default function Step6Competences() {
           onClick={() => router.push("/onboarding/5")}
         >
           <ArrowLeft className="h-4 w-4" />
-          Retour
+          {t("auditUi.common.back")}
         </Button>
         <Button
           type="submit"
           disabled={isSubmitting}
           className="h-11 rounded-sm"
         >
-          Continuer
+          {t("auditUi.common.continue")}
         </Button>
       </div>
     </form>

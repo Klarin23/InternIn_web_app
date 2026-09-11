@@ -14,10 +14,12 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { entrepriseStep4Schema } from "@/lib/schemas/onboardingEntreprise.schema";
 import { useOnboardingEntrepriseStore } from "@/lib/store/useOnboardingEntrepriseStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function EntrepriseStep4Contact() {
   const router = useRouter();
   const { data, saveStepData } = useOnboardingEntrepriseStore();
+  const { t } = useTranslation();
 
   const {
     register,
@@ -47,16 +49,15 @@ export default function EntrepriseStep4Contact() {
           <User className="h-5 w-5" />
         </div>
         <h1 className="mb-1.5 text-2xl font-bold text-foreground">
-          Contact principal
+          {t("auditUi.onboarding.entrepriseOnboarding.step4.title")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          La personne à contacter pour toute question liée à vos offres de
-          stage.
+          {t("auditUi.onboarding.entrepriseOnboarding.step4.description")}
         </p>
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="contactNom">Nom complet</Label>
+        <Label htmlFor="contactNom">{t("auditUi.onboarding.entrepriseOnboarding.step4.fullName")}</Label>
         <Input
           id="contactNom"
           className="h-12 rounded-sm"
@@ -70,10 +71,10 @@ export default function EntrepriseStep4Contact() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="contactFonction">Fonction</Label>
+        <Label htmlFor="contactFonction">{t("auditUi.onboarding.entrepriseOnboarding.step4.function")}</Label>
         <Input
           id="contactFonction"
-          placeholder="Ex : Responsable RH, Directeur technique..."
+          placeholder={t("auditUi.onboarding.entrepriseOnboarding.step4.functionPlaceholder")}
           className="h-12 rounded-sm"
           {...register("contactFonction")}
         />
@@ -85,7 +86,7 @@ export default function EntrepriseStep4Contact() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="contactEmail">E-mail professionnel</Label>
+        <Label htmlFor="contactEmail">{t("auditUi.onboarding.entrepriseOnboarding.step4.professionalEmail")}</Label>
         <div className="relative">
           <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -103,13 +104,13 @@ export default function EntrepriseStep4Contact() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="contactTelephone">Téléphone</Label>
+        <Label htmlFor="contactTelephone">{t("auditUi.onboarding.entrepriseOnboarding.step4.phone")}</Label>
         <div className="relative">
           <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             id="contactTelephone"
             type="tel"
-            placeholder="+225 07 00 00 00 00"
+            placeholder={t("auditUi.onboarding.entrepriseOnboarding.step4.phonePlaceholder")}
             className="h-12 rounded-sm pl-10"
             {...register("contactTelephone")}
           />
@@ -134,10 +135,9 @@ export default function EntrepriseStep4Contact() {
           )}
         />
         <span>
-          Cette personne peut superviser des stagiaires
+          {t("auditUi.onboarding.entrepriseOnboarding.step4.canSupervise")}
           <span className="mt-0.5 block text-xs text-muted-foreground">
-            Vous pourrez ajouter d&apos;autres superviseurs plus tard depuis
-            votre tableau de bord.
+            {t("auditUi.onboarding.entrepriseOnboarding.step4.canSuperviseHelp")}
           </span>
         </span>
       </label>
@@ -150,13 +150,14 @@ export default function EntrepriseStep4Contact() {
           onClick={() => router.push("/onboarding/3")}
         >
           <ArrowLeft className="h-4 w-4" />
+          <span className="sr-only">{t("auditUi.common.back")}</span>
         </Button>
         <Button
           type="submit"
           disabled={isSubmitting}
           className="h-12 flex-1 rounded-sm"
         >
-          Continuer
+          {t("auditUi.common.continue")}
         </Button>
       </div>
     </form>

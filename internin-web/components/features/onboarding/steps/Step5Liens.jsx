@@ -18,44 +18,53 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { step5Schema } from "@/lib/schemas/onboarding.schema";
 import { useOnboardingStore } from "@/lib/store/useOnboardingStore";
-import { FaArrowLeft, FaGithub, FaGlobe, FaLink, FaLinkedin, FaPalette } from "react-icons/fa6";
+import {
+  FaArrowLeft,
+  FaGithub,
+  FaGlobe,
+  FaLink,
+  FaLinkedin,
+  FaPalette,
+} from "react-icons/fa6";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 // Configuration de chaque champ : nom du champ, icône, libellé, placeholder
 const FIELDS = [
   {
     name: "linkedinUrl",
     icon: FaLinkedin,
-    label: "LinkedIn",
+    labelKey: "auditUi.onboarding.linkedin",
     placeholder: "https://linkedin.com/in/votre-profil",
   },
   {
     name: "githubUrl",
     icon: FaGithub,
-    label: "GitHub",
+    labelKey: "auditUi.onboarding.github",
     placeholder: "https://github.com/votre-profil",
   },
   {
     name: "behanceUrl",
     icon: FaPalette,
-    label: "Behance",
+    labelKey: "auditUi.onboarding.behance",
     placeholder: "https://behance.net/votre-profil",
   },
   {
     name: "portfolioUrl",
     icon: FaLink,
-    label: "Portfolio",
+    labelKey: "auditUi.onboarding.portfolio",
     placeholder: "https://votre-portfolio.com",
   },
   {
     name: "siteWebUrl",
     icon: FaGlobe,
-    label: "Site web personnel",
+    labelKey: "auditUi.onboarding.personalWebsite",
     placeholder: "https://votre-site.com",
   },
 ];
 
 export default function Step5Liens() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { data, saveStepData } = useOnboardingStore();
 
   const {
@@ -82,17 +91,16 @@ export default function Step5Liens() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
         <h1 className="mb-1.5 text-2xl font-bold text-foreground">
-          Vos liens professionnels
+          {t("auditUi.onboarding.professionalLinks")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Tous facultatifs — ajoutez ceux qui valorisent le mieux votre profil.
-          Vous pourrez les modifier plus tard.
+          {t("auditUi.onboarding.professionalLinksDescription")}
         </p>
       </div>
 
-      {FIELDS.map(({ name, icon: Icon, label, placeholder }) => (
+      {FIELDS.map(({ name, icon: Icon, labelKey, placeholder }) => (
         <div key={name} className="space-y-1.5">
-          <Label htmlFor={name}>{label}</Label>
+          <Label htmlFor={name}>{t(labelKey)}</Label>
           <div className="relative">
             <Icon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -123,7 +131,7 @@ export default function Step5Liens() {
           disabled={isSubmitting}
           className="h-12 flex-1 rounded-sm"
         >
-          Continuer
+          {t("auditUi.common.continue")}
         </Button>
       </div>
     </form>

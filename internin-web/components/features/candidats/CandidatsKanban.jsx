@@ -63,6 +63,35 @@ export default function CandidatsKanban({
     (c) => c.idCandidature === activeId,
   );
 
+  function handleOpenCandidature(candidature) {
+    if (!candidature) return;
+
+    // Une candidature nouvellement reçue devient consultée dès que
+    // l'entreprise ouvre sa fiche. La mutation passe par la même machine
+    // d'état backend que les autres changements de statut.
+    if (candidature.statut === "soumise") {
+      updateStatutMutation.mutate(
+        {
+          idCandidature: candidature.idCandidature,
+          statut: "consultee",
+        },
+        {
+          onSuccess: () => {
+            onOpen({ ...candidature, statut: "consultee" });
+          },
+          onError: () => {
+            // On ouvre malgré tout la fiche : un incident réseau ne doit pas
+            // empêcher l'entreprise de consulter le dossier.
+            onOpen(candidature);
+          },
+        },
+      );
+      return;
+    }
+
+    onOpen(candidature);
+  }
+
   function handleDragEnd({ active, over }) {
     setActiveId(null);
     if (!over) return;
@@ -171,7 +200,7 @@ export default function CandidatsKanban({
               colonne={colonne}
               candidatures={parColonne[colonne.id] || []}
               candidaturesFraiches={candidaturesFraiches}
-              onOpen={onOpen}
+              onOpen={handleOpenCandidature}
               entretienASignalerParCandidature={
                 entretienASignalerParCandidature
               }

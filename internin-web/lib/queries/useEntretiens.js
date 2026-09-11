@@ -91,8 +91,6 @@ export function useDemanderReprogrammation() {
   });
 }
 
-
-
 // Annulation par le candidat d'un entretien confirmé (statut "confirme")
 // (statut "valide"), avec raison obligatoire.
 export function useAnnulerEntretien() {
@@ -106,13 +104,14 @@ export function useAnnulerEntretien() {
 }
 
 // Jours/heures de disponibilité du candidat, consultables par l'entreprise
-// avant de définir le volume horaire et la durée de l'offre finale.
-export function useDisponibilitesCandidat(idEntretien) {
+// avant de définir le volume horaire et la durée de l'offre finale. Les
+// préférences de recherche du candidat ne sont pas exposées par ce flux.
+export function useDisponibilitesCandidat(idEntretien, enabled = true) {
   const token = useAuthStore((state) => state.token);
   return useQuery({
     queryKey: ["disponibilites-candidat", idEntretien],
     queryFn: () => getDisponibilitesCandidatRequest(idEntretien, token),
-    enabled: !!idEntretien && !!token,
+    enabled: enabled && !!idEntretien && !!token,
   });
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Controller } from "react-hook-form";
+import { Controller, useWatch } from "react-hook-form";
 import { motion } from "framer-motion";
 import { FormTextField, FormTextareaField } from "../OffreFormFields";
 import {
@@ -23,6 +23,8 @@ export default function StepInformationsGenerales({
   errors,
 }) {
   const { t } = useTranslation();
+  const secteurActivite = useWatch({ control, name: "secteurActivite" });
+  const departement = useWatch({ control, name: "departement" });
 
   return (
     <motion.div
@@ -101,6 +103,9 @@ export default function StepInformationsGenerales({
             placeholder={t("entrepriseSpace.offers.sectorCustomPlaceholder")}
             helper={t("entrepriseSpace.offers.sectorCustomHint")}
             registration={register("secteurActiviteCustom")}
+            disabled={Boolean(
+              secteurActivite && secteurActivite !== "Autre",
+            )}
           />
         </div>
 
@@ -159,6 +164,7 @@ export default function StepInformationsGenerales({
             )}
             helper={t("entrepriseSpace.offers.departmentCustomHint")}
             registration={register("departementCustom")}
+            disabled={Boolean(departement && departement !== "Autre")}
           />
         </div>
       </div>

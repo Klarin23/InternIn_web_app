@@ -1,18 +1,24 @@
+"use client";
+
 import { FiUserPlus } from "react-icons/fi";
 import AppHeader from "@/components/layout/AppHeader";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function MaitresStagePage() {
+  const { t } = useTranslation();
   return (
     <>
       <AppHeader
-        title="Maîtres de stage"
-        subtitle="Encadrants référents de vos étudiants en stage"
+        title={t("auditUi.university.supervisorsTitle")}
+        subtitle={t("auditUi.university.supervisorsSubtitle")}
       />
       <div className="flex flex-col items-center justify-center gap-2 px-6 py-24 text-center">
         <FiUserPlus className="h-8 w-8 text-muted-foreground" />
-        <p className="text-sm font-medium text-foreground">Maîtres de stage à venir</p>
+        <p className="text-sm font-medium text-foreground">
+          {t("auditUi.university.comingSoonSupervisors")}
+        </p>
         <p className="max-w-[360px] text-xs text-muted-foreground">
-          Cette page permettra de gérer les enseignants référents et maîtres de stage rattachés à l&apos;établissement.
+          {t("auditUi.university.supervisorsDescription")}
         </p>
       </div>
     </>

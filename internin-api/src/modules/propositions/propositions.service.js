@@ -103,7 +103,6 @@ export async function listTalents({
       pays: stagiaires.pays,
       idUniversite: stagiaires.idUniversite,
       presentation: stagiaires.presentation,
-      cvUrl: stagiaires.cvUrl,
     })
     .from(stagiaires)
     .where(whereClause)
@@ -220,7 +219,6 @@ export async function getTalentById(idStagiaire) {
       idUniversite: stagiaires.idUniversite,
       presentation: stagiaires.presentation,
       objectifProfessionnel: stagiaires.objectifProfessionnel,
-      cvUrl: stagiaires.cvUrl,
       linkedinUrl: stagiaires.linkedinUrl,
       githubUrl: stagiaires.githubUrl,
       behanceUrl: stagiaires.behanceUrl,
@@ -232,6 +230,8 @@ export async function getTalentById(idStagiaire) {
       villesRecherchees: stagiaires.villesRecherchees,
       modalitesTravailSouhaitees: stagiaires.modalitesTravailSouhaitees,
       profilVisibleEntreprises: stagiaires.profilVisibleEntreprises,
+      experiencesProfessionnelles: stagiaires.experiencesProfessionnelles,
+      qualites: stagiaires.qualites,
     })
     .from(stagiaires)
     .where(
@@ -256,6 +256,7 @@ export async function getTalentById(idStagiaire) {
       .select({
         idCompetence: competences.idCompetence,
         nom: competences.nom,
+        typeCompetence: competences.typeCompetence,
       })
       .from(stagiaireCompetences)
       .innerJoin(
@@ -267,11 +268,43 @@ export async function getTalentById(idStagiaire) {
     comps = [];
   }
 
-  // Pas d'email, téléphone, date de naissance, idUtilisateur, etc.
+  // Les langues sont stockées comme des compétences de type "langue".
+  let langues = [];
+  try {
+    const langueRows = await db
+      .select({
+        nom: competences.nom,
+        niveau: stagiaireCompetences.niveau,
+        typeCompetence: competences.typeCompetence,
+      })
+      .from(stagiaireCompetences)
+      .innerJoin(
+        competences,
+        eq(stagiaireCompetences.idCompetence, competences.idCompetence),
+      )
+      .where(
+        and(
+          eq(stagiaireCompetences.idStagiaire, idStagiaire),
+          eq(competences.typeCompetence, "langue"),
+        ),
+      );
+    langues = langueRows.map(({ nom, niveau }) => ({ nom, niveau: niveau || null }));
+  } catch {
+    langues = [];
+  }
+
+  // Pas d'email, téléphone, date de naissance, idUtilisateur ni CV : le profil
+  // Talents expose uniquement les informations professionnelles prévues pour
+  // le recrutement, conformément à la confidentialité du CV.
   return {
     ...stagiaire,
     formations: forms,
-    competences: comps,
+    competences: comps.filter((c) => c.typeCompetence !== "langue"),
+    langues,
+    experiencesProfessionnelles: Array.isArray(stagiaire.experiencesProfessionnelles)
+      ? stagiaire.experiencesProfessionnelles
+      : [],
+    qualites: Array.isArray(stagiaire.qualites) ? stagiaire.qualites : [],
   };
 }
 
@@ -305,6 +338,8 @@ export async function createProposition({
       idUtilisateur: stagiaires.idUtilisateur,
       prenom: stagiaires.prenom,
       profilVisibleEntreprises: stagiaires.profilVisibleEntreprises,
+      experiencesProfessionnelles: stagiaires.experiencesProfessionnelles,
+      qualites: stagiaires.qualites,
     })
     .from(stagiaires)
     .where(eq(stagiaires.idStagiaire, idStagiaire))

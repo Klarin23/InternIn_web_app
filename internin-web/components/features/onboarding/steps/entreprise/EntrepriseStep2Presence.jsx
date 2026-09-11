@@ -7,15 +7,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Globe,
-  Linkedin,
-  ImagePlus,
-  X,
-  Loader2,
-  ArrowLeft,
-  AlertCircle,
-} from "lucide-react";
+import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,10 +16,22 @@ import { entrepriseStep2Schema } from "@/lib/schemas/onboardingEntreprise.schema
 import { useOnboardingEntrepriseStore } from "@/lib/store/useOnboardingEntrepriseStore";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { uploadDocumentRequest } from "@/lib/api/documents";
-import { FaArrowLeft, FaCircleExclamation, FaGlobe, FaImage, FaLinkedin, FaSpinner, FaX } from "react-icons/fa6";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+import { FaArrowLeft, FaCircleExclamation, FaGlobe, FaImage, FaLinkedin, FaSpinner } from "react-icons/fa6";
+
+const URL_ERROR_TRANSLATIONS = {
+  "URL invalide.": "urlInvalid",
+  "Le lien doit utiliser HTTPS.": "httpsRequired",
+  "Ce lien LinkedIn n'est pas valide.": "linkedinInvalid",
+  "Ce lien LinkedIn n’est pas valide.": "linkedinInvalid",
+  "L'URL est trop longue.": "urlTooLong",
+  "L’URL est trop longue.": "urlTooLong",
+  "Les identifiants intégrés dans une URL ne sont pas autorisés.": "credentialsNotAllowed",
+};
 
 export default function EntrepriseStep2Presence() {
   const router = useRouter();
+  const { t } = useTranslation();
   const token = useAuthStore((state) => state.token);
   const { data, saveStepData } = useOnboardingEntrepriseStore();
 
@@ -50,14 +54,19 @@ export default function EntrepriseStep2Presence() {
     },
   });
 
+  const translateUrlError = (message) => {
+    const key = URL_ERROR_TRANSLATIONS[message];
+    return key ? t(`onboardingEntreprise.step2.${key}`) : message;
+  };
+
   function handleSelectLogo(file) {
     setLogoError(null);
     if (!["image/png", "image/jpeg"].includes(file.type)) {
-      setLogoError("Format non autorisé — utilisez un PNG ou JPEG.");
+      setLogoError(t("onboardingEntreprise.step2.formatError"));
       return;
     }
     setLogoFile(file);
-    setLogoPreview(URL.createObjectURL(file)); // aperçu local immédiat, avant upload
+    setLogoPreview(URL.createObjectURL(file));
   }
 
   const onSubmit = async (values) => {
@@ -71,7 +80,7 @@ export default function EntrepriseStep2Presence() {
       } catch (err) {
         setLogoError(err.message);
         setIsUploadingLogo(false);
-        return; // on bloque la suite tant que l'upload échoue
+        return;
       }
       setIsUploadingLogo(false);
     }
@@ -84,11 +93,10 @@ export default function EntrepriseStep2Presence() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div>
         <h1 className="mb-1.5 text-2xl font-bold text-foreground">
-          Votre présence en ligne
+          {t("onboardingEntreprise.step2.title")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Facultatif, mais renforce la confiance des stagiaires envers votre
-          entreprise.
+          {t("onboardingEntreprise.step2.description")}
         </p>
       </div>
 
@@ -99,22 +107,23 @@ export default function EntrepriseStep2Presence() {
         </div>
       )}
 
-      {/* Logo */}
       <div className="space-y-1.5">
         <Label>
-          Logo de l&apos;entreprise{" "}
-          <span className="text-muted-foreground">(facultatif)</span>
+          {t("onboardingEntreprise.step2.logoLabel")} {" "}
+          <span className="text-muted-foreground">
+            ({t("onboardingEntreprise.step2.optional")})
+          </span>
         </Label>
         {logoPreview ? (
           <div className="flex items-center gap-3 rounded-md border border-border bg-card p-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={logoPreview}
-              alt="Aperçu du logo"
+              alt={t("onboardingEntreprise.step2.previewAlt")}
               className="h-14 w-14 rounded-sm object-cover"
             />
             <span className="flex-1 truncate text-sm text-foreground">
-              {logoFile?.name || "Logo actuel"}
+              {logoFile?.name || t("onboardingEntreprise.step2.currentLogo")}
             </span>
             <button
               type="button"
@@ -123,7 +132,7 @@ export default function EntrepriseStep2Presence() {
                 setLogoFile(null);
               }}
               className="text-muted-foreground hover:text-destructive"
-              aria-label="Retirer le logo"
+              aria-label={t("onboardingEntreprise.step2.removeLogo")}
             >
               <X className="h-4 w-4" />
             </button>
@@ -135,7 +144,7 @@ export default function EntrepriseStep2Presence() {
           >
             <FaImage className="h-6 w-6 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              Cliquez pour ajouter un logo (PNG ou JPEG)
+              {t("onboardingEntreprise.step2.uploadPrompt")}
             </p>
             <input
               ref={inputRef}
@@ -151,37 +160,39 @@ export default function EntrepriseStep2Presence() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="siteWeb">Site web</Label>
+        <Label htmlFor="siteWeb">{t("onboardingEntreprise.step2.siteWeb")}</Label>
         <div className="relative">
           <FaGlobe className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             id="siteWeb"
             type="url"
-            placeholder="https://votre-entreprise.com"
+            placeholder={t("onboardingEntreprise.step2.siteWebPlaceholder")}
             className="h-12 rounded-sm pl-10"
             {...register("siteWeb")}
           />
         </div>
         {errors.siteWeb && (
-          <p className="text-xs text-destructive">{errors.siteWeb.message}</p>
+          <p className="text-xs text-destructive">
+            {translateUrlError(errors.siteWeb.message)}
+          </p>
         )}
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="linkedinUrl">LinkedIn</Label>
+        <Label htmlFor="linkedinUrl">{t("onboardingEntreprise.step2.linkedin")}</Label>
         <div className="relative">
           <FaLinkedin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             id="linkedinUrl"
             type="url"
-            placeholder="https://linkedin.com/company/votre-entreprise"
+            placeholder={t("onboardingEntreprise.step2.linkedinPlaceholder")}
             className="h-12 rounded-sm pl-10"
             {...register("linkedinUrl")}
           />
         </div>
         {errors.linkedinUrl && (
           <p className="text-xs text-destructive">
-            {errors.linkedinUrl.message}
+            {translateUrlError(errors.linkedinUrl.message)}
           </p>
         )}
       </div>
@@ -192,6 +203,7 @@ export default function EntrepriseStep2Presence() {
           variant="outline"
           className="h-12 rounded-sm"
           onClick={() => router.push("/onboarding/1")}
+          aria-label={t("onboardingEntreprise.step2.back")}
         >
           <FaArrowLeft className="h-4 w-4" />
         </Button>
@@ -203,10 +215,10 @@ export default function EntrepriseStep2Presence() {
           {isUploadingLogo ? (
             <>
               <FaSpinner className="h-4 w-4 animate-spin" />
-              Envoi du logo...
+              {t("onboardingEntreprise.step2.uploadingLogo")}
             </>
           ) : (
-            "Continuer"
+            t("onboardingEntreprise.step2.continue")
           )}
         </Button>
       </div>

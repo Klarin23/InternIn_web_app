@@ -5,17 +5,17 @@
 import { z } from "zod";
 
 export const step1Schema = z.object({
-  prenom: z.string().min(1, "Le prénom est requis"),
-  nom: z.string().min(1, "Le nom est requis"),
-  telephone: z.string().min(6, "Numéro de téléphone invalide"),
-  pays: z.string().min(1, "Le pays est requis"),
-  ville: z.string().min(1, "La ville est requise"),
+  prenom: z.string().min(1, "auditUi.validation.firstNameRequired"),
+  nom: z.string().min(1, "auditUi.validation.lastNameRequired"),
+  telephone: z.string().min(6, "auditUi.validation.phoneInvalid"),
+  pays: z.string().min(1, "auditUi.validation.countryRequired"),
+  ville: z.string().min(1, "auditUi.validation.cityRequired"),
   dateNaissance: z.string().optional(), // facultatif dans le schéma BDD
 });
 
 export const step2Schema = z.object({
   statutAcademique: z.enum(["etudiant", "jeune_diplome"], {
-    errorMap: () => ({ message: "Merci de sélectionner votre statut" }),
+    errorMap: () => ({ message: "auditUi.validation.statusRequired" }),
   }),
   idUniversite: z.string().optional(), // NULL si non rattaché à une université partenaire
 });
@@ -24,18 +24,20 @@ export const step2Schema = z.object({
 
 export const formationSchema = z.object({
   typeFormation: z.enum(["en_cours", "obtenue"], {
-    errorMap: () => ({ message: "Sélectionnez un statut" }),
+    errorMap: () => ({ message: "auditUi.validation.statusRequired" }),
   }),
-  nomUniversite: z.string().min(1, "Le nom de l'établissement est requis"),
+  nomUniversite: z.string().min(1, "auditUi.validation.institutionRequired"),
   faculte: z.string().optional(),
   departement: z.string().optional(),
-  diplome: z.string().min(1, "Le diplôme est requis"),
+  diplome: z.string().min(1, "auditUi.validation.degreeRequired"),
   anneeEtude: z.string().optional(),
   anneeObtention: z.string().optional(),
 });
 
 export const step3Schema = z.object({
-  formations: z.array(formationSchema).min(1, "Ajoutez au moins une formation"),
+  formations: z
+    .array(formationSchema)
+    .min(1, "auditUi.validation.formationRequired"),
 });
 
 // Tous les champs sont facultatifs (cf. stagiaires.linkedin_url etc., NULL autorisé),
@@ -75,32 +77,32 @@ export const step6Schema = z.object({
 export const step7Schema = z.object({
   centresInteret: z
     .array(z.string())
-    .min(1, "Sélectionnez au moins un centre d'intérêt"),
+    .min(1, "auditUi.validation.interestRequired"),
 });
 
 export const step8Schema = z.object({
   objectifsDeveloppement: z
     .array(z.string())
-    .min(1, "Sélectionnez au moins un objectif"),
+    .min(1, "auditUi.validation.objectiveRequired"),
 });
 
 export const step9Schema = z.object({
   joursDisponibles: z
     .array(z.string())
-    .min(1, "Sélectionnez au moins un jour de disponibilité"),
-  heureDebutDisponible: z.string().min(1, "Indiquez une heure de début"),
-  heureFinDisponible: z.string().min(1, "Indiquez une heure de fin"),
+    .min(1, "auditUi.validation.availabilityDayRequired"),
+  heureDebutDisponible: z
+    .string()
+    .min(1, "auditUi.validation.startTimeRequired"),
+  heureFinDisponible: z.string().min(1, "auditUi.validation.endTimeRequired"),
 });
 
 export const step10Schema = z.object({
   dureeStageSouhaitee: z.enum(["1_mois", "2_mois", "3_mois"], {
-    errorMap: () => ({ message: "Sélectionnez une durée" }),
+    errorMap: () => ({ message: "auditUi.validation.durationRequired" }),
   }),
   heuresHebdoSouhaitees: z
     .number()
-    .min(15, "Minimum 15 heures par semaine")
-    .max(40, "Maximum 40 heures par semaine"),
-  dateDebutSouhaitee: z
-    .string()
-    .min(1, "La date de début souhaitée est requise"),
+    .min(15, "auditUi.validation.minimumHours")
+    .max(40, "auditUi.validation.maximumHours"),
+  dateDebutSouhaitee: z.string().min(1, "auditUi.validation.startDateRequired"),
 });

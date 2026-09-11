@@ -107,20 +107,16 @@ export function parseCompetences(texte, limite = 4) {
 }
 
 export function formatRemuneration(t, offre) {
-  if (offre.remunerationType === "allocation_mensuelle") {
-    return offre.montantRemuneration
-      ? t("remunerationLabels.perMonthAmount", {
-          amount: Number(offre.montantRemuneration).toLocaleString(),
-        })
-      : t("remunerationLabels.paid");
-  }
-  if (offre.remunerationType === "indemnite_transport")
-    return t("remunerationLabels.indemnite_transport");
-  if (offre.remunerationType === "indemnite_repas")
-    return t("remunerationLabels.indemnite_repas");
-  if (offre.remunerationType === "indemnite_internet_appel")
-    return t("remunerationLabels.indemnite_internet_appel");
-  return t("remunerationLabels.aucune");
+  const options = Array.isArray(offre?.remunerationOptions) && offre.remunerationOptions.length
+    ? offre.remunerationOptions
+    : offre?.remunerationType
+      ? [{ type: offre.remunerationType, montant: offre.montantRemuneration }]
+      : [];
+  if (!options.length) return t("remunerationLabels.aucune");
+  const labels = options.map(({ type }) => t(`remunerationLabels.${type}`));
+  const hasPaid = options.some(({ type }) => type !== "aucune");
+  const montant = offre?.montantRemuneration ?? options.find(({ type }) => type !== "aucune")?.montant;
+  return `${labels.join(" + ")}${hasPaid && montant ? ` · ${Number(montant).toLocaleString()} FCFA` : ""}`;
 }
 
 // Une offre est considérée "Nouvelle" si publiée il y a 7 jours ou moins.

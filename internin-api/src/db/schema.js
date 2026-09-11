@@ -220,7 +220,13 @@ export const statutPropositionStageEnum = pgEnum("statut_proposition_stage", [
 ]);
 
 export const statutEntretienEnum = pgEnum("statut_entretien", [
-  "planifie", "valide", "confirme", "reprogramme", "termine", "annule", "absent",
+  "planifie",
+  "valide",
+  "confirme",
+  "reprogramme",
+  "termine",
+  "annule",
+  "absent",
 ]);
 
 export const statutValidationPlateformeEnum = pgEnum(
@@ -328,7 +334,9 @@ export const sessionsUtilisateur = pgTable("sessions_utilisateur", {
   adresseIp: varchar("adresse_ip", { length: 45 }),
   paysConnexion: varchar("pays_connexion", { length: 100 }),
   villeConnexion: varchar("ville_connexion", { length: 100 }),
-  dateExpiration: timestamp("date_expiration", { withTimezone: true }).notNull(),
+  dateExpiration: timestamp("date_expiration", {
+    withTimezone: true,
+  }).notNull(),
   dateCreation: timestamp("date_creation", { withTimezone: true }).defaultNow(),
 });
 
@@ -339,9 +347,13 @@ export const sessionsUtilisateur = pgTable("sessions_utilisateur", {
 export const tentativesConnexion = pgTable("tentatives_connexion", {
   idTentative: uuid("id_tentative").defaultRandom().primaryKey(),
   email: varchar("email", { length: 255 }).notNull(),
-  idUtilisateur: uuid("id_utilisateur").references(() => utilisateurs.idUtilisateur),
+  idUtilisateur: uuid("id_utilisateur").references(
+    () => utilisateurs.idUtilisateur,
+  ),
   adresseIp: varchar("adresse_ip", { length: 45 }),
-  motif: varchar("motif", { length: 80 }).notNull().default("identifiants_invalides"),
+  motif: varchar("motif", { length: 80 })
+    .notNull()
+    .default("identifiants_invalides"),
   dateCreation: timestamp("date_creation", { withTimezone: true }).defaultNow(),
 });
 
@@ -351,7 +363,9 @@ export const sseTickets = pgTable("sse_tickets", {
     .notNull()
     .references(() => utilisateurs.idUtilisateur, { onDelete: "cascade" }),
   ticketHash: varchar("ticket_hash", { length: 64 }).notNull().unique(),
-  dateExpiration: timestamp("date_expiration", { withTimezone: true }).notNull(),
+  dateExpiration: timestamp("date_expiration", {
+    withTimezone: true,
+  }).notNull(),
   dateUtilisation: timestamp("date_utilisation", { withTimezone: true }),
   dateCreation: timestamp("date_creation", { withTimezone: true }).defaultNow(),
 });
@@ -364,7 +378,9 @@ export const verificationsEmail = pgTable("verifications_email", {
   type: typeVerificationEnum("type").notNull(),
   codeJeton: varchar("code_jeton", { length: 255 }).notNull(),
   statut: statutVerificationTokenEnum("statut").notNull().default("en_attente"),
-  dateExpiration: timestamp("date_expiration", { withTimezone: true }).notNull(),
+  dateExpiration: timestamp("date_expiration", {
+    withTimezone: true,
+  }).notNull(),
 });
 
 // =====================================================================
@@ -396,7 +412,9 @@ export const stagiaires = pgTable("stagiaires", {
   dateDebutSouhaitee: date("date_debut_souhaitee"),
   scoreCompletudeProfil: smallint("score_completude_profil").default(0), // 0-100
   // Visibilité du profil auprès des entreprises (fonctionnalité Talents)
-  profilVisibleEntreprises: boolean("profil_visible_entreprises").notNull().default(false),
+  profilVisibleEntreprises: boolean("profil_visible_entreprises")
+    .notNull()
+    .default(false),
   statutStage: statutStageStagiaireEnum("statut_stage").default("disponible"),
   idUniversite: uuid("id_universite").references(
     () => universites.idUniversite,
@@ -406,13 +424,16 @@ export const stagiaires = pgTable("stagiaires", {
   titreProfessionnel: varchar("titre_professionnel", { length: 150 }),
   presentation: text("presentation"),
   objectifProfessionnel: text("objectif_professionnel"),
+  // Informations professionnelles structurées, indépendantes du fichier CV.
+  experiencesProfessionnelles: jsonb("experiences_professionnelles").notNull().default([]),
+  qualites: text("qualites").array().notNull().default([]),
 
   // --- Préférences de recherche ---
   secteursRecherches: text("secteurs_recherches").array(),
   villesRecherchees: text("villes_recherchees").array(),
   modalitesTravailSouhaitees: text("modalites_travail_souhaitees").array(), // "presentiel" | "hybride" | "distance"
   remunerationSouhaitee: remunerationTypeEnum("remuneration_souhaitee"),
-  
+
   dateCreation: timestamp("date_creation", { withTimezone: true }).defaultNow(),
 });
 
@@ -587,10 +608,16 @@ export const membresEquipe = pgTable("membres_equipe", {
   // null = le membre hérite simplement des permissions par défaut de son rôle.
   permissionsPersonnalisees: jsonb("permissions_personnalisees"),
   estAdminPrincipal: boolean("est_admin_principal").default(false),
-  statutMembre: statutInvitationEnum("statut_membre").notNull().default("invite"),
+  statutMembre: statutInvitationEnum("statut_membre")
+    .notNull()
+    .default("invite"),
   tokenInvitation: varchar("token_invitation", { length: 255 }),
-  dateEnvoiInvitation: timestamp("date_envoi_invitation", { withTimezone: true }).defaultNow(),
-  dateExpirationInvitation: timestamp("date_expiration_invitation", { withTimezone: true }),
+  dateEnvoiInvitation: timestamp("date_envoi_invitation", {
+    withTimezone: true,
+  }).defaultNow(),
+  dateExpirationInvitation: timestamp("date_expiration_invitation", {
+    withTimezone: true,
+  }),
   nombreRenvoisInvitation: smallint("nombre_renvois_invitation").default(0),
   dateActivation: timestamp("date_activation", { withTimezone: true }),
   dateDesactivation: timestamp("date_desactivation", { withTimezone: true }),
@@ -612,7 +639,9 @@ export const affectationsSuperviseurStage = pgTable(
     idMembre: uuid("id_membre")
       .notNull()
       .references(() => membresEquipe.idMembre),
-    dateAffectation: timestamp("date_affectation", { withTimezone: true }).defaultNow(),
+    dateAffectation: timestamp("date_affectation", {
+      withTimezone: true,
+    }).defaultNow(),
   },
 );
 
@@ -847,7 +876,6 @@ export const notifications = pgTable("notifications", {
   dateCreation: timestamp("date_creation", { withTimezone: true }).defaultNow(),
 });
 
-
 // Préférences de notifications in-app de l'espace Entreprise (une ligne / entreprise).
 // Source de vérité unique — remplace localStorage "internin-entreprise-notif-prefs".
 // Catégories alignées sur l'UI Paramètres → Notifications :
@@ -865,11 +893,12 @@ export const preferencesNotificationsEntreprise = pgTable(
     candidatures: boolean("candidatures").notNull().default(true),
     evaluations: boolean("evaluations").notNull().default(true),
     equipe: boolean("equipe").notNull().default(true),
-    dateCreation: timestamp("date_creation", { withTimezone: true }).defaultNow(),
+    dateCreation: timestamp("date_creation", {
+      withTimezone: true,
+    }).defaultNow(),
     dateMaj: timestamp("date_maj", { withTimezone: true }).defaultNow(),
   },
 );
-
 
 export const modelesEmail = pgTable("modeles_email", {
   idModele: uuid("id_modele").defaultRandom().primaryKey(),
@@ -882,25 +911,31 @@ export const modelesEmail = pgTable("modeles_email", {
 // modifiable depuis la page "Paramètres" de la console admin.
 export const parametresPlateforme = pgTable("parametres_plateforme", {
   idParametres: uuid("id_parametres").defaultRandom().primaryKey(),
-  validationAutomatique: boolean("validation_automatique").notNull().default(false),
+  validationAutomatique: boolean("validation_automatique")
+    .notNull()
+    .default(false),
   // Clés cochées dans l'admin lorsque validationAutomatique=true :
   // "offres_finales" | "conventions" | "entreprises" | "universites"
   elementsValidationAutomatique: jsonb("elements_validation_automatique")
     .notNull()
     .default([]),
-  delaiTraitementHeures: integer("delai_traitement_heures").notNull().default(72),
+  delaiTraitementHeures: integer("delai_traitement_heures")
+    .notNull()
+    .default(72),
   documentsRequisParEntite: integer("documents_requis_par_entite")
     .notNull()
     .default(3),
   notificationsEmail: boolean("notifications_email").notNull().default(true),
-    doubleAuthentification: boolean("double_authentification")
+  doubleAuthentification: boolean("double_authentification")
     .notNull()
     .default(false),
   modeMaintenance: boolean("mode_maintenance").notNull().default(false),
   messageMaintenance: text("message_maintenance"),
   maintenanceDebut: timestamp("maintenance_debut", { withTimezone: true }),
   maintenanceFin: timestamp("maintenance_fin", { withTimezone: true }),
-  adminsPeuventAcceder: boolean("admins_peuvent_acceder").notNull().default(true),
+  adminsPeuventAcceder: boolean("admins_peuvent_acceder")
+    .notNull()
+    .default(true),
   dateMaj: timestamp("date_maj", { withTimezone: true }).defaultNow(),
 });
 
@@ -921,11 +956,13 @@ export const offresStage = pgTable("offres_stage", {
   competencesRequises: text("competences_requises"),
   opportunitesApprentissage: text("opportunites_apprentissage"),
   modeTravail: modeTravailEnum("mode_travail"),
+  lienReunionOnline: text("lien_reunion_online"),
   remunerationType: remunerationTypeEnum("remuneration_type"),
   montantRemuneration: numeric("montant_remuneration", {
     precision: 10,
     scale: 2,
   }),
+  remunerationOptions: jsonb("remuneration_options").notNull().default([]),
   nombrePostes: smallint("nombre_postes").default(1),
   idContactSuperviseur: uuid("id_contact_superviseur").references(
     () => contactsEntreprise.idContact,
@@ -951,8 +988,12 @@ export const candidatures = pgTable(
     statut: statutCandidatureEnum("statut").notNull().default("soumise"),
     lettreMotivation: text("lettre_motivation"),
     messageRejet: text("message_rejet"),
-    dateCandidature: timestamp("date_candidature", { withTimezone: true }).defaultNow(),
-    dateMajStatut: timestamp("date_maj_statut", { withTimezone: true }).defaultNow(),
+    dateCandidature: timestamp("date_candidature", {
+      withTimezone: true,
+    }).defaultNow(),
+    dateMajStatut: timestamp("date_maj_statut", {
+      withTimezone: true,
+    }).defaultNow(),
     motifRetraitCode: varchar("motif_retrait_code", { length: 80 }),
     motifRetraitCommentaire: text("motif_retrait_commentaire"),
     dateRetrait: timestamp("date_retrait", { withTimezone: true }),
@@ -965,7 +1006,6 @@ export const candidatures = pgTable(
     ),
   }),
 );
-
 
 // =====================================================================
 // Propositions de stage (entreprise → stagiaire)
@@ -987,17 +1027,17 @@ export const propositionsStage = pgTable(
     // Motif de refus saisi par le stagiaire (null si acceptée ou sans commentaire)
     commentaireReponse: text("commentaire_reponse"),
     statut: statutPropositionStageEnum("statut").notNull().default("envoyee"),
-    dateCreation: timestamp("date_creation", { withTimezone: true }).defaultNow(),
+    dateCreation: timestamp("date_creation", {
+      withTimezone: true,
+    }).defaultNow(),
     dateVue: timestamp("date_vue", { withTimezone: true }),
     dateReponse: timestamp("date_reponse", { withTimezone: true }),
   },
   (t) => ({
     // Empêcher les propositions en doublon pour la même offre/stagiaire
-    uqEntrepriseStagiaireOffre: unique("uq_proposition_entreprise_stagiaire_offre").on(
-      t.idEntreprise,
-      t.idStagiaire,
-      t.idOffre,
-    ),
+    uqEntrepriseStagiaireOffre: unique(
+      "uq_proposition_entreprise_stagiaire_offre",
+    ).on(t.idEntreprise, t.idStagiaire, t.idOffre),
   }),
 );
 
@@ -1035,6 +1075,8 @@ export const offresFinales = pgTable("offres_finales", {
   modeTravail: modeTravailEnum("mode_travail"),
   remunerationType: remunerationTypeEnum("remuneration_type"),
   dateDebut: date("date_debut"),
+  // Instantané contractuel des jours et créneaux convenus dans l'offre.
+  horairesStage: jsonb("horaires_stage").notNull().default([]),
   statutValidationPlateforme: statutValidationPlateformeEnum(
     "statut_validation_plateforme",
   ).default("en_attente"),
@@ -1045,7 +1087,9 @@ export const offresFinales = pgTable("offres_finales", {
   statutReponseStagiaire: statutReponseStagiaireEnum(
     "statut_reponse_stagiaire",
   ).default("en_attente"),
-  dateReponseStagiaire: timestamp("date_reponse_stagiaire", { withTimezone: true }),
+  dateReponseStagiaire: timestamp("date_reponse_stagiaire", {
+    withTimezone: true,
+  }),
   /** Motif fourni par le stagiaire lors d'un refus (null si acceptée / en attente). */
   motifRefusStagiaire: text("motif_refus_stagiaire"),
   dateCreation: timestamp("date_creation", { withTimezone: true }).defaultNow(),
@@ -1058,12 +1102,18 @@ export const conventionsStage = pgTable("conventions_stage", {
     .unique()
     .references(() => offresFinales.idOffreFinale),
   accepteeParEntreprise: boolean("acceptee_par_entreprise").default(false),
-  dateAcceptationEntreprise: timestamp("date_acceptation_entreprise", { withTimezone: true }),
+  dateAcceptationEntreprise: timestamp("date_acceptation_entreprise", {
+    withTimezone: true,
+  }),
   accepteeParStagiaire: boolean("acceptee_par_stagiaire").default(false),
-  dateAcceptationStagiaire: timestamp("date_acceptation_stagiaire", { withTimezone: true }),
+  dateAcceptationStagiaire: timestamp("date_acceptation_stagiaire", {
+    withTimezone: true,
+  }),
   approuveeParPlateforme: boolean("approuvee_par_plateforme").default(false),
   valideeParUniversite: boolean("validee_par_universite").default(false),
-  dateValidationUniversite: timestamp("date_validation_universite", { withTimezone: true }),
+  dateValidationUniversite: timestamp("date_validation_universite", {
+    withTimezone: true,
+  }),
   dateCreation: timestamp("date_creation", { withTimezone: true }).defaultNow(),
 });
 
@@ -1133,19 +1183,18 @@ export const tachesStage = pgTable("taches_stage", {
 // Compétences acquises PENDANT ce stage précis — distinct de
 // stagiaireCompetences (module 2) qui liste les compétences déclarées sur le
 // profil général du stagiaire, indépendamment de tout stage.
-export const competencesAcquisesStage = pgTable(
-  "competences_acquises_stage",
-  {
-    idAcquisition: uuid("id_acquisition").defaultRandom().primaryKey(),
-    idStage: uuid("id_stage")
-      .notNull()
-      .references(() => stages.idStage),
-    idCompetence: uuid("id_competence")
-      .notNull()
-      .references(() => competences.idCompetence),
-    dateAcquisition: timestamp("date_acquisition", { withTimezone: true }).defaultNow(),
-  },
-);
+export const competencesAcquisesStage = pgTable("competences_acquises_stage", {
+  idAcquisition: uuid("id_acquisition").defaultRandom().primaryKey(),
+  idStage: uuid("id_stage")
+    .notNull()
+    .references(() => stages.idStage),
+  idCompetence: uuid("id_competence")
+    .notNull()
+    .references(() => competences.idCompetence),
+  dateAcquisition: timestamp("date_acquisition", {
+    withTimezone: true,
+  }).defaultNow(),
+});
 
 // Observations libres du superviseur sur le stage — journal d'appréciation
 // distinct du "journal de stage" (qui, lui, est alimenté par le stagiaire).
@@ -1160,7 +1209,9 @@ export const observationsSuperviseurStage = pgTable(
       .notNull()
       .references(() => membresEquipe.idMembre),
     contenu: text("contenu").notNull(),
-    dateCreation: timestamp("date_creation", { withTimezone: true }).defaultNow(),
+    dateCreation: timestamp("date_creation", {
+      withTimezone: true,
+    }).defaultNow(),
   },
 );
 
@@ -1229,7 +1280,9 @@ export const coachingIaSessions = pgTable("coaching_ia_sessions", {
   axesAmelioration: text("axes_amelioration"),
   actionsRecommandees: text("actions_recommandees"),
   resumeProgression: text("resume_progression"),
-  dateGeneration: timestamp("date_generation", { withTimezone: true }).defaultNow(),
+  dateGeneration: timestamp("date_generation", {
+    withTimezone: true,
+  }).defaultNow(),
 });
 
 export const bibliothequeRessources = pgTable("bibliotheque_ressources", {
@@ -1249,7 +1302,9 @@ export const ressourcesConsultees = pgTable(
     idRessource: uuid("id_ressource")
       .notNull()
       .references(() => bibliothequeRessources.idRessource),
-    dateConsultation: timestamp("date_consultation", { withTimezone: true }).defaultNow(),
+    dateConsultation: timestamp("date_consultation", {
+      withTimezone: true,
+    }).defaultNow(),
   },
   (t) => ({
     pk: primaryKey({ columns: [t.idStagiaire, t.idRessource] }),
@@ -1276,7 +1331,9 @@ export const badges = pgTable("badges", {
     .notNull()
     .references(() => stages.idStage),
   typeBadge: varchar("type_badge", { length: 100 }),
-  dateObtention: timestamp("date_obtention", { withTimezone: true }).defaultNow(),
+  dateObtention: timestamp("date_obtention", {
+    withTimezone: true,
+  }).defaultNow(),
 });
 
 export const recommandations = pgTable("recommandations", {
@@ -1332,7 +1389,9 @@ export const conversations = pgTable(
       () => membresEquipe.idMembre,
     ),
     statut: statutConversationEnum("statut").notNull().default("active"),
-    dateCreation: timestamp("date_creation", { withTimezone: true }).defaultNow(),
+    dateCreation: timestamp("date_creation", {
+      withTimezone: true,
+    }).defaultNow(),
   },
   // Unicité gérée par index partiels SQL (migration) :
   // - (id_stage) WHERE type = entreprise
@@ -1363,7 +1422,6 @@ export const piecesJointesMessage = pgTable("pieces_jointes_message", {
   nomFichier: varchar("nom_fichier", { length: 255 }),
 });
 
-
 // Favoris d'offres (espace stagiaire)
 export const favorisOffres = pgTable(
   "favoris_offres",
@@ -1385,10 +1443,11 @@ export const favorisOffres = pgTable(
   }),
 );
 
-
 export const journalActionsAdmin = pgTable("journal_actions_admin", {
   idJournal: uuid("id_journal").defaultRandom().primaryKey(),
-  idAdministrateur: uuid("id_administrateur").references(() => utilisateurs.idUtilisateur),
+  idAdministrateur: uuid("id_administrateur").references(
+    () => utilisateurs.idUtilisateur,
+  ),
   typeEntite: varchar("type_entite", { length: 50 }).notNull(),
   idEntite: uuid("id_entite"),
   action: varchar("action", { length: 100 }).notNull(),
@@ -1420,7 +1479,9 @@ export const alertesSecurite = pgTable(
     idAlerte: uuid("id_alerte").defaultRandom().primaryKey(),
     fingerprint: varchar("fingerprint", { length: 191 }).notNull(),
     typeAlerte: varchar("type_alerte", { length: 80 }).notNull(),
-    gravite: graviteAlerteSecuriteEnum("gravite").notNull().default("attention"),
+    gravite: graviteAlerteSecuriteEnum("gravite")
+      .notNull()
+      .default("attention"),
     statut: statutAlerteSecuriteEnum("statut").notNull().default("nouvelle"),
     titre: varchar("titre", { length: 255 }).notNull(),
     description: text("description"),
@@ -1437,9 +1498,13 @@ export const alertesSecurite = pgTable(
     signaux: jsonb("signaux").default([]),
     nbEvenements: integer("nb_evenements").notNull().default(1),
     metadata: jsonb("metadata").default({}),
-    dateCreation: timestamp("date_creation", { withTimezone: true }).defaultNow(),
+    dateCreation: timestamp("date_creation", {
+      withTimezone: true,
+    }).defaultNow(),
     dateMaj: timestamp("date_maj", { withTimezone: true }).defaultNow(),
-    dateDerniereDetection: timestamp("date_derniere_detection", { withTimezone: true }).defaultNow(),
+    dateDerniereDetection: timestamp("date_derniere_detection", {
+      withTimezone: true,
+    }).defaultNow(),
     dateExamen: timestamp("date_examen", { withTimezone: true }),
     dateResolution: timestamp("date_resolution", { withTimezone: true }),
     idAdminResolution: uuid("id_admin_resolution").references(

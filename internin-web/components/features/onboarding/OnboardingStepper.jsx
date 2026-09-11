@@ -3,9 +3,11 @@
 // Affiche les 11 étapes sous forme de segments, avec l'étape actuelle mise en évidence.
 
 import { motion } from "framer-motion";
-import { Check } from "lucide-react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function OnboardingStepper({ currentStep, totalSteps }) {
+  const { t } = useTranslation();
+
   return (
     <div>
       {/* Barre de progression continue */}
@@ -18,7 +20,7 @@ export default function OnboardingStepper({ currentStep, totalSteps }) {
         />
       </div>
       <p className="text-xs font-medium text-muted-foreground">
-        Étape {currentStep} sur {totalSteps}
+        {t("auditUi.common.stepOf", { current: currentStep, total: totalSteps })}
       </p>
     </div>
   );

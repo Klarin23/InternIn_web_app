@@ -12,14 +12,19 @@ import {
   formatFormation,
 } from "./talentUtils";
 import { cn } from "@/lib/utils";
-import { TalentCvButton } from "./TalentCvActions";
 
 /** Proposition désactivée uniquement si le stagiaire est actuellement en stage. */
 export function canProposeToTalent(talent) {
   return talent?.statutStage !== "actif";
 }
 
-export default function TalentCard({ talent, onView, onPropose, canPropose = true, index = 0 }) {
+export default function TalentCard({
+  talent,
+  onView,
+  onPropose,
+  canPropose = true,
+  index = 0,
+}) {
   const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
   const loc = localization(talent);
@@ -154,7 +159,9 @@ export default function TalentCard({ talent, onView, onPropose, canPropose = tru
       {score != null && (
         <div className="mt-4">
           <div className="mb-1 flex items-center justify-between text-[11px]">
-            <span className="text-muted-foreground">{t("talents.card.profileCompleted")}</span>
+            <span className="text-muted-foreground">
+              {t("talents.card.profileCompleted")}
+            </span>
             <span className="font-semibold tabular-nums text-foreground">
               {score} %
             </span>
@@ -191,20 +198,13 @@ export default function TalentCard({ talent, onView, onPropose, canPropose = tru
             className="flex-1 rounded-lg"
             disabled={!proposeEnabled}
             title={
-              proposeEnabled
-                ? undefined
-                : t("talents.card.inInternshipTitle")
+              proposeEnabled ? undefined : t("talents.card.inInternshipTitle")
             }
             onClick={() => proposeEnabled && onPropose?.(talent)}
           >
             {t("talents.card.proposeShort")}
           </Button>
         </div>
-        {talent.cvUrl && (
-          <div className="flex justify-center border-t border-border/50 pt-2">
-            <TalentCvButton cvUrl={talent.cvUrl} idStagiaire={talent.idStagiaire} />
-          </div>
-        )}
       </div>
     </motion.article>
   );

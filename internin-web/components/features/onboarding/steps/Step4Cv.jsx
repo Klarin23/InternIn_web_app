@@ -17,9 +17,11 @@ import { Button } from "@/components/ui/button";
 import { uploadDocumentRequest } from "@/lib/api/documents";
 import { useOnboardingStore } from "@/lib/store/useOnboardingStore";
 import { useAuthStore } from "@/lib/store/useAuthStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function Step4Cv() {
   const router = useRouter();
+  const { t } = useTranslation();
   const token = useAuthStore((state) => state.token);
   const { data, saveStepData } = useOnboardingStore();
 
@@ -35,11 +37,11 @@ export default function Step4Cv() {
     setError(null);
     const allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
     if (!allowedTypes.includes(selectedFile.type)) {
-      setError("Format non autorisé — utilisez un PDF, PNG ou JPEG.");
+      setError(t("auditUi.onboarding.cvInvalidFormat"));
       return;
     }
     if (selectedFile.size > 5 * 1024 * 1024) {
-      setError("Le fichier dépasse la taille maximale de 5 Mo.");
+      setError(t("auditUi.onboarding.cvTooLarge"));
       return;
     }
     setFile(selectedFile);
@@ -54,7 +56,7 @@ export default function Step4Cv() {
 
   async function handleContinue() {
     if (!file) {
-      setError("Merci d'ajouter votre CV avant de continuer.");
+      setError(t("auditUi.onboarding.cvRequired"));
       return;
     }
 
@@ -64,7 +66,7 @@ export default function Step4Cv() {
       file.name === data.cvNomFichier &&
       !(file instanceof File)
     ) {
-      router.push("/onboarding/4");
+      router.push("/onboarding/5");
       return;
     }
 
@@ -73,7 +75,7 @@ export default function Step4Cv() {
     try {
       const { url } = await uploadDocumentRequest(file, "cv", token);
       saveStepData({ cvUrl: url, cvNomFichier: file.name });
-      router.push("/onboarding/4");
+      router.push("/onboarding/5");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -85,11 +87,10 @@ export default function Step4Cv() {
     <div className="space-y-6">
       <div>
         <h1 className="mb-1.5 text-2xl font-bold text-foreground">
-          Ajoutez votre CV
+          {t("auditUi.onboarding.cvTitle")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Obligatoire pour candidater aux offres de stage. Format PDF, PNG ou
-          JPEG — 5 Mo maximum.
+          {t("auditUi.onboarding.cvDescription")}
         </p>
       </div>
 
@@ -119,10 +120,10 @@ export default function Step4Cv() {
           <UploadCloud className="h-8 w-8 text-muted-foreground" />
           <div>
             <p className="text-sm font-semibold text-foreground">
-              Glissez-déposez votre CV ici
+              {t("auditUi.onboarding.cvDropHere")}
             </p>
             <p className="text-xs text-muted-foreground">
-              ou cliquez pour parcourir vos fichiers
+              {t("auditUi.onboarding.cvBrowse")}
             </p>
           </div>
           <input
@@ -151,7 +152,7 @@ export default function Step4Cv() {
               setError(null);
             }}
             className="text-muted-foreground hover:text-destructive"
-            aria-label="Retirer ce fichier"
+            aria-label={t("auditUi.onboarding.cvRemove")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -163,7 +164,7 @@ export default function Step4Cv() {
           type="button"
           variant="outline"
           className="h-12 rounded-sm"
-          onClick={() => router.push("/onboarding/2")}
+          onClick={() => router.push("/onboarding/3")}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
@@ -176,10 +177,10 @@ export default function Step4Cv() {
           {isUploading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Envoi en cours...
+              {t("auditUi.onboarding.uploading")}
             </>
           ) : (
-            "Continuer"
+            t("auditUi.common.continue")
           )}
         </Button>
       </div>

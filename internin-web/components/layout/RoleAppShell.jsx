@@ -82,6 +82,7 @@ export default function RoleAppShell({ children }) {
                   entrepriseProfile.statutVerification === "verifiee"
                     ? t("roles.verified")
                     : t("roles.pending"),
+                logoUrl: entrepriseProfile.logoUrl,
               }
             : null
         }

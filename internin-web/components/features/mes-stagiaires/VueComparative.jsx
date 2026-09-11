@@ -1,7 +1,5 @@
-
 "use client";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-
 
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
@@ -30,25 +28,29 @@ const SITUATION_CONFIG = {
   excellent: {
     labelKey: "mesStagiaires.situation.excellent",
     dot: "bg-emerald-500",
-    badge: "bg-emerald-500/10 text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-400",
+    badge:
+      "bg-emerald-500/10 text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-400",
     bar: "bg-emerald-500",
   },
   bon: {
     labelKey: "mesStagiaires.situation.good",
     dot: "bg-emerald-500",
-    badge: "bg-emerald-500/10 text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-400",
+    badge:
+      "bg-emerald-500/10 text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-400",
     bar: "bg-emerald-500",
   },
   surveiller: {
     labelKey: "mesStagiaires.situation.watch",
     dot: "bg-amber-500",
-    badge: "bg-amber-500/10 text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-400",
+    badge:
+      "bg-amber-500/10 text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-400",
     bar: "bg-amber-500",
   },
   attention: {
     labelKey: "mesStagiaires.situation.attention",
     dot: "bg-orange-500",
-    badge: "bg-orange-500/10 text-orange-700 ring-1 ring-orange-500/20 dark:text-orange-400",
+    badge:
+      "bg-orange-500/10 text-orange-700 ring-1 ring-orange-500/20 dark:text-orange-400",
     bar: "bg-orange-500",
   },
   critique: {
@@ -119,7 +121,12 @@ function ProgressBar({ value, className }) {
   const display = reduceMotion ? value : width;
 
   return (
-    <div className={cn("h-2 w-full overflow-hidden rounded-full bg-muted", className)}>
+    <div
+      className={cn(
+        "h-2 w-full overflow-hidden rounded-full bg-muted",
+        className,
+      )}
+    >
       <div
         className="h-full rounded-full bg-primary transition-[width] duration-700 ease-out"
         style={{ width: `${Math.min(100, Math.max(0, display))}%` }}
@@ -129,8 +136,16 @@ function ProgressBar({ value, className }) {
 }
 
 function Avatar({ prenom, nom, photoUrl, size = "md" }) {
-  const initials = `${(prenom || "")[0] || ""}${(nom || "")[0] || ""}`.toUpperCase();
-  const colors = ["#14B8A6", "#5B3DF5", "#F59E0B", "#3B82F6", "#EC4899", "#10B981"];
+  const initials =
+    `${(prenom || "")[0] || ""}${(nom || "")[0] || ""}`.toUpperCase();
+  const colors = [
+    "#14B8A6",
+    "#5B3DF5",
+    "#F59E0B",
+    "#3B82F6",
+    "#EC4899",
+    "#10B981",
+  ];
   const color = colors[(prenom?.charCodeAt(0) || 0) % colors.length];
   const sizeClass = size === "sm" ? "h-8 w-8 text-xs" : "h-10 w-10 text-sm";
 
@@ -140,7 +155,10 @@ function Avatar({ prenom, nom, photoUrl, size = "md" }) {
       <img
         src={photoUrl}
         alt={`${prenom} ${nom}`}
-        className={cn(sizeClass, "rounded-full object-cover ring-2 ring-background")}
+        className={cn(
+          sizeClass,
+          "rounded-full object-cover ring-2 ring-background",
+        )}
       />
     );
   }
@@ -159,12 +177,16 @@ function Avatar({ prenom, nom, photoUrl, size = "md" }) {
 }
 
 function NoteStars({ note }) {
-  if (note == null) return <span className="text-xs text-muted-foreground">—</span>;
+  if (note == null)
+    return <span className="text-xs text-muted-foreground">—</span>;
   return (
     <span className="inline-flex items-center gap-1 tabular-nums">
       <span className="font-semibold text-foreground">{note.toFixed(1)}</span>
       <span className="text-muted-foreground">/ 5</span>
-      <FiStar className="h-3.5 w-3.5 fill-amber-400 text-amber-400" aria-hidden />
+      <FiStar
+        className="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+        aria-hidden
+      />
     </span>
   );
 }
@@ -208,7 +230,9 @@ function KpiCard({ label, value, icon: Icon, className, delay = 0 }) {
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             {label}
           </p>
-          <p className="text-xl font-bold tabular-nums text-foreground">{value}</p>
+          <p className="text-xl font-bold tabular-nums text-foreground">
+            {value}
+          </p>
         </div>
       </div>
     </motion.div>
@@ -310,7 +334,9 @@ function StagiaireCardComparative({ s, index }) {
 
       <div className="mb-3 space-y-1.5">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">Progression</span>
+          <span className="text-muted-foreground">
+            {t("auditUi.supervision.progress")}
+          </span>
           <span className="font-semibold tabular-nums">{s.progression}%</span>
         </div>
         <ProgressBar value={s.progression} />
@@ -318,11 +344,15 @@ function StagiaireCardComparative({ s, index }) {
 
       <div className="mb-4 grid grid-cols-2 gap-2 text-sm">
         <div className="rounded-lg bg-muted/50 px-3 py-2">
-          <p className="text-[10px] uppercase text-muted-foreground">Évaluation</p>
+          <p className="text-[10px] uppercase text-muted-foreground">
+            {t("auditUi.supervision.evaluation")}
+          </p>
           <NoteStars note={s.noteMoyenne} />
         </div>
         <div className="rounded-lg bg-muted/50 px-3 py-2">
-          <p className="text-[10px] uppercase text-muted-foreground">Objectifs</p>
+          <p className="text-[10px] uppercase text-muted-foreground">
+            {t("auditUi.supervision.objectives")}
+          </p>
           <p className="font-semibold tabular-nums">
             {s.objectifsAtteints} / {s.objectifsTotal || 0}
           </p>
@@ -372,10 +402,13 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
       };
     }
     const sumProg = list.reduce((a, s) => a + (s.progression || 0), 0);
-    const notes = list.filter((s) => s.noteMoyenne != null).map((s) => s.noteMoyenne);
+    const notes = list
+      .filter((s) => s.noteMoyenne != null)
+      .map((s) => s.noteMoyenne);
     const noteMoy =
       notes.length > 0
-        ? Math.round((notes.reduce((a, b) => a + b, 0) / notes.length) * 10) / 10
+        ? Math.round((notes.reduce((a, b) => a + b, 0) / notes.length) * 10) /
+          10
         : null;
     const enDifficulte = list.filter(
       (s) => s.situation === "critique" || s.situation === "attention",
@@ -403,7 +436,11 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
           s.situation === "attention" ||
           s.situation === "surveiller",
       )
-      .sort((a, b) => (ORDRE_SITUATION[a.situation] ?? 9) - (ORDRE_SITUATION[b.situation] ?? 9))
+      .sort(
+        (a, b) =>
+          (ORDRE_SITUATION[a.situation] ?? 9) -
+          (ORDRE_SITUATION[b.situation] ?? 9),
+      )
       .slice(0, 4);
   }, [stagiaires]);
 
@@ -413,18 +450,29 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
 
     let liste = stagiaires.filter((s) => {
       if (q) {
-        const hay = `${s.prenom} ${s.nom} ${s.formation || ""} ${s.poste || ""} ${s.universite || ""}`.toLowerCase();
+        const hay =
+          `${s.prenom} ${s.nom} ${s.formation || ""} ${s.poste || ""} ${s.universite || ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
-      if (filtreSituation !== "tous" && s.situation !== filtreSituation) return false;
-      if (filtreStatut === "en_cours" && s.statutStage !== "actif") return false;
-      if (filtreStatut === "termine" && s.statutStage !== "termine") return false;
+      if (filtreSituation !== "tous" && s.situation !== filtreSituation)
+        return false;
+      if (filtreStatut === "en_cours" && s.statutStage !== "actif")
+        return false;
+      if (filtreStatut === "termine" && s.statutStage !== "termine")
+        return false;
       if (filtreStatut === "bientot") {
-        if (s.statutStage !== "actif" || s.joursRestants == null || s.joursRestants > 30)
+        if (
+          s.statutStage !== "actif" ||
+          s.joursRestants == null ||
+          s.joursRestants > 30
+        )
           return false;
       }
       if (filtreProgression === "lt50" && s.progression >= 50) return false;
-      if (filtreProgression === "50-75" && (s.progression < 50 || s.progression > 75))
+      if (
+        filtreProgression === "50-75" &&
+        (s.progression < 50 || s.progression > 75)
+      )
         return false;
       if (filtreProgression === "gt75" && s.progression <= 75) return false;
       return true;
@@ -438,8 +486,12 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
         return nb - na;
       }
       if (tri === "objectifs") {
-        const ra = a.objectifsTotal ? a.objectifsAtteints / a.objectifsTotal : 0;
-        const rb = b.objectifsTotal ? b.objectifsAtteints / b.objectifsTotal : 0;
+        const ra = a.objectifsTotal
+          ? a.objectifsAtteints / a.objectifsTotal
+          : 0;
+        const rb = b.objectifsTotal
+          ? b.objectifsAtteints / b.objectifsTotal
+          : 0;
         return rb - ra;
       }
       if (tri === "fin") {
@@ -448,13 +500,23 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
         return ja - jb;
       }
       if (tri === "situation") {
-        return (ORDRE_SITUATION[a.situation] ?? 9) - (ORDRE_SITUATION[b.situation] ?? 9);
+        return (
+          (ORDRE_SITUATION[a.situation] ?? 9) -
+          (ORDRE_SITUATION[b.situation] ?? 9)
+        );
       }
       return `${a.prenom} ${a.nom}`.localeCompare(`${b.prenom} ${b.nom}`);
     });
 
     return liste;
-  }, [stagiaires, recherche, filtreSituation, filtreStatut, filtreProgression, tri]);
+  }, [
+    stagiaires,
+    recherche,
+    filtreSituation,
+    filtreStatut,
+    filtreProgression,
+    tri,
+  ]);
 
   if (isLoading) {
     return (
@@ -473,7 +535,9 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-16 text-center">
         <FiUsers className="mb-3 h-12 w-12 text-muted-foreground/50" />
-        <h3 className="text-lg font-semibold text-foreground">Aucun stagiaire</h3>
+        <h3 className="text-lg font-semibold text-foreground">
+          Aucun stagiaire
+        </h3>
         <p className="mt-1 max-w-sm text-sm text-muted-foreground">
           Vous ne supervisez actuellement aucun stagiaire.
         </p>
@@ -499,7 +563,12 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
               {t("mesStagiaires.comparative.subtitle")}
             </p>
             <p className="mt-2 text-sm font-medium text-foreground">
-              {t(kpis.total !== 1 ? "mesStagiaires.comparative.supervisedOther" : "mesStagiaires.comparative.supervisedOne", { count: kpis.total })}
+              {t(
+                kpis.total !== 1
+                  ? "mesStagiaires.comparative.supervisedOther"
+                  : "mesStagiaires.comparative.supervisedOne",
+                { count: kpis.total },
+              )}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -536,7 +605,10 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
             >
               Filtres
               <FiChevronDown
-                className={cn("h-4 w-4 transition-transform", showFiltres && "rotate-180")}
+                className={cn(
+                  "h-4 w-4 transition-transform",
+                  showFiltres && "rotate-180",
+                )}
               />
             </button>
             <div className="flex rounded-lg border border-border p-0.5">
@@ -748,7 +820,9 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
           >
             <div className="mb-3 flex items-center gap-2">
               <FiEye className="h-4 w-4 text-amber-600" />
-              <h3 className="text-sm font-bold text-foreground">À surveiller</h3>
+              <h3 className="text-sm font-bold text-foreground">
+                À surveiller
+              </h3>
             </div>
             <ul className="space-y-2">
               {aSurveiller.map((s) => (
@@ -768,8 +842,12 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
                         {s.prenom} {s.nom}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {t("mesStagiaires.comparative.progressPct", { pct: s.progression })}
-                        {s.alerte ? ` · ${t("mesStagiaires.comparative.evalLate")}` : ""}
+                        {t("mesStagiaires.comparative.progressPct", {
+                          pct: s.progression,
+                        })}
+                        {s.alerte
+                          ? ` · ${t("mesStagiaires.comparative.evalLate")}`
+                          : ""}
                       </p>
                     </div>
                     <SituationBadge situation={s.situation} />
@@ -784,7 +862,12 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
       {/* Results count */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          {t(resultats.length !== 1 ? "mesStagiaires.comparative.resultsOther" : "mesStagiaires.comparative.resultsOne", { count: resultats.length })}
+          {t(
+            resultats.length !== 1
+              ? "mesStagiaires.comparative.resultsOther"
+              : "mesStagiaires.comparative.resultsOne",
+            { count: resultats.length },
+          )}
         </span>
       </div>
 
@@ -809,7 +892,9 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
                     <th className="px-4 py-3 font-semibold">Objectifs</th>
                     <th className="px-4 py-3 font-semibold">Restant</th>
                     <th className="px-4 py-3 font-semibold">Situation</th>
-                    <th className="px-4 py-3 font-semibold text-right">Action</th>
+                    <th className="px-4 py-3 font-semibold text-right">
+                      Action
+                    </th>
                   </tr>
                 </thead>
                 <tbody>

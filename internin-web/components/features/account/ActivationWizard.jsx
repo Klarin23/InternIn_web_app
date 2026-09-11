@@ -31,6 +31,7 @@ import { calculerCompletionProfil } from "@/lib/utils/profilCompletion";
 import { useCentresInteret } from "@/lib/queries/useCentresInteret";
 import { toast } from "@/lib/store/useToastStore";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 const STEP_META = {
   photo: {
@@ -79,6 +80,7 @@ const STEP_META = {
 
 /** Conteneur : charge le profil, puis monte le formulaire (évite setState dans useEffect) */
 export default function ActivationWizard() {
+  const { t } = useTranslation();
   const { data, isLoading, refetch } = useStagiaireProfile();
   const profil = data?.stagiaire || data || null;
 
@@ -149,12 +151,12 @@ function ActivationWizardInner({ profil, refetch }) {
 
     if (next.complet || next.manquants.length === 0) {
       updateUser({ statutCompte: "actif" });
-      toast.success("Profil complet — compte activé !");
+      toast.success(t("auditUi.activation.profileComplete"));
       router.replace("/tableau-de-bord");
       return true;
     }
     setStepIndex(0);
-    toast.success("Enregistré — continuez pour activer votre compte");
+    toast.success(t("auditUi.activation.savedContinue"));
     return false;
   }
 
@@ -166,7 +168,7 @@ function ActivationWizardInner({ profil, refetch }) {
       await uploadPhotoProfilRequest(file, token);
       await afterSave();
     } catch (err) {
-      toast.error(err.message || "Upload photo impossible");
+      toast.error(err.message || t("auditUi.activation.photoUploadError"));
     } finally {
       setSaving(false);
       e.target.value = "";
@@ -180,11 +182,11 @@ function ActivationWizardInner({ profil, refetch }) {
     try {
       const up = await uploadDocumentRequest(file, "cv", token);
       const url = up?.url || up?.cvUrl || up?.data?.url;
-      if (!url) throw new Error("URL du CV manquante");
+      if (!url) throw new Error(t("auditUi.activation.cvUrlMissing"));
       await updateMutation.mutateAsync({ cvUrl: url });
       await afterSave();
     } catch (err) {
-      toast.error(err.message || "Upload CV impossible");
+      toast.error(err.message || t("auditUi.activation.cvUploadError"));
     } finally {
       setSaving(false);
       e.target.value = "";
@@ -197,25 +199,25 @@ function ActivationWizardInner({ profil, refetch }) {
     try {
       if (current.id === "titre") {
         if (!titre.trim()) {
-          toast.error("Indiquez un titre professionnel");
+          toast.error(t("auditUi.activation.professionalTitleRequired"));
           return;
         }
         await updateMutation.mutateAsync({ titreProfessionnel: titre.trim() });
       } else if (current.id === "presentation") {
         if (!presentation.trim()) {
-          toast.error("Ajoutez une présentation");
+          toast.error(t("auditUi.activation.presentationRequired"));
           return;
         }
         await updateMutation.mutateAsync({ presentation: presentation.trim() });
       } else if (current.id === "formation") {
         if (!formation.nomUniversite.trim() || !formation.diplome.trim()) {
-          toast.error("Université et diplôme sont requis");
+          toast.error(t("auditUi.activation.educationRequired"));
           return;
         }
         await updateMutation.mutateAsync({ formations: [formation] });
       } else if (current.id === "competences") {
         if (!competenceNom.trim()) {
-          toast.error("Ajoutez au moins une compétence");
+          toast.error(t("auditUi.activation.skillRequired"));
           return;
         }
         await updateMutation.mutateAsync({
@@ -230,13 +232,13 @@ function ActivationWizardInner({ profil, refetch }) {
         });
       } else if (current.id === "centresInteret") {
         if (centresSel.length === 0) {
-          toast.error("Sélectionnez au moins un centre d'intérêt");
+          toast.error(t("auditUi.activation.interestRequired"));
           return;
         }
         await updateMutation.mutateAsync({ centresInteret: centresSel });
       } else if (current.id === "preferences") {
         if (!secteur.trim() && !ville.trim()) {
-          toast.error("Indiquez un secteur ou une ville");
+          toast.error(t("auditUi.activation.searchPreferenceRequired"));
           return;
         }
         await updateMutation.mutateAsync({
@@ -246,7 +248,7 @@ function ActivationWizardInner({ profil, refetch }) {
       }
       await afterSave();
     } catch (err) {
-      toast.error(err.message || "Erreur lors de l'enregistrement");
+      toast.error(err.message || t("auditUi.activation.saveError"));
     } finally {
       setSaving(false);
     }
@@ -256,9 +258,11 @@ function ActivationWizardInner({ profil, refetch }) {
     return (
       <div className="mx-auto flex max-w-lg flex-col items-center gap-4 px-6 py-16 text-center">
         <CheckCircle2 className="h-12 w-12 text-primary" />
-        <h1 className="text-2xl font-bold">Profil complet</h1>
+        <h1 className="text-2xl font-bold">
+          {t("auditUi.activation.profileCompleteTitle")}
+        </h1>
         <Button onClick={() => router.push("/tableau-de-bord")}>
-          Aller au tableau de bord
+          {t("auditUi.activation.dashboard")}
         </Button>
       </div>
     );
@@ -274,7 +278,7 @@ function ActivationWizardInner({ profil, refetch }) {
         <div className="mb-6 rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
           <div className="mb-2 flex items-center justify-between text-sm">
             <span className="font-medium text-foreground">
-              Complétude du profil
+              {t("auditUi.activation.profileCompletion")}
             </span>
             <span className="font-bold text-primary">
               {completion.pourcentage}%
@@ -287,8 +291,7 @@ function ActivationWizardInner({ profil, refetch }) {
             />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            {manquants.length} élément{manquants.length > 1 ? "s" : ""} restant
-            {manquants.length > 1 ? "s" : ""} pour activer votre compte
+            {t("auditUi.activation.remaining", { count: manquants.length })}
           </p>
         </div>
 
@@ -296,7 +299,10 @@ function ActivationWizardInner({ profil, refetch }) {
           <div className="border-b border-border/60 px-6 py-5 sm:px-8">
             <div className="mb-4 flex items-center justify-between text-xs text-muted-foreground">
               <span>
-                Étape {stepIndex + 1} / {manquants.length}
+                {t("auditUi.activation.step", {
+                  current: stepIndex + 1,
+                  total: manquants.length,
+                })}
               </span>
               <span className="font-medium text-primary">{progressPct}%</span>
             </div>
@@ -324,11 +330,13 @@ function ActivationWizardInner({ profil, refetch }) {
           <div className="space-y-5 px-6 py-6 sm:px-8">
             {current.id === "photo" && (
               <div>
-                <Label className="mb-2 block">Choisir une photo</Label>
+                <Label className="mb-2 block">
+                  {t("auditUi.activation.choosePhoto")}
+                </Label>
                 <Input type="file" accept="image/*" onChange={handlePhoto} />
                 {saving && (
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Envoi en cours…
+                    {t("auditUi.activation.uploading")}
                   </p>
                 )}
               </div>
@@ -336,20 +344,26 @@ function ActivationWizardInner({ profil, refetch }) {
 
             {current.id === "titre" && (
               <div className="space-y-2">
-                <Label htmlFor="titre">Titre professionnel</Label>
+                <Label htmlFor="titre">
+                  {t("auditUi.activation.professionalTitle")}
+                </Label>
                 <Input
                   id="titre"
                   className="h-12 rounded-sm"
                   value={titre}
                   onChange={(e) => setTitre(e.target.value)}
-                  placeholder="Ex. Étudiant en informatique"
+                  placeholder={t(
+                    "auditUi.activation.professionalTitlePlaceholder",
+                  )}
                 />
               </div>
             )}
 
             {current.id === "presentation" && (
               <div className="space-y-2">
-                <Label htmlFor="pres">Présentation</Label>
+                <Label htmlFor="pres">
+                  {t("auditUi.activation.presentation")}
+                </Label>
                 <Textarea
                   id="pres"
                   rows={5}
@@ -363,7 +377,7 @@ function ActivationWizardInner({ profil, refetch }) {
             {current.id === "formation" && (
               <div className="space-y-3">
                 <div className="space-y-2">
-                  <Label>Université / école</Label>
+                  <Label>{t("auditUi.activation.school")}</Label>
                   <Input
                     className="h-12 rounded-sm"
                     value={formation.nomUniversite}
@@ -376,7 +390,7 @@ function ActivationWizardInner({ profil, refetch }) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Diplôme / filière</Label>
+                  <Label>{t("auditUi.activation.degree")}</Label>
                   <Input
                     className="h-12 rounded-sm"
                     value={formation.diplome}
@@ -390,19 +404,21 @@ function ActivationWizardInner({ profil, refetch }) {
 
             {current.id === "competences" && (
               <div className="space-y-2">
-                <Label>Compétence</Label>
+                <Label>{t("auditUi.activation.skill")}</Label>
                 <Input
                   className="h-12 rounded-sm"
                   value={competenceNom}
                   onChange={(e) => setCompetenceNom(e.target.value)}
-                  placeholder="Ex. React, Excel…"
+                  placeholder={t("auditUi.activation.skillPlaceholder")}
                 />
               </div>
             )}
 
             {current.id === "cv" && (
               <div>
-                <Label className="mb-2 block">Fichier CV</Label>
+                <Label className="mb-2 block">
+                  {t("auditUi.activation.cvFile")}
+                </Label>
                 <Input
                   type="file"
                   accept=".pdf,.doc,.docx"
@@ -410,7 +426,7 @@ function ActivationWizardInner({ profil, refetch }) {
                 />
                 {saving && (
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Envoi en cours…
+                    {t("auditUi.activation.uploading")}
                   </p>
                 )}
               </div>
@@ -448,7 +464,7 @@ function ActivationWizardInner({ profil, refetch }) {
             {current.id === "preferences" && (
               <div className="space-y-3">
                 <div className="space-y-2">
-                  <Label>Secteur recherché</Label>
+                  <Label>{t("auditUi.activation.targetSector")}</Label>
                   <Input
                     className="h-12 rounded-sm"
                     value={secteur}
@@ -456,7 +472,7 @@ function ActivationWizardInner({ profil, refetch }) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Ville recherchée</Label>
+                  <Label>{t("auditUi.activation.targetCity")}</Label>
                   <Input
                     className="h-12 rounded-sm"
                     value={ville}

@@ -20,6 +20,14 @@ import {
   CLES_PERMISSIONS,
 } from "../modules/equipe/equipe.constants.js";
 
+// Types de comptes autorisés à accéder au contexte d'une entreprise.
+// Toute vérification d'appartenance doit ensuite passer par
+// resolveEntrepriseContext(), qui contrôle aussi l'activité du membre.
+export const TYPES_CONTEXTE_ENTREPRISE = Object.freeze([
+  "entreprise",
+  "membre_entreprise",
+]);
+
 /**
  * Calcule les permissions effectives d'un membre d'équipe (ligne DB).
  * Règles (identiques à resolveEntrepriseContext) :
@@ -134,7 +142,10 @@ export async function resolveEntrepriseContextOrThrow(idUtilisateur) {
  * Lance 403 en cas d'IDOR.
  */
 export function assertResourceBelongsToEntreprise(resourceEntrepriseId, ctx) {
-  if (!resourceEntrepriseId || resourceEntrepriseId !== ctx.entreprise.idEntreprise) {
+  if (
+    !resourceEntrepriseId ||
+    resourceEntrepriseId !== ctx.entreprise.idEntreprise
+  ) {
     const err = new Error("Accès refusé à cette ressource.");
     err.status = 403;
     throw err;
@@ -160,7 +171,10 @@ export function assertResourceBelongsToEntreprise(resourceEntrepriseId, ctx) {
  * @param {string} clePermission - ex. "candidats.gerer"
  * @returns {Promise<string[]>} idUtilisateur uniques
  */
-export async function getUtilisateursAvecPermission(idEntreprise, clePermission) {
+export async function getUtilisateursAvecPermission(
+  idEntreprise,
+  clePermission,
+) {
   const ids = new Set();
 
   const [entreprise] = await db

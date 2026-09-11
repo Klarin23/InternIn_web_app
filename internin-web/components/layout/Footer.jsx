@@ -1,7 +1,7 @@
 "use client"
 import Link from "next/link";
 
-import {FaInstagram, FaLinkedin, FaTwitter} from "react-icons/fa6"
+import {FaFacebookF, FaLinkedin} from "react-icons/fa6"
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import SiteLogo from "@/components/layout/SiteLogo";
 
@@ -29,18 +29,13 @@ export default function Footer() {
                 <FaLinkedin className="h-4 w-4" />
               </a>
               <a
-                href="#"
-                aria-label="Twitter / X"
+                href="https://www.facebook.com/interninofficial/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Facebook"
                 className="flex h-9 w-9 items-center justify-center rounded-sm border border-border bg-card text-muted-foreground hover:border-primary hover:text-primary"
               >
-                <FaTwitter className="h-4 w-4" />
-              </a>
-              <a
-                href="#"
-                aria-label="Instagram"
-                className="flex h-9 w-9 items-center justify-center rounded-sm border border-border bg-card text-muted-foreground hover:border-primary hover:text-primary"
-              >
-                <FaInstagram className="h-4 w-4" />
+                <FaFacebookF className="h-4 w-4" />
               </a>
             </div>
           </div>
@@ -105,16 +100,16 @@ export default function Footer() {
             </p>
             {/* Formulaire statique pour l'instant : le branchement réel (API + validation Zod)
                 se fera quand lib/api et lib/schemas seront construits */}
-            <form className="flex gap-2" onSubmit={(e) => e.preventDefault()}>
+            <form className="flex w-full flex-col gap-2 sm:flex-row" onSubmit={(e) => e.preventDefault()}>
               <input
                 type="email"
                 placeholder={t("footer.emailPlaceholder")}
                 aria-label={t("footer.emailAria")}
-                className="h-11 flex-1 rounded-sm border border-border bg-background px-3.5 text-sm focus:border-primary focus:outline-none"
+                className="h-12 min-h-12 w-full min-w-0 flex-1 rounded-sm border border-border bg-background px-3.5 text-sm focus:border-primary focus:outline-none sm:h-11 sm:min-h-11"
               />
               <button
                 type="submit"
-                className="h-11 rounded-sm bg-primary px-4 text-sm font-semibold text-white hover:bg-primary/90"
+                className="h-11 w-full rounded-sm bg-primary px-4 sm:w-auto text-sm font-semibold text-white hover:bg-primary/90"
               >
                 {t("footer.subscribe")}
               </button>

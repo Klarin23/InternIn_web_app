@@ -2,7 +2,10 @@
 
 /**
  * Admin → Offres de stage (offres finales) — Marketplace Control / Validation Center
- * Refonte UI/UX uniquement. Hooks, API, validation approuve/rejete conservés.
+ * Centre de consultation des offres finales.
+ * Les nouvelles offres sont approuvées automatiquement à leur création et
+ * envoyées directement au stagiaire ; cet écran conserve uniquement la
+ * visibilité administrative sur l'historique et les statuts existants.
  *
  * Données : idOffreFinale, numero, intitulePoste, nomEntreprise, secteurActivite,
  * departement, prenom/nomStagiaire, dateDebut, dureeStage, modeTravail,
@@ -15,8 +18,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  FiLoader,
-  FiCheck,
   FiX,
   FiInbox,
   FiBriefcase,
@@ -31,18 +32,9 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import AppHeader from "@/components/layout/AppHeader";
 import AdminPageHeader from "@/components/layout/AdminPageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
   useOffresFinalesAdmin,
-  useValiderOffreFinale,
 } from "@/lib/queries/useOffresFinales";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -221,13 +213,10 @@ export default function VerificationsOffresFinalesPage() {
     isFetching,
     refetch,
   } = useOffresFinalesAdmin(undefined);
-  const mutation = useValiderOffreFinale();
-
-  const [onglet, setOnglet] = useState("en_attente");
+  const [onglet, setOnglet] = useState("toutes");
   const [search, setSearch] = useState("");
   const searchDebounced = useDebounced(search, 280);
   const [selectedId, setSelectedId] = useState(null);
-  const [confirmRejet, setConfirmRejet] = useState(false);
   const [mobileDetail, setMobileDetail] = useState(false);
 
   const ONGLETS = ONGLET_DEFS.map((o) => ({ ...o, label: t(o.labelKey) }));
@@ -289,27 +278,6 @@ export default function VerificationsOffresFinalesPage() {
     () => filtered.find((o) => o.idOffreFinale === selectedIdEffectif) || null,
     [filtered, selectedIdEffectif],
   );
-
-  function approuver() {
-    if (!selected || mutation.isPending) return;
-    mutation.mutate({
-      id: selected.idOffreFinale,
-      statutValidationPlateforme: "approuve",
-    });
-  }
-
-  function confirmerRejet() {
-    if (!selected || mutation.isPending) return;
-    mutation.mutate(
-      {
-        id: selected.idOffreFinale,
-        statutValidationPlateforme: "rejete",
-      },
-      {
-        onSettled: () => setConfirmRejet(false),
-      },
-    );
-  }
 
   function selectOffer(id) {
     setSelectedId(id);
@@ -757,43 +725,6 @@ export default function VerificationsOffresFinalesPage() {
                         )}
                       </section>
 
-                      {selected.statutValidationPlateforme === "en_attente" && (
-                        <section className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3.5">
-                          <p className="text-[11px] font-semibold uppercase tracking-widest text-amber-800 dark:text-amber-300">
-                            {t("adminOffresFinales.decisionTitle")}
-                          </p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {t("adminOffresFinales.decisionHint")}
-                          </p>
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <Button
-                              type="button"
-                              size="sm"
-                              disabled={mutation.isPending}
-                              onClick={approuver}
-                              className="h-9 gap-1.5 bg-teal-600 text-white hover:bg-teal-700 dark:bg-teal-600 dark:hover:bg-teal-500"
-                            >
-                              {mutation.isPending ? (
-                                <FiLoader className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <FiCheck className="h-3.5 w-3.5" />
-                              )}
-                              {t("adminOffresFinales.approveBtn")}
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              disabled={mutation.isPending}
-                              onClick={() => setConfirmRejet(true)}
-                              className="h-9 gap-1.5"
-                            >
-                              <FiX className="h-3.5 w-3.5" />
-                              {t("adminOffresFinales.rejectBtn")}
-                            </Button>
-                          </div>
-                        </section>
-                      )}
                     </div>
                   </motion.div>
                 ) : (
@@ -807,44 +738,7 @@ export default function VerificationsOffresFinalesPage() {
         )}
       </motion.div>
 
-      <Dialog open={confirmRejet} onOpenChange={setConfirmRejet}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("adminOffresFinales.confirmRejectTitle")}</DialogTitle>
-            <DialogDescription>
-              {t("adminOffresFinales.confirmRejectDesc", {
-                name: selected
-                  ? `« ${selected.intitulePoste} »`
-                  : t("adminOffresFinales.thisOffer"),
-              })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setConfirmRejet(false)}
-              disabled={mutation.isPending}
-            >
-              {t("adminOffresFinales.cancelBtn")}
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={confirmerRejet}
-              disabled={mutation.isPending}
-              className="gap-1.5"
-            >
-              {mutation.isPending ? (
-                <FiLoader className="h-4 w-4 animate-spin" />
-              ) : (
-                <FiX className="h-4 w-4" />
-              )}
-              {t("adminOffresFinales.confirmRejectBtn")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
     </>
   );
 }

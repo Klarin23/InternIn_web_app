@@ -74,8 +74,10 @@ export default function StepApercu({
   // de casser l'aperçu si le champ est absent.
   const nomEntreprise = useAuthStore((s) => s.user?.nomEntreprise);
 
-  const remunerationOption = REMUNERATION_OPTIONS.find(
-    (o) => o.value === values.remunerationType,
+  const remunerationOptions = REMUNERATION_OPTIONS.filter((o) =>
+    Array.isArray(values.remunerationType)
+      ? values.remunerationType.includes(o.value)
+      : values.remunerationType === o.value,
   );
   const dateLimiteLisible = formatDateLisible(values.dateLimiteCandidature, locale);
 
@@ -131,12 +133,11 @@ export default function StepApercu({
                 {t(values.nombrePostes > 1 ? "entrepriseSpace.offers.positionsCount_other" : "entrepriseSpace.offers.positionsCount", { count: values.nombrePostes })}
               </span>
             )}
-            {remunerationOption && remunerationOption.value !== "aucune" && (
+            {remunerationOptions.length > 0 && (
               <span className="flex items-center gap-1.5">
                 <FiDollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                {remunerationOption.label}
-                {remunerationOption.hasMontant &&
-                  values.montantRemuneration &&
+                {remunerationOptions.map((option) => t(option.labelKey)).join(" + ")}
+                {remunerationOptions.some((option) => option.value !== "aucune") && values.montantRemuneration &&
                   ` · ${Number(values.montantRemuneration).toLocaleString()} FCFA`}
               </span>
             )}

@@ -73,7 +73,6 @@ function NavLink({
         />
       )}
 
-
       {badge > 0 && (
         <span
           className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold ${badgePulseColor ? "animate-blink" : ""}`}
@@ -128,7 +127,9 @@ export default function AppSidebar({
       "/signalements": "signalements",
     };
     const resource = map[href];
-    if (resource) markAdminSectionSeen(userId, resource);
+    if (resource) {
+      void markAdminSectionSeen(userId, resource).catch(() => {});
+    }
   }
 
   function handleLogout() {
@@ -193,7 +194,11 @@ export default function AppSidebar({
                   <NavLink
                     key={item.href}
                     {...item}
-                    isActive={pathname === item.href || (item.href !== "/tableau-de-bord" && pathname?.startsWith(item.href))}
+                    isActive={
+                      pathname === item.href ||
+                      (item.href !== "/tableau-de-bord" &&
+                        pathname?.startsWith(item.href))
+                    }
                     onClick={() => {
                       markSeenForHref(item.href);
                       onLinkClick?.();
@@ -225,13 +230,19 @@ export default function AppSidebar({
           return order.map((key) => (
             <div key={key} className="mb-3">
               <p className="mb-1.5 px-3.5 text-[11px] font-bold uppercase tracking-wider text-sidebar-foreground/50">
-                {key === "_main" ? t("sidebar.mainMenu") : (SECTION_LABELS[key] || key)}
+                {key === "_main"
+                  ? t("sidebar.mainMenu")
+                  : SECTION_LABELS[key] || key}
               </p>
               {groups[key].map((item) => (
                 <NavLink
                   key={item.href}
                   {...item}
-                  isActive={pathname === item.href || (item.href !== "/tableau-de-bord" && pathname?.startsWith(item.href))}
+                  isActive={
+                    pathname === item.href ||
+                    (item.href !== "/tableau-de-bord" &&
+                      pathname?.startsWith(item.href))
+                  }
                   onClick={() => {
                     markSeenForHref(item.href);
                     onLinkClick?.();

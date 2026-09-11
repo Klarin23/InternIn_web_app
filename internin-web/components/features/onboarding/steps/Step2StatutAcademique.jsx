@@ -20,15 +20,17 @@ import {
 } from "@/components/ui/select";
 import { step2Schema } from "@/lib/schemas/onboarding.schema";
 import { useOnboardingStore } from "@/lib/store/useOnboardingStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 // TODO : remplacer par un appel GET /universites/public une fois le module
 // backend "universites" construit (liste des universités vérifiées).
 const UNIVERSITES_TEMPORAIRES = [
-  { id: "non-rattache", nom: "Non rattaché(e) à une université partenaire" },
+  { id: "non-rattache", nomKey: "auditUi.onboarding.noPartnerUniversity" },
 ];
 
 export default function Step2StatutAcademique() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { data, saveStepData } = useOnboardingStore();
 
   const {
@@ -52,16 +54,16 @@ export default function Step2StatutAcademique() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div>
         <h1 className="mb-1.5 text-2xl font-bold text-foreground">
-          Votre statut académique
+          {t("auditUi.onboarding.academicStatus")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Ça nous aide à vous proposer des stages adaptés à votre parcours.
+          {t("auditUi.onboarding.academicStatusDescription")}
         </p>
       </div>
 
       {/* Choix du statut sous forme de 2 cartes cliquables (RadioGroup stylé) */}
       <div className="space-y-1.5">
-        <Label>Statut</Label>
+        <Label>{t("auditUi.onboarding.status")}</Label>
         <Controller
           name="statutAcademique"
           control={control}
@@ -82,7 +84,7 @@ export default function Step2StatutAcademique() {
                 <RadioGroupItem value="etudiant" id="statut-etudiant" />
                 <GraduationCap className="h-5 w-5 text-primary" />
                 <span className="text-sm font-medium text-foreground">
-                  Étudiant(e)
+                  {t("auditUi.onboarding.student")}
                 </span>
               </label>
 
@@ -97,7 +99,7 @@ export default function Step2StatutAcademique() {
                 <RadioGroupItem value="jeune_diplome" id="statut-diplome" />
                 <Briefcase className="h-5 w-5 text-primary" />
                 <span className="text-sm font-medium text-foreground">
-                  Jeune diplômé(e)
+                  {t("auditUi.onboarding.graduate")}
                 </span>
               </label>
             </RadioGroup>
@@ -105,14 +107,16 @@ export default function Step2StatutAcademique() {
         />
         {errors.statutAcademique && (
           <p className="text-xs text-destructive">
-            {errors.statutAcademique.message}
+            {t(errors.statutAcademique.message)}
           </p>
         )}
       </div>
 
       {/* Rattachement à une université partenaire */}
       <div className="space-y-1.5">
-        <Label htmlFor="idUniversite">Université partenaire</Label>
+        <Label htmlFor="idUniversite">
+          {t("auditUi.onboarding.partnerUniversity")}
+        </Label>
         <Controller
           name="idUniversite"
           control={control}
@@ -122,12 +126,14 @@ export default function Step2StatutAcademique() {
                 id="idUniversite"
                 className="h-12 w-full rounded-sm"
               >
-                <SelectValue placeholder="Sélectionnez votre université" />
+                <SelectValue
+                  placeholder={t("auditUi.onboarding.universityPlaceholder")}
+                />
               </SelectTrigger>
               <SelectContent>
                 {UNIVERSITES_TEMPORAIRES.map((u) => (
                   <SelectItem key={u.id} value={u.id}>
-                    {u.nom}
+                    {t(u.nomKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -135,8 +141,7 @@ export default function Step2StatutAcademique() {
           )}
         />
         <p className="text-xs text-muted-foreground">
-          Vous pourrez rattacher votre université partenaire plus tard si elle
-          n&apos;apparaît pas encore.
+          {t("auditUi.onboarding.universityHelp")}
         </p>
       </div>
 
@@ -154,7 +159,7 @@ export default function Step2StatutAcademique() {
           disabled={isSubmitting}
           className="h-12 flex-1 rounded-sm"
         >
-          Continuer
+          {t("auditUi.common.continue")}
         </Button>
       </div>
     </form>

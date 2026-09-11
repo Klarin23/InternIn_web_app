@@ -17,24 +17,46 @@ export const offreFormSchema = z
     modeTravail: z.enum(["distance", "hybride", "presentiel"], {
       errorMap: () => ({ message: "Sélectionnez un mode de travail" }),
     }),
-    remunerationType: z.enum(
-      [
+    remunerationType: z
+      .array(z.enum([
         "aucune",
         "indemnite_transport",
         "indemnite_repas",
         "indemnite_internet_appel",
         "allocation_mensuelle",
-      ],
-      {
-        errorMap: () => ({ message: "Sélectionnez un type de rémunération" }),
-      },
-    ),
+      ]))
+      .min(1, "Sélectionnez au moins un type de rémunération"),
+    remunerationMontants: z.record(z.string(), z.string()).optional(),
     montantRemuneration: z.string().optional(),
     nombrePostes: z.number().min(1, "Au moins 1 poste"),
     dureeStage: z.enum(["1_mois", "2_mois", "3_mois"]).optional(),
     dateLimiteCandidature: z.string().optional(),
   })
   .superRefine((data, ctx) => {
+    const remunerationTypes = Array.isArray(data.remunerationType)
+      ? data.remunerationType
+      : data.remunerationType
+        ? [data.remunerationType]
+        : [];
+    if (remunerationTypes.includes("aucune") && remunerationTypes.length > 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Non rémunéré ne peut pas être combiné avec une autre rémunération",
+        path: ["remunerationType"],
+      });
+    }
+    const paidTypes = remunerationTypes.filter((type) => type !== "aucune");
+    if (paidTypes.length) {
+      const amount = String(data.montantRemuneration ?? "").trim();
+      if (!amount || Number(amount) <= 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Saisissez un montant supérieur à 0 FCFA",
+          path: ["montantRemuneration"],
+        });
+      }
+    }
+
     const secteur = String(
       data.secteurActiviteCustom || data.secteurActivite || "",
     )

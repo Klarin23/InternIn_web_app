@@ -125,13 +125,10 @@ export default function EntrepriseLayout({ children }) {
         {nonVerifiee && (
           <div className="sticky top-0 z-20 border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-100">
             <p className="font-medium">
-              Entreprise en attente de vérification
+              {t("entrepriseSpace.dashboard.verificationPendingLayoutTitle")}
             </p>
             <p className="mt-0.5 text-xs opacity-90">
-              Un administrateur doit valider votre compte avant que vous
-              puissiez publier des offres, gérer des candidatures, planifier
-              des entretiens ou suivre des stages. Vous pouvez compléter votre
-              profil en attendant.
+              {t("entrepriseSpace.dashboard.verificationPendingLayoutDesc")}
             </p>
           </div>
         )}

@@ -329,6 +329,6 @@ export function updateSecurityAlertStatusRequest(id, statut, token) {
   return apiFetch(`/admin/securite/alertes/${id}/statut`, {
     method: "PATCH",
     token,
-    body: JSON.stringify({ statut }),
+    body: { statut },
   });
 }

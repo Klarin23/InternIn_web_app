@@ -30,14 +30,14 @@ import {
 import { useCreateOffreFinale } from "@/lib/queries/useOffresFinales";
 import { useDisponibilitesCandidat } from "@/lib/queries/useEntretiens";
 
-const JOUR_LABELS_COURT = {
-  lundi: "Lun",
-  mardi: "Mar",
-  mercredi: "Mer",
-  jeudi: "Jeu",
-  vendredi: "Ven",
-  samedi: "Sam",
-  dimanche: "Dim",
+const JOUR_KEYS = {
+  lundi: "monday",
+  mardi: "tuesday",
+  mercredi: "wednesday",
+  jeudi: "thursday",
+  vendredi: "friday",
+  samedi: "saturday",
+  dimanche: "sunday",
 };
 const ORDRE_JOURS = [
   "lundi",
@@ -49,26 +49,6 @@ const ORDRE_JOURS = [
   "dimanche",
 ];
 
-const DUREE_LABELS = {
-  "1_mois": "1 mois",
-  "2_mois": "2 mois",
-  "3_mois": "3 mois",
-};
-
-const REMUNERATION_LABEL_KEYS = {
-  aucune: "entrepriseSpace.candidatures.remNone",
-  indemnite_transport: "entrepriseSpace.candidatures.remTransport",
-  indemnite_repas: "entrepriseSpace.candidatures.remMeals",
-  indemnite_internet_appel: "entrepriseSpace.candidatures.remInternet",
-  allocation_mensuelle: "entrepriseSpace.candidatures.remMonthly",
-};
-
-const MODE_TRAVAIL_LABEL_KEYS = {
-  presentiel: "entrepriseSpace.candidatures.modeOnsite",
-  hybride: "entrepriseSpace.candidatures.modeHybrid",
-  distance: "entrepriseSpace.candidatures.modeRemote",
-};
-
 // Les colonnes "heure_debut"/"heure_fin" (type TIME) peuvent revenir au
 // format "08:00:00" — on ne garde que "HH:MM" pour l'affichage.
 function formatHeure(valeur) {
@@ -76,9 +56,19 @@ function formatHeure(valeur) {
   return valeur.slice(0, 5);
 }
 
+function minutesEntre(debut, fin) {
+  if (!debut || !fin) return 0;
+  const [debutH, debutM] = debut.split(":").map(Number);
+  const [finH, finM] = fin.split(":").map(Number);
+  const totalDebut = debutH * 60 + debutM;
+  const totalFin = finH * 60 + finM;
+  return totalFin > totalDebut ? totalFin - totalDebut : 0;
+}
+
 export default function FaireOffreDialog({
   idEntretien,
   candidatNom,
+  offreTitre,
   openControlled,
   onOpenChangeControlled,
   hideTrigger = false,
@@ -88,27 +78,30 @@ export default function FaireOffreDialog({
   const open = openControlled !== undefined ? openControlled : openInterne;
   const setOpen = onOpenChangeControlled || setOpenInterne;
   const [form, setForm] = useState({
-    intitulePoste: "",
     objectifsApprentissage: "",
     volumeHoraireHebdo: 20,
     dureeStage: "",
     modeTravail: "",
-    remunerationType: "",
+    lienReunionOnline: "",
     dateDebut: "",
+    horairesStage: [],
   });
   const [formError, setFormError] = useState(null);
   const mutation = useCreateOffreFinale();
-    const { data: candidatInfo, isLoading: loadingDispos } =
-      useDisponibilitesCandidat(idEntretien);
+  const { data: candidatInfo, isLoading: loadingDispos } =
+    useDisponibilitesCandidat(idEntretien, open);
 
-    const disponibilites = candidatInfo?.disponibilites ?? [];
-    const preferences = candidatInfo?.preferences ?? null;
+  const disponibilites = candidatInfo?.disponibilites ?? [];
   const update = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
+  const totalMinutes = form.horairesStage.reduce(
+    (total, horaire) =>
+      total + minutesEntre(horaire.heureDebut, horaire.heureFin),
+    0,
+  );
+  const totalHeures = totalMinutes / 60;
+
   function validateForm() {
-    if (!form.intitulePoste?.trim()) {
-      return t("entrepriseSpace.candidatures.errJobTitleRequired");
-    }
     const objectifs = String(form.objectifsApprentissage || "")
       .split(/\r?\n+/)
       .map((l) => l.replace(/^\d+[\.\)\-]\s*/, "").trim())
@@ -118,19 +111,34 @@ export default function FaireOffreDialog({
     }
     for (let i = 0; i < objectifs.length; i++) {
       if (objectifs[i].length < 10) {
-        return `L'objectif ${i + 1} est trop court (minimum 10 caractères).`;
+        return t("entrepriseSpace.candidatures.errObjectiveTooShort", { n: i + 1 });
       }
       if (objectifs[i].length > 500) {
-        return `L'objectif ${i + 1} est trop long (maximum 500 caractères).`;
+        return t("entrepriseSpace.candidatures.errObjectiveTooLong", { n: i + 1 });
       }
     }
     if (!form.dureeStage) return t("entrepriseSpace.candidatures.errDuration");
     if (!form.modeTravail) return t("entrepriseSpace.candidatures.errWorkMode");
-    if (!form.remunerationType) return t("entrepriseSpace.candidatures.errRemuneration");
+    if (form.modeTravail === "distance" && !form.lienReunionOnline.trim()) {
+      return t("entrepriseSpace.candidatures.errMeetingLinkRequired");
+    }
     if (!form.dateDebut) return t("entrepriseSpace.candidatures.errStartDate");
     const vol = Number(form.volumeHoraireHebdo);
     if (!Number.isFinite(vol) || vol < 15 || vol > 40) {
       return t("entrepriseSpace.candidatures.errHours");
+    }
+    if (form.horairesStage.length === 0) {
+      return t("entrepriseSpace.candidatures.errScheduleDays");
+    }
+    if (
+      form.horairesStage.some(
+        (h) => minutesEntre(h.heureDebut, h.heureFin) <= 0,
+      )
+    ) {
+      return t("entrepriseSpace.candidatures.errScheduleTimes");
+    }
+    if (totalMinutes !== vol * 60) {
+      return t("entrepriseSpace.candidatures.errScheduleTotal", { n: vol });
     }
     return null;
   }
@@ -145,13 +153,16 @@ export default function FaireOffreDialog({
     mutation.mutate(
       {
         idEntretien,
-        intitulePoste: form.intitulePoste.trim(),
         objectifsApprentissage: form.objectifsApprentissage.trim(),
         volumeHoraireHebdo: Number(form.volumeHoraireHebdo),
         dureeStage: form.dureeStage,
         modeTravail: form.modeTravail,
-        remunerationType: form.remunerationType,
+        lienReunionOnline:
+          form.modeTravail === "distance"
+            ? form.lienReunionOnline.trim()
+            : null,
         dateDebut: form.dateDebut,
+        horairesStage: form.horairesStage,
       },
       {
         onSuccess: () => {
@@ -168,29 +179,35 @@ export default function FaireOffreDialog({
         <DialogTrigger asChild>
           <Button type="button" size="sm" className="rounded-sm">
             <FiBriefcase className="h-4 w-4" />
-            Faire une offre
+            {t("entrepriseSpace.candidatures.makeOffer")}
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="internin-custom-scrollbar max-h-[85vh] overflow-y-auto rounded-md sm:max-w-120">
-        <DialogHeader>
-          <DialogTitle>{t("entrepriseSpace.candidatures.finalOfferTitle", { name: candidatNom })}</DialogTitle>
+      <DialogContent
+        className="internin-mobile-dialog-content internin-custom-scrollbar w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] max-h-[calc(100dvh-1rem)] min-w-0 overflow-x-hidden overflow-y-auto rounded-md p-3 sm:max-h-[85vh] sm:w-auto sm:max-w-120 sm:p-4"
+      >
+        <DialogHeader className="min-w-0 pr-8">
+          <DialogTitle className="wrap-break-word">
+            {t("entrepriseSpace.candidatures.finalOfferTitle", {
+              name: candidatNom,
+            })}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <div className="space-y-2 rounded-sm border border-border bg-muted/40 p-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <FiCalendar className="h-4 w-4 text-primary" />
-              Disponibilités du candidat
+              {t("entrepriseSpace.candidatures.candidateAvailability")}
             </div>
             {loadingDispos ? (
               <p className="flex items-center gap-2 text-xs text-muted-foreground">
                 <FiLoader className="h-3.5 w-3.5 animate-spin" />
-                Chargement des disponibilités...
+                {t("entrepriseSpace.candidatures.loadingAvailability")}
               </p>
             ) : (
               <>
-                <div className="grid grid-cols-7 gap-1.5">
+                <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7">
                   {ORDRE_JOURS.map((jour) => {
                     const dispo = disponibilites?.find(
                       (d) => d.jourSemaine === jour,
@@ -207,7 +224,7 @@ export default function FaireOffreDialog({
                         }`}
                       >
                         <span className="text-[11px] font-bold uppercase tracking-wide">
-                          {JOUR_LABELS_COURT[jour]}
+                          {t(`entrepriseSpace.candidatures.days.${JOUR_KEYS[jour]}`)}
                         </span>
                         {dispo ? (
                           <span className="text-[10px] font-medium leading-tight">
@@ -230,124 +247,31 @@ export default function FaireOffreDialog({
                 </div>
                 {(!disponibilites || disponibilites.length === 0) && (
                   <p className="text-xs text-muted-foreground">
-                    Aucune disponibilité renseignée par le candidat lors de son
-                    inscription.
+                    {t("entrepriseSpace.candidatures.noAvailability")}
                   </p>
                 )}
                 <p className="pt-1 text-[11px] text-muted-foreground">
-                  Utilisez ces informations pour définir un volume horaire et
-                  une durée réalistes ci-dessous.
+                  {t("entrepriseSpace.candidatures.availabilityHelp")}
                 </p>
               </>
             )}
           </div>
 
-          {/* Préférences du candidat */}
-          <div className="space-y-2 rounded-sm border border-border bg-muted/40 p-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <FiBriefcase className="h-4 w-4 text-primary" />
-              Préférences du candidat
-            </div>
-
-            {loadingDispos ? (
-              <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                <FiLoader className="h-3.5 w-3.5 animate-spin" />
-                Chargement...
-              </p>
-            ) : preferences ? (
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Durée souhaitée
-                  </p>
-                  <p className="font-medium text-foreground">
-                    {preferences.dureeStageSouhaitee
-                      ? DUREE_LABELS[preferences.dureeStageSouhaitee] ||
-                        preferences.dureeStageSouhaitee
-                      : "—"}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Volume horaire
-                  </p>
-                  <p className="font-medium text-foreground">
-                    {preferences.heuresHebdoSouhaitees
-                      ? `${preferences.heuresHebdoSouhaitees} h/semaine`
-                      : "—"}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Date de début souhaitée
-                  </p>
-                  <p className="font-medium text-foreground">
-                    {preferences.dateDebutSouhaitee
-                      ? new Date(
-                          preferences.dateDebutSouhaitee,
-                        ).toLocaleDateString("fr-FR")
-                      : "—"}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Rémunération souhaitée
-                  </p>
-                  <p className="font-medium text-foreground">
-                    {preferences.remunerationSouhaitee
-                      ? (REMUNERATION_LABEL_KEYS[
-                          preferences.remunerationSouhaitee
-                        ]
-                          ? t(
-                              REMUNERATION_LABEL_KEYS[
-                                preferences.remunerationSouhaitee
-                              ],
-                            )
-                          : preferences.remunerationSouhaitee)
-                      : "—"}
-                  </p>
-                </div>
-
-                <div className="col-span-2">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Mode de travail souhaité
-                  </p>
-                  <p className="font-medium text-foreground">
-                    {Array.isArray(preferences.modalitesTravailSouhaitees) &&
-                    preferences.modalitesTravailSouhaitees.length > 0
-                      ? preferences.modalitesTravailSouhaitees
-                          .map((m) =>
-                            MODE_TRAVAIL_LABEL_KEYS[m]
-                              ? t(MODE_TRAVAIL_LABEL_KEYS[m])
-                              : m,
-                          )
-                          .join(", ")
-                      : "—"}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Aucune préférence renseignée par le candidat.
-              </p>
-            )}
-
-            <p className="pt-1 text-[11px] text-muted-foreground">
-              Ces informations sont indicatives : adaptez l&apos;offre selon les
-              besoins de votre entreprise.
-            </p>
-          </div>
-
           <div className="space-y-1.5">
             <Label>{t("entrepriseSpace.candidatures.jobTitle")}</Label>
             <Input
-              className="h-11 rounded-sm"
-              value={form.intitulePoste}
-              onChange={(e) => update("intitulePoste", e.target.value)}
+              className="h-11 rounded-sm bg-muted/40"
+              value={offreTitre || ""}
+              readOnly
+              disabled
+              aria-describedby="offre-finale-titre-help"
             />
+            <p
+              id="offre-finale-titre-help"
+              className="text-[11px] text-muted-foreground"
+            >
+              {t("entrepriseSpace.candidatures.jobTitleHelp")}
+            </p>
           </div>
 
           <div className="space-y-1.5">
@@ -363,10 +287,12 @@ export default function FaireOffreDialog({
                 update("objectifsApprentissage", e.target.value);
                 setFormError(null);
               }}
-              placeholder={t("entrepriseSpace.candidatures.objectivesPlaceholder")}
+              placeholder={t(
+                "entrepriseSpace.candidatures.objectivesPlaceholder",
+              )}
             />
             <p className="text-[11px] text-muted-foreground">
-              Au moins 1 objectif pédagogique (10 à 500 caractères par ligne).
+              {t("entrepriseSpace.candidatures.objectivesHelp")}
             </p>
           </div>
 
@@ -386,7 +312,97 @@ export default function FaireOffreDialog({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3 rounded-sm border border-border bg-muted/30 p-4">
+            <div>
+              <Label>{t("entrepriseSpace.candidatures.scheduleTitle")}</Label>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {t("entrepriseSpace.candidatures.scheduleHelp")}
+              </p>
+            </div>
+            <div className="space-y-2">
+              {ORDRE_JOURS.map((jour) => {
+                const horaire = form.horairesStage.find(
+                  (item) => item.jourSemaine === jour,
+                );
+                return (
+                  <div
+                    key={jour}
+                    className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2"
+                  >
+                    <label className="flex min-w-0 items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(horaire)}
+                        onChange={(event) => {
+                          setForm((current) => ({
+                            ...current,
+                            horairesStage: event.target.checked
+                              ? [
+                                  ...current.horairesStage,
+                                  {
+                                    jourSemaine: jour,
+                                    heureDebut: "09:00",
+                                    heureFin: "17:00",
+                                  },
+                                ]
+                              : current.horairesStage.filter(
+                                  (item) => item.jourSemaine !== jour,
+                                ),
+                          }));
+                          setFormError(null);
+                        }}
+                      />
+                      <span>{t(`entrepriseSpace.candidatures.days.${JOUR_KEYS[jour]}`)}</span>
+                    </label>
+                    <Input
+                      type="time"
+                      className="min-w-0"
+                      aria-label={`${jour} - ${t("entrepriseSpace.candidatures.startTime")}`}
+                      disabled={!horaire}
+                      value={horaire?.heureDebut || ""}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          horairesStage: current.horairesStage.map((item) =>
+                            item.jourSemaine === jour
+                              ? { ...item, heureDebut: event.target.value }
+                              : item,
+                          ),
+                        }))
+                      }
+                    />
+                    <Input
+                      type="time"
+                      className="min-w-0"
+                      aria-label={`${jour} - ${t("entrepriseSpace.candidatures.endTime")}`}
+                      disabled={!horaire}
+                      value={horaire?.heureFin || ""}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          horairesStage: current.horairesStage.map((item) =>
+                            item.jourSemaine === jour
+                              ? { ...item, heureFin: event.target.value }
+                              : item,
+                          ),
+                        }))
+                      }
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <p
+              className={`text-xs font-medium ${totalHeures === Number(form.volumeHoraireHebdo) ? "text-green-700" : "text-destructive"}`}
+            >
+              {t("entrepriseSpace.candidatures.scheduleTotal", {
+                n: totalHeures,
+              })}{" "}
+              / {form.volumeHoraireHebdo}h
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>{t("entrepriseSpace.candidatures.duration")}</Label>
               <Select
@@ -394,12 +410,20 @@ export default function FaireOffreDialog({
                 onValueChange={(v) => update("dureeStage", v)}
               >
                 <SelectTrigger className="h-11 w-full rounded-sm">
-                  <SelectValue placeholder={t("entrepriseSpace.candidatures.select")} />
+                  <SelectValue
+                    placeholder={t("entrepriseSpace.candidatures.select")}
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1_mois">{t("entrepriseSpace.candidatures.duration1Month")}</SelectItem>
-                  <SelectItem value="2_mois">{t("entrepriseSpace.candidatures.duration2Months")}</SelectItem>
-                  <SelectItem value="3_mois">{t("entrepriseSpace.candidatures.duration3Months")}</SelectItem>
+                  <SelectItem value="1_mois">
+                    {t("entrepriseSpace.candidatures.duration1Month")}
+                  </SelectItem>
+                  <SelectItem value="2_mois">
+                    {t("entrepriseSpace.candidatures.duration2Months")}
+                  </SelectItem>
+                  <SelectItem value="3_mois">
+                    {t("entrepriseSpace.candidatures.duration3Months")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -410,41 +434,50 @@ export default function FaireOffreDialog({
                 onValueChange={(v) => update("modeTravail", v)}
               >
                 <SelectTrigger className="h-11 w-full rounded-sm">
-                  <SelectValue placeholder={t("entrepriseSpace.candidatures.select")} />
+                  <SelectValue
+                    placeholder={t("entrepriseSpace.candidatures.select")}
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="distance">{t("entrepriseSpace.candidatures.modeRemote")}</SelectItem>
-                  <SelectItem value="hybride">{t("entrepriseSpace.candidatures.modeHybrid")}</SelectItem>
-                  <SelectItem value="presentiel">{t("entrepriseSpace.candidatures.modeOnsite")}</SelectItem>
+                  <SelectItem value="distance">
+                    {t("entrepriseSpace.candidatures.modeRemote")}
+                  </SelectItem>
+                  <SelectItem value="hybride">
+                    {t("entrepriseSpace.candidatures.modeHybrid")}
+                  </SelectItem>
+                  <SelectItem value="presentiel">
+                    {t("entrepriseSpace.candidatures.modeOnsite")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>{t("entrepriseSpace.candidatures.remuneration")}</Label>
-            <Select
-              value={form.remunerationType}
-              onValueChange={(v) => update("remunerationType", v)}
-            >
-              <SelectTrigger className="h-11 w-full rounded-sm">
-                <SelectValue placeholder={t("entrepriseSpace.candidatures.select")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="aucune">{t("entrepriseSpace.candidatures.remNone")}</SelectItem>
-                <SelectItem value="indemnite_transport">
-                  {t("entrepriseSpace.candidatures.remTransport")}
-                </SelectItem>
-                <SelectItem value="indemnite_repas">{t("entrepriseSpace.candidatures.remMeals")}</SelectItem>
-                <SelectItem value="indemnite_internet_appel">
-                  {t("entrepriseSpace.candidatures.remInternet")}
-                </SelectItem>
-                <SelectItem value="allocation_mensuelle">
-                  {t("entrepriseSpace.candidatures.remMonthly")}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {form.modeTravail === "distance" && (
+            <div className="w-full space-y-1.5">
+              <Label htmlFor="lien-reunion-online">
+                {t("entrepriseSpace.candidatures.meetingLink")}
+              </Label>
+              <Input
+                id="lien-reunion-online"
+                type="url"
+                inputMode="url"
+                autoComplete="url"
+                placeholder={t(
+                  "entrepriseSpace.candidatures.meetingLinkPlaceholder",
+                )}
+                value={form.lienReunionOnline}
+                onChange={(event) => {
+                  update("lienReunionOnline", event.target.value);
+                  setFormError(null);
+                }}
+                className="h-11 w-full min-w-0 rounded-sm"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                {t("entrepriseSpace.candidatures.meetingLinkHelp")}
+              </p>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label>{t("entrepriseSpace.candidatures.startDate")}</Label>

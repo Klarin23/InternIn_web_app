@@ -98,7 +98,7 @@ export async function sendVerificationEmail({ email, token }) {
   return sendMail({
     to: email,
     subject: "Vérifiez votre adresse e-mail — InternIn",
-    text: `Bienvenue sur InternIn !\n\nConfirmez votre e-mail :\n${verificationUrl}\n\nLien valable 24 h.`,
+    text: `Bienvenue sur InternIn !\n\nConfirmez votre e-mail :\n${verificationUrl}\n\nLien valable 5 minutes.`,
     html: `
       <div style="font-family: Arial, sans-serif; padding: 24px;">
         <h1>Bienvenue sur InternIn</h1>
@@ -109,7 +109,7 @@ export async function sendVerificationEmail({ email, token }) {
             Vérifier mon e-mail
           </a>
         </p>
-        <p style="color:#666;font-size:13px;">Ce lien est valable 24 heures.</p>
+        <p style="color:#666;font-size:13px;">Ce lien est valable 5 minutes.</p>
       </div>
     `,
   });

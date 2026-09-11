@@ -13,6 +13,7 @@ import {
   Users,
   AlertTriangle,
   LogOut,
+  Trash2,
   Check,
   CheckCircle2,
   XCircle,
@@ -31,12 +32,24 @@ import {
 
 import AppHeader from "@/components/layout/AppHeader";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { useThemeStore } from "@/lib/store/useThemeStore";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useEntrepriseProfile } from "@/lib/queries/useEntrepriseProfile";
 import { useMembresEquipe } from "@/lib/queries/useEquipe";
-import { resendEmailVerificationRequest, logoutRequest } from "@/lib/api/auth";
+import {
+  resendEmailVerificationRequest,
+  logoutRequest,
+  deleteEntrepriseAccountRequest,
+} from "@/lib/api/auth";
 import { toast } from "@/lib/store/useToastStore";
 import { cn } from "@/lib/utils";
 import {
@@ -573,6 +586,9 @@ function EquipeSection() {
 function DangerSection() {
   const { t } = useTranslation();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [confirmation, setConfirmation] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const token = useAuthStore((s) => s.token);
   const clearSession = useAuthStore((s) => s.clearSession);
   const router = useRouter();
@@ -587,6 +603,48 @@ function DangerSection() {
     } finally {
       clearSession();
       router.replace("/connexion");
+    }
+  }
+
+  function openDeleteDialog() {
+    if (deleting) return;
+    setConfirmation("");
+    setDeleteOpen(true);
+  }
+
+  function closeDeleteDialog() {
+    if (deleting) return;
+    setDeleteOpen(false);
+    setConfirmation("");
+  }
+
+  function getDeleteErrorMessage(error) {
+    const keyByCode = {
+      DELETE_CONFIRMATION_INVALID: "deleteConfirmationInvalid",
+      ACCOUNT_NOT_FOUND: "deleteAccountNotFound",
+      COMPANY_ACCOUNT_REQUIRED: "deleteCompanyAccountRequired",
+      COMPANY_PROFILE_NOT_FOUND: "deleteCompanyProfileNotFound",
+      ACCOUNT_DELETE_CONFLICT: "deleteConflict",
+    };
+    const key = keyByCode[error?.code];
+    return key
+      ? t(`entrepriseSpace.settings.danger.${key}`)
+      : t("entrepriseSpace.settings.danger.deleteError");
+  }
+
+  async function handleDeleteAccount() {
+    if (deleting || confirmation !== "SUPPRIMER" || !token) return;
+
+    setDeleting(true);
+    try {
+      await deleteEntrepriseAccountRequest(confirmation, token);
+      clearSession();
+      setDeleteOpen(false);
+      toast.success(t("entrepriseSpace.settings.danger.deleteSuccess"));
+      router.replace("/connexion");
+    } catch (error) {
+      setDeleting(false);
+      toast.error(getDeleteErrorMessage(error));
     }
   }
 
@@ -609,7 +667,9 @@ function DangerSection() {
             className="gap-1.5 rounded-lg"
           >
             <LogOut className="size-3.5" aria-hidden />
-            {loggingOut ? t("entrepriseSpace.settings.danger.loggingOut") : t("entrepriseSpace.settings.danger.logoutAction")}
+            {loggingOut
+              ? t("entrepriseSpace.settings.danger.loggingOut")
+              : t("entrepriseSpace.settings.danger.logoutAction")}
           </Button>
         </SettingRow>
       </SectionCard>
@@ -619,10 +679,88 @@ function DangerSection() {
         description={t("entrepriseSpace.settings.danger.deleteDesc")}
         danger
       >
-        <p className="text-sm text-muted-foreground">
-          {t("entrepriseSpace.settings.danger.deleteBody")}
-        </p>
+        <SettingRow
+          title={t("entrepriseSpace.settings.danger.deleteActionTitle")}
+          description={t("entrepriseSpace.settings.danger.deleteActionDesc")}
+        >
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={openDeleteDialog}
+            disabled={deleting}
+            className="gap-1.5 rounded-lg"
+          >
+            <Trash2 className="size-3.5" aria-hidden />
+            {t("entrepriseSpace.settings.danger.deleteAction")}
+          </Button>
+        </SettingRow>
       </SectionCard>
+
+      <Dialog
+        open={deleteOpen}
+        onOpenChange={(open) => !open && closeDeleteDialog()}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {t("entrepriseSpace.settings.danger.deleteDialogTitle")}
+            </DialogTitle>
+            <DialogDescription>
+              {t("entrepriseSpace.settings.danger.deleteDialogDesc")}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-muted-foreground">
+              {t("entrepriseSpace.settings.danger.deleteWarning")}
+            </div>
+            <label
+              htmlFor="delete-company-account-confirmation"
+              className="text-sm font-medium text-foreground"
+            >
+              {t("entrepriseSpace.settings.danger.deleteConfirmationLabel")}
+            </label>
+            <input
+              id="delete-company-account-confirmation"
+              type="text"
+              value={confirmation}
+              onChange={(event) =>
+                setConfirmation(event.target.value.toUpperCase())
+              }
+              placeholder="SUPPRIMER"
+              autoComplete="off"
+              spellCheck={false}
+              disabled={deleting}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("entrepriseSpace.settings.danger.deleteConfirmationHint")}
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={closeDeleteDialog}
+              disabled={deleting}
+            >
+              {t("entrepriseSpace.settings.danger.cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAccount}
+              disabled={deleting || confirmation !== "SUPPRIMER" || !token}
+              className="gap-1.5"
+            >
+              {deleting && <Loader2 className="size-3.5 animate-spin" />}
+              {deleting
+                ? t("entrepriseSpace.settings.danger.deleting")
+                : t("entrepriseSpace.settings.danger.deleteConfirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

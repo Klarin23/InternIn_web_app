@@ -30,7 +30,7 @@ import {
 } from "./loginRateLimit.service.js";
  
 
-const VERIFICATION_TOKEN_DURATION_MS = 24 * 60 * 60 * 1000;
+const VERIFICATION_TOKEN_DURATION_MS = 5 * 60 * 1000;
 const RESET_PASSWORD_TOKEN_DURATION_MS = 60 * 60 * 1000;
 
 /**

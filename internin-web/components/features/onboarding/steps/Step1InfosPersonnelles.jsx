@@ -11,9 +11,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { step1Schema } from "@/lib/schemas/onboarding.schema";
 import { useOnboardingStore } from "@/lib/store/useOnboardingStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function Step1InfosPersonnelles() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { data, saveStepData } = useOnboardingStore();
 
   const {
@@ -42,74 +44,81 @@ export default function Step1InfosPersonnelles() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
         <h1 className="mb-1.5 text-2xl font-bold text-foreground">
-          Parlez-nous de vous
+          {t("auditUi.onboarding.aboutYou")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Ces informations apparaîtront sur votre profil, visible par les
-          entreprises une fois votre stage actif.
+          {t("auditUi.onboarding.aboutYouDescription")}
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label htmlFor="prenom">Prénom</Label>
+          <Label htmlFor="prenom">{t("auditUi.onboarding.firstName")}</Label>
           <Input
             id="prenom"
             className="h-12 rounded-sm"
             {...register("prenom")}
           />
           {errors.prenom && (
-            <p className="text-xs text-destructive">{errors.prenom.message}</p>
+            <p className="text-xs text-destructive">
+              {t(errors.prenom.message)}
+            </p>
           )}
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="nom">Nom</Label>
+          <Label htmlFor="nom">{t("auditUi.onboarding.lastName")}</Label>
           <Input id="nom" className="h-12 rounded-sm" {...register("nom")} />
           {errors.nom && (
-            <p className="text-xs text-destructive">{errors.nom.message}</p>
+            <p className="text-xs text-destructive">{t(errors.nom.message)}</p>
           )}
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="telephone">Téléphone</Label>
+        <Label htmlFor="telephone">{t("auditUi.onboarding.phone")}</Label>
         <Input
           id="telephone"
           type="tel"
-          placeholder="+225 07 00 00 00 00"
+          placeholder={t("auditUi.onboarding.phonePlaceholder")}
           className="h-12 rounded-sm"
           {...register("telephone")}
         />
         {errors.telephone && (
-          <p className="text-xs text-destructive">{errors.telephone.message}</p>
+          <p className="text-xs text-destructive">
+            {t(errors.telephone.message)}
+          </p>
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label htmlFor="pays">Pays</Label>
+          <Label htmlFor="pays">{t("auditUi.onboarding.country")}</Label>
           <Input id="pays" className="h-12 rounded-sm" {...register("pays")} />
           {errors.pays && (
-            <p className="text-xs text-destructive">{errors.pays.message}</p>
+            <p className="text-xs text-destructive">{t(errors.pays.message)}</p>
           )}
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="ville">Ville</Label>
+          <Label htmlFor="ville">{t("auditUi.onboarding.city")}</Label>
           <Input
             id="ville"
             className="h-12 rounded-sm"
             {...register("ville")}
           />
           {errors.ville && (
-            <p className="text-xs text-destructive">{errors.ville.message}</p>
+            <p className="text-xs text-destructive">
+              {t(errors.ville.message)}
+            </p>
           )}
         </div>
       </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="dateNaissance">
-          Date de naissance{" "}
-          <span className="text-muted-foreground">(facultatif)</span>
+          {t("auditUi.onboarding.birthDate")}{" "}
+          <span className="text-muted-foreground">
+            ({t("auditUi.common.optional")})
+          </span>
         </Label>
         <Input
           id="dateNaissance"
@@ -124,7 +133,7 @@ export default function Step1InfosPersonnelles() {
         disabled={isSubmitting}
         className="h-12 w-full rounded-sm"
       >
-        Continuer
+        {t("auditUi.common.continue")}
       </Button>
     </form>
   );
