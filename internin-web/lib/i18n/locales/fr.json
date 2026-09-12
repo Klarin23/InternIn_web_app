@@ -5435,7 +5435,23 @@
       "propose": "Proposer une opportunité",
       "proposeUnavailable": "En stage — proposition indisponible",
       "close": "Fermer",
-      "about": "À propos"
+      "about": "À propos",
+      "professionalSnapshot": "Aperçu professionnel",
+      "professionalSnapshotHint": "Les informations professionnelles visibles par l’entreprise.",
+      "qualities": "Qualités",
+      "experience": "Expérience professionnelle",
+      "languages": "Langues parlées",
+      "current": "En cours",
+      "objective": "Objectif professionnel",
+      "links": "Liens",
+      "website": "Site web",
+      "empty": {
+        "skills": "Aucune compétence renseignée",
+        "education": "Aucune formation renseignée",
+        "qualities": "Aucune qualité renseignée",
+        "experience": "Aucune expérience professionnelle renseignée",
+        "languages": "Aucune langue renseignée"
+      }
     },
     "cv": {
       "title": "Curriculum vitae",

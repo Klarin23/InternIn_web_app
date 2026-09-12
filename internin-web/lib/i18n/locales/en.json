@@ -5435,7 +5435,23 @@
       "propose": "Propose an opportunity",
       "proposeUnavailable": "On internship — proposal unavailable",
       "close": "Close",
-      "about": "About"
+      "about": "About",
+      "professionalSnapshot": "Professional overview",
+      "professionalSnapshotHint": "Professional information visible to the company.",
+      "qualities": "Qualities",
+      "experience": "Professional experience",
+      "languages": "Spoken languages",
+      "current": "Current",
+      "objective": "Career objective",
+      "links": "Links",
+      "website": "Website",
+      "empty": {
+        "skills": "No skills provided",
+        "education": "No education provided",
+        "qualities": "No qualities provided",
+        "experience": "No professional experience provided",
+        "languages": "No languages provided"
+      }
     },
     "cv": {
       "title": "Curriculum vitae",
