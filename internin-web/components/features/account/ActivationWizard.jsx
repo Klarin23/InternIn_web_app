@@ -103,6 +103,7 @@ export default function ActivationWizard() {
 }
 
 function ActivationWizardInner({ profil, refetch }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const token = useAuthStore((s) => s.token);
   const updateUser = useAuthStore((s) => s.updateUser);

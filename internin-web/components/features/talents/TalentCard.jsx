@@ -65,7 +65,7 @@ export default function TalentCard({
         ease: "easeOut",
       }}
       className={cn(
-        "group flex flex-col rounded-2xl border border-border/70 bg-card p-5 shadow-sm",
+        "group flex min-w-0 w-full max-w-full flex-col overflow-hidden rounded-2xl border border-border/70 bg-card p-5 shadow-sm",
         "transition-[border-color] duration-200 ease-out",
         "hover:border-primary/25",
         "will-change-transform",
@@ -138,17 +138,17 @@ export default function TalentCard({
           <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             {t("talents.card.skills")}
           </p>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex min-w-0 flex-wrap gap-1.5">
             {shown.map((c) => (
               <span
                 key={c.idCompetence || c.nom}
-                className="rounded-md bg-muted/70 px-2 py-0.5 text-[11px] font-medium text-foreground/85"
+                className="max-w-full break-words rounded-md bg-muted/70 px-2 py-0.5 text-[11px] font-medium text-foreground/85"
               >
                 {c.nom}
               </span>
             ))}
             {extra > 0 && (
-              <span className="rounded-md bg-muted/50 px-2 py-0.5 text-[11px] text-muted-foreground">
+              <span className="max-w-full rounded-md bg-muted/50 px-2 py-0.5 text-[11px] text-muted-foreground">
                 +{extra}
               </span>
             )}
@@ -182,12 +182,12 @@ export default function TalentCard({
       )}
 
       <div className="mt-auto space-y-2 pt-4">
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="flex-1 rounded-lg"
+            className="h-11 w-full min-w-0 rounded-lg sm:h-10"
             onClick={() => onView?.(talent)}
           >
             {t("talents.card.viewProfile")}
@@ -195,7 +195,7 @@ export default function TalentCard({
           <Button
             type="button"
             size="sm"
-            className="flex-1 rounded-lg"
+            className="h-11 w-full min-w-0 rounded-lg sm:h-10"
             disabled={!proposeEnabled}
             title={
               proposeEnabled ? undefined : t("talents.card.inInternshipTitle")
