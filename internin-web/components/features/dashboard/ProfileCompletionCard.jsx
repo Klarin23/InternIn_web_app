@@ -16,6 +16,22 @@ import {
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { calculerCompletionProfil } from "@/lib/utils/profilCompletion";
 
+// Traduit le libellé d'un élément manquant à partir de son `id` stable
+// (plutôt que d'afficher `el.label`, qui vient de profilCompletion.js et
+// est toujours en français). On ne touche pas à profilCompletion.js —
+// sa signature est utilisée ailleurs — on mappe simplement ici les ids
+// connus vers une clé i18n ; tout id non prévu retombe sur `el.label`.
+const CHECKLIST_KEYS = {
+  photo: "auditUi.activation.checklist.photo",
+  titre: "auditUi.activation.checklist.titre",
+  presentation: "auditUi.activation.checklist.presentation",
+  formation: "auditUi.activation.checklist.formation",
+  competences: "auditUi.activation.checklist.competences",
+  cv: "auditUi.activation.checklist.cv",
+  centresInteret: "auditUi.activation.checklist.centresInteret",
+  preferences: "auditUi.activation.checklist.preferences",
+};
+
 export default function ProfileCompletionCard({ profile, derniereFormation }) {
   const { t } = useTranslation();
   const completion = calculerCompletionProfil(profile);
@@ -137,7 +153,9 @@ export default function ProfileCompletionCard({ profile, derniereFormation }) {
               className="flex items-center gap-2 text-xs text-muted-foreground"
             >
               <Circle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-              <span>{el.label}</span>
+              <span>
+                {CHECKLIST_KEYS[el.id] ? t(CHECKLIST_KEYS[el.id]) : el.label}
+              </span>
             </li>
           ))}
         </ul>
@@ -145,7 +163,7 @@ export default function ProfileCompletionCard({ profile, derniereFormation }) {
       {score === 100 && (
         <p className="mt-4 flex items-center gap-1.5 text-xs font-medium text-emerald-600">
           <CheckCircle2 className="h-3.5 w-3.5" />
-          Profil complet
+          {t("dashboard.profileCard.complete")}
         </p>
       )}
 

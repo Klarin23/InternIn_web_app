@@ -5,7 +5,7 @@
 // - formulaire (cas normal)
 // - succès une fois le mot de passe changé
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -21,6 +21,24 @@ export default function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
+
+  // Retire le token de l'URL après capture (historique navigateur / referrers)
+  useEffect(() => {
+    if (!token || typeof window === "undefined") return;
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("token")) {
+        url.searchParams.delete("token");
+        const clean =
+          url.pathname +
+          (url.searchParams.toString() ? `?${url.searchParams}` : "") +
+          url.hash;
+        window.history.replaceState({}, "", clean);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [token]);
   const { t } = useTranslation();
   const [serverError, setServerError] = useState(null);
   const [success, setSuccess] = useState(false);

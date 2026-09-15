@@ -1,3 +1,4 @@
+import { redactSensitiveUrl } from "../utils/redactUrl.js";
 // Gestionnaire d'erreurs centralisé — doit être le DERNIER middleware
 // enregistré dans app.js pour capturer toutes les erreurs des routes.
 
@@ -22,5 +23,13 @@ export function errorHandler(err, req, res, next) {
   const message =
     err.status && err.status < 500 ? err.message : "Erreur interne du serveur";
 
-  res.status(status).json({ error: message });
+  const body = { error: message };
+  // Certaines erreurs métier portent un code machine-lisible (ex: middleware
+  // requireActiveAccount avec ACCOUNT_INACTIVE) : on le transmet s'il existe,
+  // sans changer le format existant pour les erreurs qui n'en ont pas.
+  if (err.status && err.status < 500 && err.code) {
+    body.code = err.code;
+  }
+
+  res.status(status).json(body);
 }

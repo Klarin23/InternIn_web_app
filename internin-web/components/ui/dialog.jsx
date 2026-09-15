@@ -37,11 +37,62 @@ function DialogOverlay({ className, ...props }) {
   );
 }
 
+/** Cible issue d'un menu/select/popover Radix rendu en portal (hors DialogContent). */
+function isPortaledMenuTarget(target) {
+  if (!(target instanceof Element)) return false;
+  return Boolean(
+    target.closest(
+      [
+        '[data-slot="select-content"]',
+        "[data-radix-select-content]",
+        "[data-radix-select-viewport]",
+        '[data-slot="popover-content"]',
+        "[data-radix-popover-content]",
+        '[data-slot="dropdown-menu-content"]',
+        "[data-radix-dropdown-menu-content]",
+        '[role="listbox"]',
+      ].join(", "),
+    ),
+  );
+}
+
+/** Un Select/Popover est actuellement ouvert dans le document. */
+function hasOpenPortaledMenu() {
+  if (typeof document === "undefined") return false;
+  return Boolean(
+    document.querySelector(
+      [
+        '[data-slot="select-content"][data-state="open"]',
+        "[data-radix-select-content][data-state=open]",
+        '[data-slot="popover-content"][data-state="open"]',
+        '[data-slot="dropdown-menu-content"][data-state="open"]',
+        '[role="listbox"]',
+      ].join(", "),
+    ),
+  );
+}
+
+/**
+ * Empêche le Dialog de se fermer lorsque l'utilisateur interagit avec un
+ * Select/Popover en portal, ou ferme simplement ce menu en cliquant « à côté ».
+ * Un second clic réellement hors du Dialog conserve le comportement normal.
+ */
+function preventDialogDismissForPortaledMenu(event) {
+  const target = event.target;
+  if (isPortaledMenuTarget(target) || hasOpenPortaledMenu()) {
+    event.preventDefault();
+    return true;
+  }
+  return false;
+}
+
 function DialogContent({
   className,
   children,
   showCloseButton = true,
   onPointerDownOutside,
+  onInteractOutside,
+  onFocusOutside,
   ...props
 }) {
   const { t } = useTranslation();
@@ -56,16 +107,16 @@ function DialogContent({
         )}
         {...props}
         onPointerDownOutside={(event) => {
-          const target = event.target;
-          if (
-            target instanceof Element &&
-            target.closest(
-              '[data-slot="select-content"], [data-radix-select-content]',
-            )
-          ) {
-            event.preventDefault();
-          }
+          preventDialogDismissForPortaledMenu(event);
           onPointerDownOutside?.(event);
+        }}
+        onInteractOutside={(event) => {
+          preventDialogDismissForPortaledMenu(event);
+          onInteractOutside?.(event);
+        }}
+        onFocusOutside={(event) => {
+          preventDialogDismissForPortaledMenu(event);
+          onFocusOutside?.(event);
         }}
       >
         {children}

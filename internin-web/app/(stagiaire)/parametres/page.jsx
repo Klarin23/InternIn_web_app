@@ -62,57 +62,59 @@ import { cn } from "@/lib/utils";
 // Constants
 // ---------------------------------------------------------------------------
 
-const SECTIONS = [
-  {
-    id: "profil",
-    group: "Compte",
-    label: "Profil et compte",
-    description: "Identité et informations",
-    icon: User,
-  },
-  {
-    id: "securite",
-    group: "Sécurité",
-    label: "Sécurité",
-    description: "Mot de passe et vérifications",
-    icon: Shield,
-  },
-  {
-    id: "notifications",
-    group: "Préférences",
-    label: "Notifications",
-    description: "Alertes et communications",
-    icon: Bell,
-  },
-  {
-    id: "apparence",
-    group: "Préférences",
-    label: "Apparence",
-    description: "Thème clair ou sombre",
-    icon: Palette,
-  },
-  {
-    id: "langue",
-    group: "Préférences",
-    label: "Langue",
-    description: "Langue de l'interface",
-    icon: Languages,
-  },
-  {
-    id: "confidentialite",
-    group: "Sécurité",
-    label: "Confidentialité",
-    description: "Visibilité de votre profil",
-    icon: Lock,
-  },
-  {
-    id: "danger",
-    group: "Compte sensible",
-    label: "Zone dangereuse",
-    description: "Déconnexion et suppression",
-    icon: AlertTriangle,
-  },
-];
+function getSections(t) {
+  return [
+    {
+      id: "profil",
+      group: t("stagiaireSpace.settings.groupAccount"),
+      label: t("stagiaireSpace.settings.profileAccount"),
+      description: t("stagiaireSpace.settings.sectionDescProfil"),
+      icon: User,
+    },
+    {
+      id: "securite",
+      group: t("stagiaireSpace.settings.security"),
+      label: t("stagiaireSpace.settings.security"),
+      description: t("stagiaireSpace.settings.sectionDescSecurity"),
+      icon: Shield,
+    },
+    {
+      id: "notifications",
+      group: t("stagiaireSpace.settings.groupPreferences"),
+      label: t("stagiaireSpace.settings.notifications"),
+      description: t("stagiaireSpace.settings.sectionDescNotifications"),
+      icon: Bell,
+    },
+    {
+      id: "apparence",
+      group: t("stagiaireSpace.settings.groupPreferences"),
+      label: t("stagiaireSpace.settings.appearance"),
+      description: t("stagiaireSpace.settings.sectionDescAppearance"),
+      icon: Palette,
+    },
+    {
+      id: "langue",
+      group: t("stagiaireSpace.settings.groupPreferences"),
+      label: t("stagiaireSpace.settings.language"),
+      description: t("stagiaireSpace.settings.sectionDescLanguage"),
+      icon: Languages,
+    },
+    {
+      id: "confidentialite",
+      group: t("stagiaireSpace.settings.security"),
+      label: t("stagiaireSpace.settings.confidentiality"),
+      description: t("stagiaireSpace.settings.sectionDescConfidentiality"),
+      icon: Lock,
+    },
+    {
+      id: "danger",
+      group: t("stagiaireSpace.settings.groupSensitive"),
+      label: t("stagiaireSpace.settings.dangerZone"),
+      description: t("stagiaireSpace.settings.sectionDescDanger"),
+      icon: AlertTriangle,
+    },
+  ];
+}
 
 const NOTIF_PREFS_KEY = "internin-notif-prefs";
 
@@ -190,6 +192,7 @@ function SettingRow({ title, description, children }) {
 // ---------------------------------------------------------------------------
 
 function AccountStatusCard({ profil, user }) {
+  const { t } = useTranslation();
   const completion = useMemo(
     () => (profil ? calculerCompletionProfil(profil) : { pourcentage: 0 }),
     [profil],
@@ -216,14 +219,14 @@ function AccountStatusCard({ profil, user }) {
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-foreground">
-            {[prenom, nom].filter(Boolean).join(" ") || "Utilisateur"}
+            {[prenom, nom].filter(Boolean).join(" ") || t("stagiaireSpace.settings.defaultUser")}
           </p>
-          <p className="text-xs text-muted-foreground">Stagiaire</p>
+          <p className="text-xs text-muted-foreground">{t("stagiaireSpace.settings.roleLabel")}</p>
         </div>
       </div>
       <div className="mt-3 space-y-1.5">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">Profil complété</span>
+          <span className="text-muted-foreground">{t("dashboard.profileCard.profileCompleted")}</span>
           <span className="font-medium tabular-nums text-foreground">
             {completion.pourcentage} %
           </span>
@@ -240,12 +243,12 @@ function AccountStatusCard({ profil, user }) {
           {emailVerifie ? (
             <>
               <CheckCircle2 className="h-3.5 w-3.5 text-success" />
-              <span className="text-muted-foreground">Email vérifié</span>
+              <span className="text-muted-foreground">{t("stagiaireSpace.settings.emailVerified")}</span>
             </>
           ) : (
             <>
               <XCircle className="h-3.5 w-3.5 text-warning" />
-              <span className="text-muted-foreground">Email non vérifié</span>
+              <span className="text-muted-foreground">{t("stagiaireSpace.settings.emailNotVerified")}</span>
             </>
           )}
         </div>
@@ -254,12 +257,13 @@ function AccountStatusCard({ profil, user }) {
   );
 }
 
-function SettingsNav({ activeId, onSelect }) {
+function SettingsNav({ sections, activeId, onSelect }) {
+  const { t } = useTranslation();
   return (
-    <nav className="space-y-1" aria-label="Sections des paramètres">
-      {SECTIONS.map((section, index) => {
+    <nav className="space-y-1" aria-label={t("stagiaireSpace.settings.navAriaLabel")}>
+      {sections.map((section, index) => {
         const showGroup =
-          index === 0 || section.group !== SECTIONS[index - 1].group;
+          index === 0 || section.group !== sections[index - 1].group;
         const Icon = section.icon;
         const active = activeId === section.id;
         return (
@@ -304,7 +308,7 @@ function ProfilSection({ profil, user }) {
   return (
     <SectionCard
       title={t("stagiaireSpace.settings.profileAccount")}
-      description="Vos informations personnelles et l'accès à votre profil public."
+      description={t("stagiaireSpace.settings.profileAccountDesc")}
     >
       <div className="flex items-start gap-4">
         <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-lg font-bold text-primary-foreground">
@@ -345,7 +349,7 @@ function ProfilSection({ profil, user }) {
           onClick={() => router.push("/profil")}
           className="gap-2"
         >
-          Modifier mon profil
+          {t("dashboard.quickActions.editProfile")}
           <ExternalLink className="h-3.5 w-3.5" />
         </Button>
       </div>
@@ -391,7 +395,7 @@ function SecuriteSection({ user, profil }) {
             className="gap-1.5"
           >
             <KeyRound className="h-3.5 w-3.5" />
-            Modifier
+            {t("stagiaireSpace.common.edit")}
           </Button>
         </SettingRow>
       </SectionCard>
@@ -408,7 +412,7 @@ function SecuriteSection({ user, profil }) {
           {emailVerifie ? (
             <span className="inline-flex items-center gap-1.5 text-sm font-medium text-success">
               <CheckCircle2 className="h-4 w-4" />
-              Vérifié
+              {t("entrepriseSpace.settings.security.verified")}
             </span>
           ) : (
             <Button
@@ -430,11 +434,10 @@ function SecuriteSection({ user, profil }) {
         <div className="rounded-md border border-dashed border-border bg-muted/30 px-4 py-6 text-center">
           <Monitor className="mx-auto h-7 w-7 text-muted-foreground/60" />
           <p className="mt-2 text-sm font-medium text-foreground">
-            Session actuelle uniquement
+            {t("stagiaireSpace.settings.sessionsCurrentOnly")}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            La liste et la révocation des autres appareils seront disponibles
-            prochainement.
+            {t("stagiaireSpace.settings.sessionsComingSoon")}
           </p>
         </div>
       </SectionCard>
@@ -494,9 +497,9 @@ function NotificationsSection() {
     try {
       localStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(prefs));
       setDirty(false);
-      toast.success("Préférences de notifications enregistrées.");
+      toast.success(t("stagiaireSpace.settings.notifSaveSuccess"));
     } catch {
-      toast.error("Impossible d'enregistrer les préférences.");
+      toast.error(t("stagiaireSpace.settings.notifSaveError"));
     } finally {
       setSaving(false);
     }
@@ -515,7 +518,7 @@ function NotificationsSection() {
   return (
     <SectionCard
       title={t("stagiaireSpace.settings.notifications")}
-      description="Choisissez les alertes que vous souhaitez recevoir."
+      description={t("stagiaireSpace.settings.notificationsDesc")}
       actions={
         dirty ? (
           <>
@@ -684,17 +687,13 @@ function ConfidentialiteSection({ profil }) {
     try {
       await updatePrivacy.mutateAsync({ profilVisibleEntreprises: next });
       if (next) {
-        toast.success(
-          "Profil visible — votre profil peut apparaître dans les recherches des entreprises.",
-        );
+        toast.success(t("stagiaireSpace.settings.visibilityCard.toastVisible"));
       } else {
-        toast.success(
-          "Profil masqué — votre profil n'apparaît plus dans les recherches des entreprises.",
-        );
+        toast.success(t("stagiaireSpace.settings.visibilityCard.toastHidden"));
       }
     } catch (err) {
       toast.error(
-        err?.message || "Impossible de mettre à jour la visibilité du profil.",
+        err?.message || t("stagiaireSpace.settings.visibilityCard.toastError"),
       );
     }
   }
@@ -703,7 +702,7 @@ function ConfidentialiteSection({ profil }) {
     <div className="space-y-4">
       <SectionCard
         title={t("stagiaireSpace.settings.visibility")}
-        description="Contrôlez si les entreprises peuvent découvrir votre profil dans Talents."
+        description={t("stagiaireSpace.settings.visibilityCard.description")}
       >
         <div
           className={cn(
@@ -739,7 +738,7 @@ function ConfidentialiteSection({ profil }) {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-semibold text-foreground">
-                    Profil visible auprès des entreprises
+                    {t("stagiaireSpace.settings.visibilityCard.title")}
                   </p>
                   <span
                     className={cn(
@@ -750,13 +749,13 @@ function ConfidentialiteSection({ profil }) {
                     )}
                   >
                     <Building2 className="h-3 w-3" aria-hidden />
-                    {visible ? "Visible" : "Masqué"}
+                    {visible
+                      ? t("stagiaireSpace.settings.visibilityCard.visible")
+                      : t("stagiaireSpace.settings.visibilityCard.hidden")}
                   </span>
                 </div>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  Lorsque cette option est activée, votre profil peut apparaître
-                  dans les recherches de talents effectuées par les entreprises.
-                  Vous pouvez modifier ce choix à tout moment.
+                  {t("stagiaireSpace.settings.visibilityCard.explanation")}
                 </p>
                 <AnimatePresence mode="wait">
                   <motion.p
@@ -768,8 +767,8 @@ function ConfidentialiteSection({ profil }) {
                     className="mt-2 text-xs font-medium text-foreground/80"
                   >
                     {visible
-                      ? "Votre profil peut apparaître dans Talents."
-                      : "Votre profil n'apparaît pas dans les recherches des entreprises."}
+                      ? t("stagiaireSpace.settings.visibilityCard.statusOn")
+                      : t("stagiaireSpace.settings.visibilityCard.statusOff")}
                   </motion.p>
                 </AnimatePresence>
               </div>
@@ -789,7 +788,7 @@ function ConfidentialiteSection({ profil }) {
                 onCheckedChange={handleToggle}
               />
               <label htmlFor="profil-visible-entreprises" className="sr-only">
-                Profil visible auprès des entreprises
+                {t("stagiaireSpace.settings.visibilityCard.title")}
               </label>
             </div>
           </div>
@@ -798,9 +797,7 @@ function ConfidentialiteSection({ profil }) {
         <div className="flex items-start gap-2.5 rounded-lg border border-border/70 bg-card px-3.5 py-3">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Même masqué, votre profil reste accessible aux entreprises avec
-            lesquelles vous avez déjà une candidature ou un stage en cours.
-            Seule la découverte dans le module Talents est concernée.
+            {t("stagiaireSpace.settings.visibilityCard.footnote")}
           </p>
         </div>
       </SectionCard>
@@ -981,13 +978,14 @@ export default function ParametresStagiairePage() {
   const user = useAuthStore((s) => s.user);
   const { data: profil, isLoading } = useStagiaireProfile();
 
+  const SECTIONS = useMemo(() => getSections(t), [t]);
   const activeMeta = SECTIONS.find((s) => s.id === activeSection);
 
   return (
     <>
       <AppHeader
-        title="Paramètres"
-        subtitle="Gérez votre compte, vos préférences et votre sécurité."
+        title={t("stagiaireSpace.settings.title")}
+        subtitle={t("stagiaireSpace.settings.subtitle")}
       />
 
       <div className="px-4 py-6 sm:px-6">
@@ -1003,6 +1001,7 @@ export default function ParametresStagiairePage() {
             {/* Desktop nav */}
             <div className="hidden rounded-md border border-border bg-card p-3 lg:block">
               <SettingsNav
+                sections={SECTIONS}
                 activeId={activeSection}
                 onSelect={setActiveSection}
               />
@@ -1011,7 +1010,7 @@ export default function ParametresStagiairePage() {
             {/* Mobile nav */}
             <div className="lg:hidden">
               <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                Section
+                {t("stagiaireSpace.settings.mobileSectionLabel")}
               </label>
               <div className="relative">
                 <select

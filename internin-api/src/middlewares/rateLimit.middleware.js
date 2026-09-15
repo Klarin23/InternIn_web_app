@@ -45,9 +45,12 @@ export const uploadLimiter = rateLimit({
 // Limite globale
 export const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 400,
+  max: Number(process.env.GLOBAL_RATE_LIMIT_MAX || 1000),
   standardHeaders: true,
   legacyHeaders: false,
+  // Les prévols CORS ne représentent pas une requête métier et ne doivent
+  // pas consommer le quota global d'une session normale.
+  skip: (req) => req.method === "OPTIONS",
   message: { error: "Trop de requêtes. Réessayez plus tard." },
 });
 

@@ -18,6 +18,7 @@ import {
   centresInteret,
   objectifsDeveloppement,
 } from "../../db/schema.js";
+import { peutActiverCompte } from "../../utils/emailVerificationGuard.js";
 
 /** Résout la liste compétences : id existant OU création par nom (custom). */
 async function resoudreCompetences(tx, liste = []) {
@@ -141,6 +142,15 @@ async function synchroniserStatutCompteStagiaire(tx, idUtilisateur, profilHint =
     return { score: 0, statutCompte: "inactif" };
   }
 
+  // La complétion du profil seule ne doit jamais suffire à activer un
+  // compte : l'email réel doit être vérifié (cf. règle de sécurité
+  // emailVerifie !== true → activation interdite). On lit la valeur
+  // directement en base, jamais depuis un payload envoyé par le client.
+  const [utilisateurCourant] = await tx
+    .select({ emailVerifie: utilisateurs.emailVerifie })
+    .from(utilisateurs)
+    .where(eq(utilisateurs.idUtilisateur, idUtilisateur));
+
   const idStagiaire = stagiaire.idStagiaire;
 
   const [formationsData, competencesData, centresData] = await Promise.all([
@@ -180,7 +190,10 @@ async function synchroniserStatutCompteStagiaire(tx, idUtilisateur, profilHint =
   };
 
   const score = calculerScoreCompletude(profilComplet);
-  const nouveauStatut = score >= 100 ? "actif" : "inactif";
+  const nouveauStatut =
+    score >= 100 && peutActiverCompte(utilisateurCourant?.emailVerifie)
+      ? "actif"
+      : "inactif";
 
   await tx
     .update(stagiaires)
@@ -460,10 +473,16 @@ export async function getStagiaireProfile(idUtilisateur) {
 
   const scoreCalcule = calculerScoreCompletude(profilPourScore);
 
-  // Auto-réparation : si le profil est complet mais le statut en base est
-  // encore "inactif" (bug ancien calcul), on synchronise immédiatement.
+  // Auto-réparation : si le profil est complet ET l'email vérifié, mais le
+  // statut en base est encore "inactif" (bug ancien calcul), on synchronise
+  // immédiatement. La complétion du profil seule ne doit jamais suffire.
   let statutCompte = stagiaire.statutCompte;
-  if (scoreCalcule >= 100 && statutCompte !== "actif" && statutCompte !== "suspendu") {
+  if (
+    scoreCalcule >= 100 &&
+    statutCompte !== "actif" &&
+    statutCompte !== "suspendu" &&
+    peutActiverCompte(stagiaire.emailVerifie)
+  ) {
     await db
       .update(stagiaires)
       .set({ scoreCompletudeProfil: scoreCalcule })

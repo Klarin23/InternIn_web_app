@@ -881,7 +881,14 @@ async function fetchGoogleProfile({ accessToken, idToken }) {
 /**
  * Ne jamais renvoyer le hash du mot de passe au client.
  */
-function sanitizeUser(utilisateur) {
+/**
+ * Ne jamais renvoyer le hash du mot de passe au client.
+ * Fonction centralisée — à réutiliser partout où un objet "utilisateur"
+ * complet (issu d'un .select()/.returning() sans projection) doit être
+ * exposé dans une réponse HTTP.
+ */
+export function sanitizeUser(utilisateur) {
+  if (!utilisateur) return utilisateur;
   const { motDePasseHash, ...safe } = utilisateur;
 
   return safe;

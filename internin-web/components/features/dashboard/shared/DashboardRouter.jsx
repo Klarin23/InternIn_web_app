@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AppSidebar from "@/components/layout/AppSidebar";
+import AppHeader from "@/components/layout/AppHeader";
 import PullToRefresh from "@/components/layout/PullToRefresh";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { useEntrepriseProfile } from "@/lib/queries/useEntrepriseProfile";
@@ -65,15 +66,23 @@ export default function DashboardRouter() {
           roleLabel={t("roles.internSpace")}
         />
 
-        <PullToRefresh className="h-screen flex-1 overflow-y-auto">
-          <MaintenanceGate>
-            {user.statutCompte !== "actif" ? (
-              <InactiveAccountGate />
-            ) : (
-              <StagiaireDashboardContent />
-            )}
-          </MaintenanceGate>
-        </PullToRefresh>
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          {user.statutCompte !== "actif" && (
+            <AppHeader
+              title={t("account.inactive.title")}
+              subtitle={t("account.inactive.description")}
+            />
+          )}
+          <PullToRefresh className="h-screen min-h-0 flex-1 overflow-y-auto">
+            <MaintenanceGate>
+              {user.statutCompte !== "actif" ? (
+                <InactiveAccountGate />
+              ) : (
+                <StagiaireDashboardContent />
+              )}
+            </MaintenanceGate>
+          </PullToRefresh>
+        </div>
       </div>
     );
   }

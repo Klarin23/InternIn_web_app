@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import { redactSensitiveUrl } from "./utils/redactUrl.js";
 import compression from "compression";
 import authRoutes from "./modules/auth/auth.routes.js";
 import documentsRoutes from "./modules/documents/documents.routes.js";
@@ -112,11 +113,20 @@ app.use(
 const skipRealtimeLogs = (req) =>
   typeof req.path === "string" && req.path.startsWith("/realtime");
 
+morgan.token("url-safe", (req) =>
+  redactSensitiveUrl(req.originalUrl || req.url || ""),
+);
+const COMBINED_SAFE =
+  ':remote-addr - :remote-user [:date[clf]] ":method :url-safe HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"';
+const DEV_SAFE =
+  ":method :url-safe :status :response-time ms - :res[content-length]";
+
 if (process.env.NODE_ENV !== "production") {
-  app.use(morgan("dev", { skip: skipRealtimeLogs }));
+  app.use(morgan(DEV_SAFE, { skip: skipRealtimeLogs }));
 } else {
-  app.use(morgan("combined", { skip: skipRealtimeLogs }));
+  app.use(morgan(COMBINED_SAFE, { skip: skipRealtimeLogs }));
 }
+
 // Les fichiers ne sont plus publics.
 // On servira les fichiers via une route protégée (voir documents.routes.js)
 // app.use("/uploads", express.static("uploads")); // ← SUPPRIMÉ

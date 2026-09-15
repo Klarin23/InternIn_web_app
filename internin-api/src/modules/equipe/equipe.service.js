@@ -1092,6 +1092,14 @@ export async function accepterInvitation(token, motDePasse) {
         typeUtilisateur: "membre_entreprise",
         methodeConnexion: "email",
         statutCompte: "actif",
+        // Le lien d'invitation est envoyé à cette adresse exacte et est à
+        // usage unique (token à forte entropie, expirant) : la capacité de
+        // l'utiliser constitue une preuve de possession de l'email
+        // équivalente à la vérification email classique (cf.
+        // emailVerificationGuard.js). Ne pas le poser ici laisserait un
+        // compte "actif" avec emailVerifie=false, ce qui viole la règle de
+        // sécurité appliquée partout ailleurs.
+        emailVerifie: true,
       })
       .returning();
 

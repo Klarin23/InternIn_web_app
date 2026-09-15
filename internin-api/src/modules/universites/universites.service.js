@@ -17,6 +17,7 @@ import {
   offresStage,
 } from "../../db/schema.js";
 import { genererConventionPdf } from "../../utils/conventionPdf.js";
+import { peutActiverCompte } from "../../utils/emailVerificationGuard.js";
 import { creerNotification } from "../notifications/notifications.service.js";
 
 
@@ -736,7 +737,10 @@ export async function completeUniversiteOnboarding(idUtilisateur, payload) {
     // Défense en profondeur : le service vérifie lui-même le rôle attendu,
     // même si la route est normalement protégée par requireRole("universite").
     const [utilisateur] = await tx
-      .select({ typeUtilisateur: utilisateurs.typeUtilisateur })
+      .select({
+        typeUtilisateur: utilisateurs.typeUtilisateur,
+        emailVerifie: utilisateurs.emailVerifie,
+      })
       .from(utilisateurs)
       .where(eq(utilisateurs.idUtilisateur, idUtilisateur))
       .limit(1);
@@ -773,9 +777,17 @@ export async function completeUniversiteOnboarding(idUtilisateur, payload) {
       })
       .returning();
 
+    // Le compte ne passe à "actif" que si l'email a réellement été vérifié
+    // (jamais un simple flag envoyé par le client). Sinon il reste "inactif" :
+    // l'onboarding est bien enregistré, l'activation attend la vérification.
     await tx
       .update(utilisateurs)
-      .set({ statutCompte: "actif", dateMaj: new Date() })
+      .set({
+        statutCompte: peutActiverCompte(utilisateur.emailVerifie)
+          ? "actif"
+          : "inactif",
+        dateMaj: new Date(),
+      })
       .where(eq(utilisateurs.idUtilisateur, idUtilisateur));
 
     return universite;

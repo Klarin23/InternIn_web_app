@@ -1045,7 +1045,8 @@
       "noCv": "No resume uploaded",
       "profileCompleted": "Profile completed",
       "completeProfile": "Complete my profile",
-      "yearLabel": "Year {n}"
+      "yearLabel": "Year {n}",
+      "complete": "Profile complete"
     },
     "calendar": {
       "weekDays": [
@@ -1747,7 +1748,7 @@
     "inactive": {
       "badge": "Incomplete account",
       "title": "Complete your account to access InternIn",
-      "description": "Your account has been created, but some steps still need to be completed. You can access your profile and settings, while internship-related features remain temporarily locked.",
+      "description": "Your account is ready. Complete the remaining steps to unlock internship features.",
       "progressTitle": "Account activation",
       "progressDescription": "Complete your profile to unlock all features.",
       "progressStatus": "In progress",
@@ -2426,6 +2427,42 @@
         "deleting": "Deleting…",
         "deleteSuccess": "Your account has been permanently deleted.",
         "deleteError": "Unable to delete your account. Please try again."
+      },
+      "security": "Security",
+      "confidentiality": "Privacy",
+      "dangerZone": "Danger zone",
+      "groupAccount": "Account",
+      "groupPreferences": "Preferences",
+      "groupSensitive": "Sensitive account",
+      "sectionDescProfil": "Identity and information",
+      "sectionDescSecurity": "Password and verifications",
+      "sectionDescNotifications": "Alerts and communications",
+      "sectionDescAppearance": "Light or dark theme",
+      "sectionDescLanguage": "Interface language",
+      "sectionDescConfidentiality": "Your profile's visibility",
+      "sectionDescDanger": "Logout and deletion",
+      "navAriaLabel": "Settings sections",
+      "mobileSectionLabel": "Section",
+      "profileAccountDesc": "Your personal information and access to your public profile.",
+      "defaultUser": "User",
+      "roleLabel": "Intern",
+      "sessionsCurrentOnly": "Current session only",
+      "sessionsComingSoon": "The list and revocation of other devices will be available soon",
+      "notificationsDesc": "Choose the alerts you want to receive.",
+      "notifSaveSuccess": "Notifications preferences saved",
+      "notifSaveError": "Unable to save your preferences",
+      "visibilityCard": {
+        "description": "Control whether companies can discover your profile in Talents.",
+        "title": "Profile visible to companies",
+        "visible": "Visible",
+        "hidden": "Hidden",
+        "explanation": "When this option is enabled, your profile may appear in talent searches performed by companies. You can change this choice at any time.",
+        "statusOn": "Your profile may appear in company searches.",
+        "statusOff": "Your profile does not appear in company searches.",
+        "footnote": "Even when hidden, your profile remains accessible to companies you already have an application or internship with. Only discovery in the Talents module is affected.",
+        "toastVisible": "Profile visible",
+        "toastHidden": "Profile hidden",
+        "toastError": "Unable to update your profile's visibility"
       }
     },
     "common": {
@@ -4276,7 +4313,9 @@
     "csvSignupDate": "Signed up",
     "csvLastLogin": "Last login",
     "csvYes": "yes",
-    "csvNo": "no"
+    "csvNo": "no",
+    "filterSupervisors": "Supervisors",
+    "roleSupervisor": "Supervisor"
   },
   "userDetailPanel": {
     "tabOverview": "Overview",
@@ -6953,7 +6992,63 @@
       "skillPlaceholder": "e.g. React, Excel…",
       "cvFile": "CV file",
       "targetSector": "Target sector",
-      "targetCity": "Target city"
+      "targetCity": "Target city",
+      "profilePhoto": "Profile photo",
+      "profilePhotoHint": "Add a clear photo to inspire confidence among recruiters.",
+      "chooseFile": "Choose a file to continue",
+      "canLeaveAnytime": "You can leave at any time.",
+      "later": "Later",
+      "loadingProfile": "Loading your profile…",
+      "continue": "Continue",
+      "steps": {
+        "titre": {
+          "subtitle": "E.g. \"Software engineering student · looking for a development internship\""
+        },
+        "presentation": {
+          "subtitle": "A few lines about your background and what you're looking for."
+        },
+        "formation": {
+          "title": "Education",
+          "subtitle": "Add your main ongoing or completed program."
+        },
+        "competences": {
+          "title": "Skills",
+          "subtitle": "At least one skill (technical, professional, or language)."
+        },
+        "cv": {
+          "title": "CV",
+          "subtitle": "PDF or Word, max 5 MB. Required to apply."
+        },
+        "centresInteret": {
+          "title": "Interests",
+          "subtitle": "Internship fields you're interested in."
+        },
+        "preferences": {
+          "title": "Search preferences",
+          "subtitle": "Target sectors or cities to refine offers."
+        }
+      },
+      "checklist": {
+        "photo": "Add a profile photo",
+        "titre": "Add a professional title",
+        "presentation": "Add a presentation",
+        "formation": "Add your education",
+        "competences": "Add your skills",
+        "cv": "Add your CV",
+        "centresInteret": "Add your interests",
+        "preferences": "Set your search preferences"
+      },
+      "missingItemsPrefix": "You still need:",
+      "checklistShort": {
+        "photo": "profile photo",
+        "titre": "professional title",
+        "presentation": "presentation",
+        "formation": "education",
+        "competences": "skills",
+        "cv": "CV",
+        "centresInteret": "interests",
+        "preferences": "search preferences"
+      }
     },
     "onboarding": {
       "aboutYou": "Tell us about yourself",

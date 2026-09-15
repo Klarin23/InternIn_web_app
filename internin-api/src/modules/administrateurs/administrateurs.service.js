@@ -9,6 +9,7 @@ import {
 } from "../../utils/delaiTraitement.js";
 import { invalidateEmailPreferenceCache } from "../../utils/email.js";
 import { incrementerVersionJeton } from "../../utils/versionJeton.js";
+import { assertEmailVerifiePourActivation } from "../../utils/emailVerificationGuard.js";
 import { creerNotification } from "../notifications/notifications.service.js";
 import { logAdminAction } from "./auditAdmin.service.js";
 import {
@@ -172,11 +173,29 @@ export async function changerStatutCompteEntreprise(
     throw err;
   }
 
+  // Même un administrateur ne doit pas pouvoir activer un compte dont
+  // l'email n'a jamais été vérifié : la vérification email reste la seule
+  // source autorisée pour ce champ (cf. auth.service.js#verifyEmail).
+  if (statutCompte === "actif") {
+    const [cible] = await db
+      .select({ emailVerifie: utilisateurs.emailVerifie })
+      .from(utilisateurs)
+      .where(eq(utilisateurs.idUtilisateur, entreprise.idUtilisateur));
+    assertEmailVerifiePourActivation(cible?.emailVerifie);
+  }
+
   const [utilisateur] = await db
     .update(utilisateurs)
     .set({ statutCompte, dateMaj: new Date() })
     .where(eq(utilisateurs.idUtilisateur, entreprise.idUtilisateur))
-    .returning();
+    .returning({
+      idUtilisateur: utilisateurs.idUtilisateur,
+      email: utilisateurs.email,
+      typeUtilisateur: utilisateurs.typeUtilisateur,
+      statutCompte: utilisateurs.statutCompte,
+      emailVerifie: utilisateurs.emailVerifie,
+      dateMaj: utilisateurs.dateMaj,
+    });
 
   // Toute modification de statut invalide les access JWT existants.
   // Le backend reste l'autorité sur suspension/révocation; le proxy web ne
@@ -270,11 +289,29 @@ export async function changerStatutCompteUniversite(
     throw err;
   }
 
+  // Même un administrateur ne doit pas pouvoir activer un compte dont
+  // l'email n'a jamais été vérifié : la vérification email reste la seule
+  // source autorisée pour ce champ (cf. auth.service.js#verifyEmail).
+  if (statutCompte === "actif") {
+    const [cible] = await db
+      .select({ emailVerifie: utilisateurs.emailVerifie })
+      .from(utilisateurs)
+      .where(eq(utilisateurs.idUtilisateur, universite.idUtilisateur));
+    assertEmailVerifiePourActivation(cible?.emailVerifie);
+  }
+
   const [utilisateur] = await db
     .update(utilisateurs)
     .set({ statutCompte, dateMaj: new Date() })
     .where(eq(utilisateurs.idUtilisateur, universite.idUtilisateur))
-    .returning();
+    .returning({
+      idUtilisateur: utilisateurs.idUtilisateur,
+      email: utilisateurs.email,
+      typeUtilisateur: utilisateurs.typeUtilisateur,
+      statutCompte: utilisateurs.statutCompte,
+      emailVerifie: utilisateurs.emailVerifie,
+      dateMaj: utilisateurs.dateMaj,
+    });
 
   // Une suspension/réactivation doit aussi invalider les JWT déjà émis.
   if (utilisateur) await incrementerVersionJeton(utilisateur.idUtilisateur);
@@ -860,12 +897,30 @@ export async function changerStatutCompteUtilisateur(idUtilisateurAdmin, idUtili
     throw err;
   }
 
+  // Même un administrateur ne doit pas pouvoir activer un compte dont
+  // l'email n'a jamais été vérifié : la vérification email reste la seule
+  // source autorisée pour ce champ (cf. auth.service.js#verifyEmail).
+  if (statutCompte === "actif") {
+    const [cibleAvecEmail] = await db
+      .select({ emailVerifie: utilisateurs.emailVerifie })
+      .from(utilisateurs)
+      .where(eq(utilisateurs.idUtilisateur, idUtilisateur));
+    assertEmailVerifiePourActivation(cibleAvecEmail?.emailVerifie);
+  }
+
 
   const [utilisateur] = await db
     .update(utilisateurs)
     .set({ statutCompte, dateMaj: new Date() })
     .where(eq(utilisateurs.idUtilisateur, idUtilisateur))
-    .returning();
+    .returning({
+      idUtilisateur: utilisateurs.idUtilisateur,
+      email: utilisateurs.email,
+      typeUtilisateur: utilisateurs.typeUtilisateur,
+      statutCompte: utilisateurs.statutCompte,
+      emailVerifie: utilisateurs.emailVerifie,
+      dateMaj: utilisateurs.dateMaj,
+    });
 
   // Le changement de statut révoque immédiatement tous les access JWT
   // précédemment émis pour ce compte.

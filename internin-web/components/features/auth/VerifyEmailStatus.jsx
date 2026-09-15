@@ -27,6 +27,8 @@ export default function VerifyEmailStatus() {
   const searchParams = useSearchParams();
 
   const token = searchParams.get("token");
+  // Figé au premier rendu — l'URL sera nettoyée ensuite
+  const [consumedToken] = useState(() => token);
 
   const { t } = useTranslation();
 
@@ -45,7 +47,23 @@ export default function VerifyEmailStatus() {
    * Vérification réelle du token.
    */
   useEffect(() => {
-    if (!token) return;
+    if (!consumedToken) return;
+
+    if (typeof window !== "undefined") {
+      try {
+        const url = new URL(window.location.href);
+        if (url.searchParams.has("token")) {
+          url.searchParams.delete("token");
+          const clean =
+            url.pathname +
+            (url.searchParams.toString() ? `?${url.searchParams}` : "") +
+            url.hash;
+          window.history.replaceState({}, "", clean);
+        }
+      } catch {
+        /* ignore */
+      }
+    }
 
     let cancelled = false;
 
@@ -54,7 +72,7 @@ export default function VerifyEmailStatus() {
         setStatus("checking");
         setErrorMessage(null);
 
-        await verifyEmailRequest(token);
+        await verifyEmailRequest(consumedToken);
 
           if (!cancelled) {
             updateUser({ emailVerifie: true });
@@ -73,7 +91,7 @@ export default function VerifyEmailStatus() {
     return () => {
       cancelled = true;
     };
-  }, [token, updateUser]);
+  }, [consumedToken, updateUser]);
 
   /**
    * Compte à rebours anti-spam.

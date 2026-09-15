@@ -33,51 +33,6 @@ import { toast } from "@/lib/store/useToastStore";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
-const STEP_META = {
-  photo: {
-    title: "Photo de profil",
-    subtitle:
-      "Ajoutez une photo claire pour inspirer confiance aux recruteurs.",
-    icon: Camera,
-  },
-  titre: {
-    title: "Titre professionnel",
-    subtitle:
-      "Ex. « Étudiant en génie logiciel · Recherche stage développement »",
-    icon: UserRound,
-  },
-  presentation: {
-    title: "Présentation",
-    subtitle: "Quelques lignes sur votre parcours et ce que vous recherchez.",
-    icon: FileText,
-  },
-  formation: {
-    title: "Formation",
-    subtitle: "Indiquez votre formation principale en cours ou obtenue.",
-    icon: GraduationCap,
-  },
-  competences: {
-    title: "Compétences",
-    subtitle: "Au moins une compétence (technique, pro ou langue).",
-    icon: Wrench,
-  },
-  cv: {
-    title: "CV",
-    subtitle: "PDF ou Word, max 5 Mo. Indispensable pour postuler.",
-    icon: FileText,
-  },
-  centresInteret: {
-    title: "Centres d'intérêt",
-    subtitle: "Domaines de stage qui vous intéressent.",
-    icon: Heart,
-  },
-  preferences: {
-    title: "Préférences de recherche",
-    subtitle: "Secteurs ou villes ciblés pour affiner les offres.",
-    icon: Target,
-  },
-};
-
 /** Conteneur : charge le profil, puis monte le formulaire (évite setState dans useEffect) */
 export default function ActivationWizard() {
   const { t } = useTranslation();
@@ -88,7 +43,7 @@ export default function ActivationWizard() {
     return (
       <div className="flex min-h-[50vh] items-center justify-center text-muted-foreground">
         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        Chargement de votre profil…
+        {t("auditUi.activation.loadingProfile")}
       </div>
     );
   }
@@ -109,6 +64,49 @@ function ActivationWizardInner({ profil, refetch }) {
   const updateUser = useAuthStore((s) => s.updateUser);
   const updateMutation = useUpdateStagiaireProfile();
   const { data: centresList } = useCentresInteret();
+
+  const STEP_META = {
+    photo: {
+      title: t("auditUi.activation.profilePhoto"),
+      subtitle: t("auditUi.activation.profilePhotoHint"),
+      icon: Camera,
+    },
+    titre: {
+      title: t("auditUi.activation.professionalTitle"),
+      subtitle: t("auditUi.activation.steps.titre.subtitle"),
+      icon: UserRound,
+    },
+    presentation: {
+      title: t("auditUi.activation.presentation"),
+      subtitle: t("auditUi.activation.steps.presentation.subtitle"),
+      icon: FileText,
+    },
+    formation: {
+      title: t("auditUi.activation.steps.formation.title"),
+      subtitle: t("auditUi.activation.steps.formation.subtitle"),
+      icon: GraduationCap,
+    },
+    competences: {
+      title: t("auditUi.activation.steps.competences.title"),
+      subtitle: t("auditUi.activation.steps.competences.subtitle"),
+      icon: Wrench,
+    },
+    cv: {
+      title: t("auditUi.activation.steps.cv.title"),
+      subtitle: t("auditUi.activation.steps.cv.subtitle"),
+      icon: FileText,
+    },
+    centresInteret: {
+      title: t("auditUi.activation.steps.centresInteret.title"),
+      subtitle: t("auditUi.activation.steps.centresInteret.subtitle"),
+      icon: Heart,
+    },
+    preferences: {
+      title: t("auditUi.activation.steps.preferences.title"),
+      subtitle: t("auditUi.activation.steps.preferences.subtitle"),
+      icon: Target,
+    },
+  };
 
   const completion = useMemo(() => calculerCompletionProfil(profil), [profil]);
   const manquants = completion.manquants || [];
@@ -506,27 +504,27 @@ function ActivationWizardInner({ profil, refetch }) {
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    Continuer
+                    {t("auditUi.activation.continue")}
                     <ArrowRight className="ml-1 h-4 w-4" />
                   </>
                 )}
               </Button>
             ) : (
               <p className="flex-1 text-center text-xs text-muted-foreground">
-                Choisissez un fichier pour continuer
+                {t("auditUi.activation.chooseFile")}
               </p>
             )}
           </div>
         </div>
 
         <p className="mt-4 text-center text-xs text-muted-foreground">
-          Vous pouvez quitter à tout moment.{" "}
+          {t("auditUi.activation.canLeaveAnytime")}{" "}
           <button
             type="button"
             className="font-medium text-primary underline-offset-2 hover:underline"
             onClick={() => router.push("/tableau-de-bord")}
           >
-            Plus tard
+            {t("auditUi.activation.later")}
           </button>
         </p>
       </div>

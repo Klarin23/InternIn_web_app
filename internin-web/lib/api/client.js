@@ -29,10 +29,15 @@ async function traduireMessageValidation(msg) {
 }
 
 let refreshPromise = null;
+let refreshRetryAfter = 0;
 
 async function tryRefreshAccessToken() {
-  // Déduplique les appels refresh parallèles
+  // Déduplique les appels refresh parallèles et évite de marteler /auth/refresh
+  // lorsque l'API vient temporairement de répondre 429.
   if (refreshPromise) return refreshPromise;
+  if (Date.now() < refreshRetryAfter) {
+    return { token: null, retryable: true };
+  }
 
   refreshPromise = (async () => {
     try {
@@ -43,12 +48,23 @@ async function tryRefreshAccessToken() {
       // On n'envoie plus le token dans le body.
       const data = await refreshTokenRequest();
       const newToken = data.token || data.accessToken;
-      if (!newToken) return null;
+      if (!newToken) return { token: null, retryable: false };
 
       useAuthStore.getState().setAccessToken(newToken);
-      return newToken;
-    } catch {
-      return null;
+      return { token: newToken, retryable: false };
+    } catch (error) {
+      // Un 429 est un problème de quota, pas une session expirée.
+      // Ne surtout pas déconnecter l'utilisateur dans ce cas.
+      const retryable = error?.status === 429;
+      if (retryable) {
+        // Petite temporisation locale : le quota pourra ensuite être retenté
+        // sans provoquer une nouvelle rafale de requêtes.
+        refreshRetryAfter = Date.now() + 5000;
+      }
+      return {
+        token: null,
+        retryable,
+      };
     } finally {
       refreshPromise = null;
     }
@@ -98,21 +114,31 @@ export async function apiFetch(
     !_retried &&
     !path.includes("/auth/refresh")
   ) {
-    const newToken = await tryRefreshAccessToken();
-    if (newToken) {
+    const refreshResult = await tryRefreshAccessToken();
+    if (refreshResult?.token) {
       return apiFetch(path, {
         method,
         body,
-        token: newToken,
+        token: refreshResult.token,
         _retried: true,
       });
     }
-    // Refresh impossible → déconnexion propre
-    try {
-      const { useAuthStore } = await import("@/lib/store/useAuthStore");
-      useAuthStore.getState().clearSession();
-    } catch {
-      // ignore
+
+    // Un 429 sur le refresh signifie uniquement que le quota est temporairement
+    // atteint. La session reste valide et le store d'authentification ne doit
+    // pas être vidé. Une vraie erreur de refresh (401/403, cookie expiré, etc.)
+    // continue en revanche à fermer proprement la session.
+    if (refreshResult?.retryable) {
+      // On laisse la réponse 401 d'origine remonter à l'appelant sans
+      // détruire la session. Les prochaines requêtes pourront retenter le
+      // refresh une fois le quota revenu à la normale.
+    } else {
+      try {
+        const { useAuthStore } = await import("@/lib/store/useAuthStore");
+        useAuthStore.getState().clearSession();
+      } catch {
+        // ignore
+      }
     }
   }
 

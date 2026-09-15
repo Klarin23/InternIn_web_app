@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { db } from "../db/index.js";
 import { parametresPlateforme } from "../db/schema.js";
+import { redactSensitiveText, redactSensitiveUrl } from "./redactUrl.js";
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -49,7 +50,7 @@ async function sendMail({ to, subject, text, html }) {
     console.log("────────────────────────────────────────");
     console.log("📧 À      :", to);
     console.log("📌 Sujet  :", subject);
-    console.log("📄 Contenu (non envoyé):\n", text);
+    console.log("📄 Contenu (non envoyé):\n", redactSensitiveText(text));
     console.log("────────────────────────────────────────");
     return { skipped: true, reason: "notifications_email_disabled" };
   }
@@ -60,7 +61,7 @@ async function sendMail({ to, subject, text, html }) {
     console.log("────────────────────────────────────────");
     console.log("📧 À      :", to);
     console.log("📌 Sujet  :", subject);
-    console.log("📄 Contenu:\n", text);
+    console.log("📄 Contenu:\n", redactSensitiveText(text));
     console.log("────────────────────────────────────────");
     return { skipped: true, reason: "no_resend_key" };
   }
@@ -77,7 +78,7 @@ async function sendMail({ to, subject, text, html }) {
   } catch (err) {
     console.error("❌ Erreur Resend:", err.message || err);
     console.log("────────────────────────────────────────");
-    console.log("📧 Lien de secours (terminal):\n", text);
+    console.log("📧 Lien de secours (terminal):\n", redactSensitiveText(text));
     console.log("────────────────────────────────────────");
     return { skipped: true, reason: "resend_error" };
   }
@@ -90,8 +91,8 @@ export async function sendVerificationEmail({ email, token }) {
   // Toujours logguer le lien en développement pour faciliter les tests locaux
   if (process.env.NODE_ENV !== "production") {
     console.log("────────────────────────────────────────");
-    console.log("✅ LIEN DE VÉRIFICATION (dev) :");
-    console.log(verificationUrl);
+    console.log("✅ LIEN DE VÉRIFICATION (dev, token masqué) :");
+    console.log(redactSensitiveUrl(verificationUrl));
     console.log("────────────────────────────────────────");
   }
 
@@ -121,8 +122,8 @@ export async function sendPasswordResetEmail({ email, token }) {
 
   if (process.env.NODE_ENV !== "production") {
     console.log("────────────────────────────────────────");
-    console.log("🔑 LIEN RESET MDP (dev) :");
-    console.log(resetUrl);
+    console.log("🔑 LIEN RESET MDP (dev, token masqué) :");
+    console.log(redactSensitiveUrl(resetUrl));
     console.log("────────────────────────────────────────");
   }
 

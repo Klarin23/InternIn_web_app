@@ -13,6 +13,7 @@ import {
   isAutoValidationEnabled,
   ELEMENT_ENTREPRISES,
 } from "../../utils/autoValidation.js";
+import { peutActiverCompte } from "../../utils/emailVerificationGuard.js";
 
 export async function completeEntrepriseOnboarding(idUtilisateur, payload) {
   // Défense en profondeur : ne jamais faire confiance au seul middleware de route.
@@ -22,6 +23,7 @@ export async function completeEntrepriseOnboarding(idUtilisateur, payload) {
     .select({
       typeUtilisateur: utilisateurs.typeUtilisateur,
       statutCompte: utilisateurs.statutCompte,
+      emailVerifie: utilisateurs.emailVerifie,
     })
     .from(utilisateurs)
     .where(eq(utilisateurs.idUtilisateur, idUtilisateur))
@@ -97,11 +99,17 @@ export async function completeEntrepriseOnboarding(idUtilisateur, payload) {
       peutEtreSuperviseur: payload.peutEtreSuperviseur ?? true,
     });
 
-    // 3. Le compte passe de "inactif" à "actif" — l'onboarding est terminé,
-    // même si la vérification admin (statutVerification) reste à faire séparément
+    // 3. Le compte passe de "inactif" à "actif" — mais SEULEMENT si l'email
+    // a réellement été vérifié (jamais un simple flag envoyé par le client).
+    // Sinon, il reste "inactif" : l'onboarding est bien enregistré, mais
+    // l'activation attend la vérification email. La vérification admin
+    // (statutVerification) reste de toute façon à faire séparément.
     await tx
       .update(utilisateurs)
-      .set({ statutCompte: "actif", dateMaj: new Date() })
+      .set({
+        statutCompte: peutActiverCompte(user.emailVerifie) ? "actif" : "inactif",
+        dateMaj: new Date(),
+      })
       .where(eq(utilisateurs.idUtilisateur, idUtilisateur));
 
     return entreprise;

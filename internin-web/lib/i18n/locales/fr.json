@@ -1045,7 +1045,8 @@
       "noCv": "Aucun CV téléchargé",
       "profileCompleted": "Profil complété",
       "completeProfile": "Compléter mon profil",
-      "yearLabel": "{n}e année"
+      "yearLabel": "{n}e année",
+      "complete": "Profil complet"
     },
     "calendar": {
       "weekDays": [
@@ -1747,7 +1748,7 @@
     "inactive": {
       "badge": "Compte incomplet",
       "title": "Finalisez votre compte pour accéder à InternIn",
-      "description": "Votre compte a bien été créé, mais certaines étapes doivent encore être complétées. Vous pouvez consulter votre profil et vos paramètres, mais les fonctionnalités liées aux stages restent temporairement verrouillées.",
+      "description": "Votre compte est créé. Complétez les étapes restantes pour débloquer les fonctionnalités de stage.",
       "progressTitle": "Activation du compte",
       "progressDescription": "Terminez votre profil pour débloquer toutes les fonctionnalités.",
       "progressStatus": "En cours",
@@ -2426,6 +2427,42 @@
         "deleting": "Suppression…",
         "deleteSuccess": "Votre compte a été supprimé définitivement.",
         "deleteError": "Impossible de supprimer votre compte. Veuillez réessayer."
+      },
+      "security": "Sécurité",
+      "confidentiality": "Confidentialité",
+      "dangerZone": "Zone dangereuse",
+      "groupAccount": "Compte",
+      "groupPreferences": "Préférences",
+      "groupSensitive": "Compte sensible",
+      "sectionDescProfil": "Identité et informations",
+      "sectionDescSecurity": "Mot de passe et vérifications",
+      "sectionDescNotifications": "Alertes et communications",
+      "sectionDescAppearance": "Thème clair ou sombre",
+      "sectionDescLanguage": "Langue de l'interface",
+      "sectionDescConfidentiality": "Visibilité de votre profil",
+      "sectionDescDanger": "Déconnexion et suppression",
+      "navAriaLabel": "Sections des paramètres",
+      "mobileSectionLabel": "Section",
+      "profileAccountDesc": "Vos informations personnelles et l'accès à votre profil public.",
+      "defaultUser": "Utilisateur",
+      "roleLabel": "Stagiaire",
+      "sessionsCurrentOnly": "session actuelle uniquement",
+      "sessionsComingSoon": "La liste et la révocation des autres appareils seront disponibles prochainement.",
+      "notificationsDesc": "Choisissez les alertes que vous souhaitez recevoir.",
+      "notifSaveSuccess": "Préférences de notifications enregistrées",
+      "notifSaveError": "Impossible d'enregistrer les préférences",
+      "visibilityCard": {
+        "description": "Contrôlez si les entreprises peuvent découvrir votre profil dans Talents.",
+        "title": "Profil visible auprès des entreprises",
+        "visible": "Visible",
+        "hidden": "Masqué",
+        "explanation": "Lorsque cette option est activée, votre profil peut apparaître dans les recherches de talents effectuées par les entreprises. Vous pouvez modifier ce choix à tout moment.",
+        "statusOn": "Votre profil apparaîtra dans les recherches des entreprises.",
+        "statusOff": "Votre profil n'apparaît pas dans les recherches des entreprises.",
+        "footnote": "Même masqué, votre profil reste accessible aux entreprises avec lesquelles vous avez déjà une candidature ou un stage en cours. Seule la découverte dans le module Talents est concernée.",
+        "toastVisible": "Profil visible",
+        "toastHidden": "Profil masqué",
+        "toastError": "Impossible de mettre à jour la visibilité du profil"
       }
     },
     "common": {
@@ -4276,7 +4313,9 @@
     "csvSignupDate": "Inscription",
     "csvLastLogin": "Dernière connexion",
     "csvYes": "oui",
-    "csvNo": "non"
+    "csvNo": "non",
+    "filterSupervisors": "Superviseurs",
+    "roleSupervisor": "Superviseur"
   },
   "userDetailPanel": {
     "tabOverview": "Vue générale",
@@ -6953,7 +6992,63 @@
       "skillPlaceholder": "Ex. React, Excel…",
       "cvFile": "Fichier CV",
       "targetSector": "Secteur recherché",
-      "targetCity": "Ville recherchée"
+      "targetCity": "Ville recherchée",
+      "profilePhoto": "Photo de profil",
+      "profilePhotoHint": "Ajoutez une photo claire pour inspirer confiance aux recruteurs.",
+      "chooseFile": "Choisissez un fichier pour continuer",
+      "canLeaveAnytime": "Vous pouvez quitter à tout moment.",
+      "later": "Plus tard",
+      "loadingProfile": "Chargement de votre profil…",
+      "continue": "Continuer",
+      "steps": {
+        "titre": {
+          "subtitle": "Ex. « Étudiant en génie logiciel · Recherche stage développement »"
+        },
+        "presentation": {
+          "subtitle": "Quelques lignes sur votre parcours et ce que vous recherchez."
+        },
+        "formation": {
+          "title": "Formation",
+          "subtitle": "Indiquez votre formation principale en cours ou obtenue."
+        },
+        "competences": {
+          "title": "Compétences",
+          "subtitle": "Au moins une compétence (technique, pro ou langue)."
+        },
+        "cv": {
+          "title": "CV",
+          "subtitle": "PDF ou Word, max 5 Mo. Indispensable pour postuler."
+        },
+        "centresInteret": {
+          "title": "Centres d'intérêt",
+          "subtitle": "Domaines de stage qui vous intéressent."
+        },
+        "preferences": {
+          "title": "Préférences de recherche",
+          "subtitle": "Secteurs ou villes ciblés pour affiner les offres."
+        }
+      },
+      "checklist": {
+        "photo": "Ajouter une photo de profil",
+        "titre": "Ajouter un titre professionnel",
+        "presentation": "Ajouter une présentation",
+        "formation": "Ajouter votre formation",
+        "competences": "Ajouter vos compétences",
+        "cv": "Ajouter votre CV",
+        "centresInteret": "Ajouter vos centres d'intérêt",
+        "preferences": "Définir vos préférences de recherche"
+      },
+      "missingItemsPrefix": "Il vous manque :",
+      "checklistShort": {
+        "photo": "photo de profil",
+        "titre": "titre professionnel",
+        "presentation": "présentation",
+        "formation": "formation",
+        "competences": "compétences",
+        "cv": "CV",
+        "centresInteret": "centres d'intérêt",
+        "preferences": "préférences de recherche"
+      }
     },
     "onboarding": {
       "aboutYou": "Parlez-nous de vous",

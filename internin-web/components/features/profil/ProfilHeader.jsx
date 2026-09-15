@@ -14,6 +14,21 @@ import { FiCamera, FiLoader, FiMapPin, FiMail } from "react-icons/fi";
 import { useUploadPhotoProfil } from "@/lib/queries/useStagiaireProfile";
 import { calculerCompletionProfil } from "@/lib/utils/profilCompletion";
 
+// Libellé court traduit pour chaque élément manquant, par id stable —
+// remplace l'ancienne extraction par regex sur le texte français de
+// profilCompletion.js (m.label), qui ne fonctionnait pas en anglais.
+// profilCompletion.js n'est pas modifié.
+const CHECKLIST_SHORT_KEYS = {
+  photo: "auditUi.activation.checklistShort.photo",
+  titre: "auditUi.activation.checklistShort.titre",
+  presentation: "auditUi.activation.checklistShort.presentation",
+  formation: "auditUi.activation.checklistShort.formation",
+  competences: "auditUi.activation.checklistShort.competences",
+  cv: "auditUi.activation.checklistShort.cv",
+  centresInteret: "auditUi.activation.checklistShort.centresInteret",
+  preferences: "auditUi.activation.checklistShort.preferences",
+};
+
 export default function ProfilHeader({ profil }) {
   const { t } = useTranslation();
   const fileInputRef = useRef(null);
@@ -139,7 +154,7 @@ export default function ProfilHeader({ profil }) {
       >
         <div className="mb-2 flex items-center justify-between">
           <span className="text-xs font-medium text-foreground">
-            Profil complété
+            {t("dashboard.profileCard.profileCompleted")}
           </span>
           <span className="text-xs font-semibold text-primary">
             {pourcentage}%
@@ -156,10 +171,14 @@ export default function ProfilHeader({ profil }) {
 
         {manquants.length > 0 && pourcentage < 100 && (
           <p className="mt-2.5 truncate text-xs text-muted-foreground">
-            Il vous manque :{" "}
+            {t("auditUi.activation.missingItemsPrefix")}{" "}
             {manquants
-              .map((m) => m.label.replace(/^Ajouter (votre|vos|un|une) /i, ""))
               .slice(0, 3)
+              .map((m) =>
+                CHECKLIST_SHORT_KEYS[m.id]
+                  ? t(CHECKLIST_SHORT_KEYS[m.id])
+                  : m.label,
+              )
               .join(", ")}
             {manquants.length > 3 ? "…" : ""}
           </p>
