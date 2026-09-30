@@ -22,23 +22,40 @@ export default function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
-  // Retire le token de l'URL après capture (historique navigateur / referrers)
+  // Capture le token AVANT de nettoyer l'URL.
+  // Le token est conservé en mémoire pendant toute la durée de la page et,
+  // en secours, dans sessionStorage pour éviter de le perdre lors d'un
+  // remount/navigation interne du composant. Une nouvelle URL avec un token
+  // remplace toujours l'ancienne valeur.
   useEffect(() => {
-    if (!token || typeof window === "undefined") return;
+    if (typeof window === "undefined") return;
+
     try {
-      const url = new URL(window.location.href);
-      if (url.searchParams.has("token")) {
-        url.searchParams.delete("token");
-        const clean =
-          url.pathname +
-          (url.searchParams.toString() ? `?${url.searchParams}` : "") +
-          url.hash;
-        window.history.replaceState({}, "", clean);
+      if (urlToken) {
+        setResetToken(urlToken);
+        window.sessionStorage.setItem("internin_reset_token", urlToken);
+
+        // Retire le token de l'URL après capture afin de réduire son exposition
+        // dans l'historique et les éventuels referrers.
+        const url = new URL(window.location.href);
+        if (url.searchParams.has("token")) {
+          url.searchParams.delete("token");
+          const clean =
+            url.pathname +
+            (url.searchParams.toString() ? `?${url.searchParams}` : "") +
+            url.hash;
+          window.history.replaceState({}, "", clean);
+        }
+        return;
       }
+
+      const storedToken = window.sessionStorage.getItem("internin_reset_token");
+      if (storedToken) setResetToken(storedToken);
     } catch {
-      /* ignore */
+      // sessionStorage peut être indisponible ; la valeur URL reste prioritaire.
+      if (urlToken) setResetToken(urlToken);
     }
-  }, [token]);
+  }, [urlToken]);
   const { t } = useTranslation();
   const [serverError, setServerError] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -59,7 +76,12 @@ export default function ResetPasswordForm() {
   const onSubmit = async (data) => {
     setServerError(null);
     try {
-      await resetPasswordRequest({ token, password: data.password });
+      await resetPasswordRequest({ token: resetToken, password: data.password });
+      try {
+        window.sessionStorage.removeItem("internin_reset_token");
+      } catch {
+        /* ignore */
+      }
       setSuccess(true);
     } catch (err) {
       setServerError(err.message);
@@ -67,7 +89,7 @@ export default function ResetPasswordForm() {
   };
 
   // ---------- LIEN ABSENT/INVALIDE DÈS LE DÉPART ----------
-  if (!token) {
+  if (!resetToken) {
     return (
       <div className="text-center">
         <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive">
