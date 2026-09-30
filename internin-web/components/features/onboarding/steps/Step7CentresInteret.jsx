@@ -66,8 +66,9 @@ export default function Step7CentresInteret() {
         control={control}
         render={({ field }) => (
           <div className="flex flex-wrap gap-2">
-            {centresList.map((centre) => {
-              const active = field.value.includes(centre.idCentreInteret);
+            {(Array.isArray(centresList) ? centresList : []).map((centre) => {
+              const selectedValues = Array.isArray(field.value) ? field.value : [];
+              const active = selectedValues.includes(centre.idCentreInteret);
               return (
                 <button
                   type="button"
@@ -75,10 +76,10 @@ export default function Step7CentresInteret() {
                   onClick={() => {
                     field.onChange(
                       active
-                        ? field.value.filter(
+                        ? selectedValues.filter(
                             (id) => id !== centre.idCentreInteret,
                           )
-                        : [...field.value, centre.idCentreInteret],
+                        : [...selectedValues, centre.idCentreInteret],
                     );
                   }}
                   className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition ${

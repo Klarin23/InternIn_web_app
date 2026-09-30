@@ -59,7 +59,7 @@ function NavLink({
       )}
 
       {/* Icône : léger pivot + zoom au survol (transform CSS, pas de JS) */}
-      <Icon className="h-4.5 w-4.5 shrink-0 transition-transform duration-200 ease-out group-hover:-rotate-6 group-hover:scale-110" />
+      <Icon className="h-4.5 w-4.5 shrink-0 transition-transform duration-200 ease-out group-hover:scale-[1.05]" />
 
       {/* Dot nouveauté — devant le libellé du menu */}
 
@@ -209,7 +209,11 @@ export default function AppSidebar({
             );
           }
           const SECTION_LABELS = {
+            accueil: t("sidebarSections.accueil"),
             pilotage: t("sidebarSections.pilotage"),
+            reseau: t("sidebarSections.reseau"),
+            suivi: t("sidebarSections.suivi"),
+            analyse: t("sidebarSections.analyse"),
             gestion: t("sidebarSections.gestion"),
             supervision: t("sidebarSections.supervision"),
             entreprise: t("sidebarSections.entreprise"),
@@ -228,8 +232,8 @@ export default function AppSidebar({
             groups[key].push(item);
           }
           return order.map((key) => (
-            <div key={key} className="mb-3">
-              <p className="mb-1.5 px-3.5 text-[11px] font-bold uppercase tracking-wider text-sidebar-foreground/50">
+            <div key={key} className="mb-4">
+              <p className="mb-1.5 px-3.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/45">
                 {key === "_main"
                   ? t("sidebar.mainMenu")
                   : SECTION_LABELS[key] || key}

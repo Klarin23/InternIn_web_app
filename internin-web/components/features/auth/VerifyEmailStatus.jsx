@@ -38,10 +38,17 @@ export default function VerifyEmailStatus() {
   const updateUser = useAuthStore((state) => state.updateUser);
 
   const [status, setStatus] = useState(token ? "checking" : "pending");
+  const [pendingInvitation, setPendingInvitation] = useState(null);
 
   const [cooldown, setCooldown] = useState(0);
 
   const [errorMessage, setErrorMessage] = useState(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const pending = window.localStorage.getItem("internin_universite_invitation");
+    if (pending) setPendingInvitation(pending);
+  }, []);
 
   /**
    * Vérification réelle du token.
@@ -153,7 +160,12 @@ export default function VerifyEmailStatus() {
     if (status === "success") {
       // Jamais /onboarding/1 ici : le login / tableau de bord gèrent la suite
       // (gate compte incomplet + /activation si profil déjà créé)
-      const nextHref = user ? "/tableau-de-bord" : "/connexion";
+      const nextHref =
+        user && pendingInvitation
+          ? `/rejoindre/universite/${encodeURIComponent(pendingInvitation)}`
+          : user
+            ? "/tableau-de-bord"
+            : "/connexion";
       const nextLabel = user
         ? "Accéder à mon espace"
         : t("auth.verifyEmail.login");

@@ -9,6 +9,8 @@ import {
   validerConvention,
   genererPdfConvention,
   getStatistiquesUniversite,
+  listMaitresDeStage,
+  getMaitreDeStageDetail,
 } from "./universites.service.js";
 
 export async function completeOnboarding(req, res, next) {
@@ -108,6 +110,50 @@ export async function genererPdfConventionHandler(req, res, next) {
 export async function getStatistiquesHandler(req, res, next) {
   try {
     res.json(await getStatistiquesUniversite(req.user.idUtilisateur));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listMaitresDeStageHandler(req, res, next) {
+  try {
+    const { recherche, entreprise, statut, encadrement, page, parPage, tri, ordre } = req.query;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (entreprise && !uuidRegex.test(String(entreprise))) {
+      return res.status(400).json({ error: "Identifiant entreprise invalide." });
+    }
+    if (statut && !["invite", "actif", "desactive"].includes(String(statut))) {
+      return res.status(400).json({ error: "Statut invalide." });
+    }
+    if (encadrement && !["actuel", "aucun"].includes(String(encadrement))) {
+      return res.status(400).json({ error: "Filtre d'encadrement invalide." });
+    }
+    if (tri && !["nom", "entreprise", "stagiaires", "stages"].includes(String(tri))) {
+      return res.status(400).json({ error: "Tri invalide." });
+    }
+    if (ordre && !["asc", "desc"].includes(String(ordre))) {
+      return res.status(400).json({ error: "Ordre de tri invalide." });
+    }
+    res.json(
+      await listMaitresDeStage(req.user.idUtilisateur, {
+        recherche,
+        idEntreprise: entreprise,
+        statut,
+        encadrement,
+        page: page ? Number(page) : 1,
+        parPage: parPage ? Number(parPage) : 20,
+        tri,
+        ordre,
+      }),
+    );
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getMaitreDeStageDetailHandler(req, res, next) {
+  try {
+    res.json(await getMaitreDeStageDetail(req.user.idUtilisateur, req.params.idMembre));
   } catch (err) {
     next(err);
   }

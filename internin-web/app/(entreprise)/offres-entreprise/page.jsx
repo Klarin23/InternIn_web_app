@@ -25,13 +25,10 @@ import { useCandidaturesEntreprise } from "@/lib/queries/useCandidaturesEntrepri
 import { AnimatePresence, motion } from "framer-motion";
 import OffreListRow from "@/components/features/offres-entreprise/OffreListRow";
 import ActionsRapidesBanner from "@/components/features/offres-entreprise/ActionsRapidesBanner";
+import { estOffreExpiree } from "@/lib/constants/offres";
 
 function estExpiree(offre) {
-  return (
-    offre.statut === "publie" &&
-    offre.dateLimiteCandidature &&
-    new Date(offre.dateLimiteCandidature) < new Date()
-  );
+  return offre.statut === "publie" && estOffreExpiree(offre);
 }
 
 function getVueSnapshot() {

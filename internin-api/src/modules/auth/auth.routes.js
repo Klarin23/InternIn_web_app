@@ -10,6 +10,7 @@ import {
   resetPasswordController,
   refreshController,
   logoutController,
+  revokeAllSessionsController,
   googleAuth,
   deleteStagiaireAccountController,
   deleteEntrepriseAccountController,
@@ -88,6 +89,7 @@ router.get("/me", requireAuth, me);
 
 router.post("/refresh", refreshLimiter, refreshController);
 router.post("/logout", requireAuth, logoutController);
+router.post("/logout-all", requireAuth, revokeAllSessionsController);
 router.post("/google", authLimiter, validate(googleAuthSchema), googleAuth);
 
 router.post(

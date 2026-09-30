@@ -7,10 +7,9 @@ function calculerBadges(offre, seuilPopulaire, t) {
   const badges = [];
 
   if (offre.dateLimiteCandidature && offre.statut === "publie") {
-    const joursRestants = Math.ceil(
-      (new Date(offre.dateLimiteCandidature) - new Date()) / 86400000,
-    );
-    if (joursRestants >= 0 && joursRestants <= 3) {
+    const millisecondesRestantes = new Date(offre.dateLimiteCandidature).getTime() - Date.now();
+    const joursRestants = Math.ceil(millisecondesRestantes / 86400000);
+    if (millisecondesRestantes >= 0 && joursRestants <= 3) {
       badges.push({
         key: "expire",
         Icon: Clock,

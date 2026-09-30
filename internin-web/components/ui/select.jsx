@@ -5,16 +5,34 @@ import { Select as SelectPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
+import { usePortaledMenuActivityReporter } from "@/components/ui/dialog"
 
 function Select({
   modal = false,
+  onOpenChange,
   ...props
 }) {
   // A Select is frequently rendered inside a modal Dialog. Keeping the
   // Select non-modal prevents Radix Select's body-level pointer-event lock
   // from being mistaken by the parent Dialog's DismissableLayer for an
   // outside interaction when the user closes the list without selecting.
-  return <SelectPrimitive.Root data-slot="select" modal={modal} {...props} />;
+  //
+  // En complément (voir components/ui/dialog.jsx), on signale explicitement
+  // chaque changement d'ouverture au Dialog parent via son callback public
+  // onOpenChange : c'est ce qui permet au Dialog de savoir, de façon fiable,
+  // qu'un clic extérieur au Select vient de le fermer et ne doit donc pas
+  // fermer le Dialog avec lui.
+  const reportPortaledMenuOpenChange = usePortaledMenuActivityReporter();
+  return (
+    <SelectPrimitive.Root
+      data-slot="select"
+      modal={modal}
+      onOpenChange={(isOpen) => {
+        reportPortaledMenuOpenChange(isOpen);
+        onOpenChange?.(isOpen);
+      }}
+      {...props} />
+  );
 }
 
 function SelectGroup({

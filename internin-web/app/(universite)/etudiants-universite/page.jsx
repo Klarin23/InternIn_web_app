@@ -12,6 +12,7 @@
 //   fonctionnalités n'existent pas encore côté backend.
 
 import { useState } from "react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import {
   FiUsers,
   FiBriefcase,
@@ -26,21 +27,22 @@ import {
 import AppHeader from "@/components/layout/AppHeader";
 import { Button } from "@/components/ui/button";
 import { useEtudiantsUniversite } from "@/lib/queries/useEtudiantsUniversite";
+import RattachementUniversitePanel from "@/components/features/rattachement/RattachementUniversitePanel";
 
 const ONGLETS = [
-  { value: undefined, label: "Tous" },
-  { value: "en_stage", label: "En stage" },
-  { value: "sans_stage", label: "Sans stage" },
-  { value: "diplome", label: "Diplômés" },
+  { value: undefined, labelKey: "all" },
+  { value: "en_stage", labelKey: "internship" },
+  { value: "sans_stage", labelKey: "noInternship" },
+  { value: "diplome", labelKey: "graduated" },
 ];
 
 const STATUT_INFO = {
-  en_stage: { label: "En stage", className: "bg-primary/10 text-primary" },
+  en_stage: { labelKey: "internship", className: "bg-primary/10 text-primary" },
   sans_stage: {
-    label: "Sans stage",
+    labelKey: "noInternship",
     className: "bg-warning/10 text-amber-700",
   },
-  diplome: { label: "Diplômé", className: "bg-secondary/10 text-secondary" },
+  diplome: { labelKey: "graduated", className: "bg-secondary/10 text-secondary" },
 };
 
 function initiales(nomComplet) {
@@ -108,7 +110,7 @@ function LigneEtudiant({ etudiant }) {
           className={`flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${statut.className}`}
         >
           <span className="h-1.5 w-1.5 rounded-full bg-current" />
-          {statut.label}
+          {t(`universiteSpace.students.status.${statut.labelKey}`)}
         </span>
       </td>
     </tr>
@@ -116,6 +118,7 @@ function LigneEtudiant({ etudiant }) {
 }
 
 export default function EtudiantsUniversitePage() {
+  const { t } = useTranslation();
   const [recherche, setRecherche] = useState("");
   const [onglet, setOnglet] = useState(undefined);
   const [page, setPage] = useState(1);
@@ -134,9 +137,9 @@ export default function EtudiantsUniversitePage() {
   return (
     <>
       <AppHeader
-        title="Étudiants"
+        title={t("universiteSpace.students.title")}
         subtitle={
-          stats ? `${stats.totalInscrits} étudiant(s) inscrit(s)` : undefined
+          stats ? t("universiteSpace.students.registeredSubtitle", { count: stats.totalInscrits }) : undefined
         }
         refreshKeys={["etudiantsUniversite"]}
       />
@@ -148,49 +151,60 @@ export default function EtudiantsUniversitePage() {
             variant="outline"
             size="sm"
             disabled
-            title="Bientôt disponible"
+            title={t("universiteSpace.students.comingSoon")}
           >
             <FiDownload className="h-4 w-4" />
-            Exporter
+            {t("universiteSpace.students.export")}
           </Button>
           <Button
             type="button"
             variant="outline"
             size="sm"
             disabled
-            title="Bientôt disponible"
+            title={t("universiteSpace.students.comingSoon")}
           >
             <FiFilter className="h-4 w-4" />
-            Filtres
+            {t("universiteSpace.students.filters")}
           </Button>
-          <Button type="button" size="sm" disabled title="Bientôt disponible">
+          <a
+            href="#rattachement-universitaire"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+          >
             <FiUserPlus className="h-4 w-4" />
-            Inscrire
-          </Button>
+            {t("universityLinking.university.inviteTitle")}
+          </a>
+        </div>
+
+        <div id="rattachement-universitaire">
+          <RattachementUniversitePanel
+            onChanged={() => {
+              setPage(1);
+            }}
+          />
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
             icon={FiUsers}
-            label="Total inscrits"
+            label={t("universiteSpace.students.total")}
             value={stats ? stats.totalInscrits : "…"}
             color="bg-primary/10 text-primary"
           />
           <StatCard
             icon={FiBriefcase}
-            label="En stage"
+            label={t("universiteSpace.students.internship")}
             value={stats ? stats.enStage : "…"}
             color="bg-success/10 text-green-700"
           />
           <StatCard
             icon={FiClock}
-            label="Sans stage"
+            label={t("universiteSpace.students.noInternship")}
             value={stats ? stats.sansStage : "…"}
             color="bg-warning/10 text-amber-700"
           />
           <StatCard
             icon={FiAward}
-            label="Diplômés récents"
+            label={t("universiteSpace.students.recentGraduates")}
             value={stats ? stats.diplomesRecents : "…"}
             color="bg-secondary/10 text-secondary"
           />
@@ -201,7 +215,7 @@ export default function EtudiantsUniversitePage() {
             <div className="flex flex-wrap gap-2">
               {ONGLETS.map((o) => (
                 <button
-                  key={o.label}
+                  key={t(`universiteSpace.students.tabs.${o.labelKey}`)}
                   type="button"
                   onClick={() => {
                     setOnglet(o.value);
@@ -213,7 +227,7 @@ export default function EtudiantsUniversitePage() {
                       : "border-border bg-transparent text-muted-foreground hover:bg-muted"
                   }`}
                 >
-                  {o.label}
+                  {t(`universiteSpace.students.tabs.${o.labelKey}`)}
                 </button>
               ))}
             </div>
@@ -224,7 +238,7 @@ export default function EtudiantsUniversitePage() {
                 setRecherche(e.target.value);
                 setPage(1);
               }}
-              placeholder="Rechercher un étudiant..."
+              placeholder={t("universiteSpace.students.searchPlaceholder")}
               className="w-56 rounded-full border border-border bg-muted px-3.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground"
             />
           </div>
@@ -232,7 +246,7 @@ export default function EtudiantsUniversitePage() {
           {isLoading && (
             <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
               <FiLoader className="h-5 w-5 animate-spin" />
-              Chargement...
+              {t("universiteSpace.students.loading")}
             </div>
           )}
 
@@ -240,7 +254,7 @@ export default function EtudiantsUniversitePage() {
             <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
               <FiUsers className="h-8 w-8 text-muted-foreground" />
               <p className="text-sm font-medium text-foreground">
-                Aucun étudiant trouvé
+                {t("universiteSpace.students.empty")}
               </p>
             </div>
           )}
@@ -251,14 +265,14 @@ export default function EtudiantsUniversitePage() {
                 <thead>
                   <tr className="bg-muted/60">
                     {[
-                      "Étudiant",
-                      "Filière",
-                      "Année",
-                      "Superviseur",
-                      "Entreprise",
-                      "Ville",
-                      "Note",
-                      "Statut",
+                      t("universiteSpace.students.headers.student"),
+                      t("universiteSpace.students.headers.field"),
+                      t("universiteSpace.students.headers.year"),
+                      t("universiteSpace.students.headers.supervisor"),
+                      t("universiteSpace.students.headers.company"),
+                      t("universiteSpace.students.headers.city"),
+                      t("universiteSpace.students.headers.rating"),
+                      t("universiteSpace.students.headers.status"),
                     ].map((h) => (
                       <th
                         key={h}
@@ -281,8 +295,7 @@ export default function EtudiantsUniversitePage() {
           {pagination && pagination.totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-border p-4 text-sm text-muted-foreground">
               <span>
-                Page {pagination.page} / {pagination.totalPages} —{" "}
-                {pagination.total} étudiants
+                {t("universiteSpace.students.page", { page: pagination.page, totalPages: pagination.totalPages })} — {t("universiteSpace.students.studentsCount", { count: pagination.total })}
               </span>
               <div className="flex gap-1.5">
                 <Button
@@ -292,7 +305,7 @@ export default function EtudiantsUniversitePage() {
                   disabled={pagination.page <= 1}
                   onClick={() => setPage((p) => p - 1)}
                 >
-                  Précédent
+                  {t("universiteSpace.students.previous")}
                 </Button>
                 <Button
                   type="button"
@@ -301,7 +314,7 @@ export default function EtudiantsUniversitePage() {
                   disabled={pagination.page >= pagination.totalPages}
                   onClick={() => setPage((p) => p + 1)}
                 >
-                  Suivant
+                  {t("universiteSpace.students.next")}
                 </Button>
               </div>
             </div>

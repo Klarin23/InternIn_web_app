@@ -21,9 +21,21 @@ import { universiteStep2Schema } from "@/lib/schemas/onboardingUniversite.schema
 import { useOnboardingUniversiteStore } from "@/lib/store/useOnboardingUniversiteStore";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { uploadDocumentRequest } from "@/lib/api/documents";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+
+/** Messages FR produits par urlValidation → clés i18n step2 */
+const URL_ERROR_TRANSLATIONS = {
+  "URL invalide.": "urlInvalid",
+  "Le lien doit utiliser HTTPS.": "httpsRequired",
+  "L'URL est trop longue.": "urlTooLong",
+  "L’URL est trop longue.": "urlTooLong",
+  "Les identifiants intégrés dans une URL ne sont pas autorisés.":
+    "credentialsNotAllowed",
+};
 
 export default function UniversiteStep2Presence() {
   const router = useRouter();
+  const { t } = useTranslation();
   const token = useAuthStore((state) => state.token);
   const { data, saveStepData } = useOnboardingUniversiteStore();
 
@@ -42,10 +54,15 @@ export default function UniversiteStep2Presence() {
     defaultValues: { siteWeb: data.siteWeb || "", logoUrl: data.logoUrl || "" },
   });
 
+  function translateUrlError(message) {
+    const key = URL_ERROR_TRANSLATIONS[message];
+    return key ? t(`onboardingUniversite.step2.${key}`) : message;
+  }
+
   function handleSelectLogo(file) {
     setLogoError(null);
     if (!["image/png", "image/jpeg"].includes(file.type)) {
-      setLogoError("Format non autorisé — utilisez un PNG ou JPEG.");
+      setLogoError(t("onboardingUniversite.step2.formatError"));
       return;
     }
     setLogoFile(file);
@@ -74,10 +91,10 @@ export default function UniversiteStep2Presence() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div>
         <h1 className="mb-1.5 text-2xl font-bold text-foreground">
-          Présence en ligne
+          {t("onboardingUniversite.step2.title")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Facultatif, mais renforce la visibilité de votre établissement.
+          {t("onboardingUniversite.step2.description")}
         </p>
       </div>
 
@@ -90,19 +107,21 @@ export default function UniversiteStep2Presence() {
 
       <div className="space-y-1.5">
         <Label>
-          Logo de l&apos;établissement{" "}
-          <span className="text-muted-foreground">(facultatif)</span>
+          {t("onboardingUniversite.step2.logoLabel")}{" "}
+          <span className="text-muted-foreground">
+            ({t("onboardingUniversite.step2.optional")})
+          </span>
         </Label>
         {logoPreview ? (
           <div className="flex items-center gap-3 rounded-md border border-border bg-card p-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={logoPreview}
-              alt="Aperçu du logo"
+              alt={t("onboardingUniversite.step2.previewAlt")}
               className="h-14 w-14 rounded-sm object-cover"
             />
             <span className="flex-1 truncate text-sm text-foreground">
-              {logoFile?.name || "Logo actuel"}
+              {logoFile?.name || t("onboardingUniversite.step2.currentLogo")}
             </span>
             <button
               type="button"
@@ -111,7 +130,7 @@ export default function UniversiteStep2Presence() {
                 setLogoFile(null);
               }}
               className="text-muted-foreground hover:text-destructive"
-              aria-label="Retirer le logo"
+              aria-label={t("onboardingUniversite.step2.removeLogo")}
             >
               <FiX className="h-4 w-4" />
             </button>
@@ -123,7 +142,7 @@ export default function UniversiteStep2Presence() {
           >
             <FiImage className="h-6 w-6 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              Cliquez pour ajouter un logo (PNG ou JPEG)
+              {t("onboardingUniversite.step2.uploadPrompt")}
             </p>
             <input
               ref={inputRef}
@@ -139,43 +158,45 @@ export default function UniversiteStep2Presence() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="siteWeb">Site web</Label>
+        <Label htmlFor="siteWeb">
+          {t("onboardingUniversite.step2.siteWeb")}
+        </Label>
         <div className="relative">
-          <FiGlobe className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <FiGlobe className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             id="siteWeb"
             type="url"
-            placeholder="https://votre-universite.edu"
-            className="h-12 rounded-sm pl-10"
+            placeholder={t("onboardingUniversite.step2.siteWebPlaceholder")}
+            className="pl-10"
             {...register("siteWeb")}
           />
         </div>
         {errors.siteWeb && (
-          <p className="text-xs text-destructive">{errors.siteWeb.message}</p>
+          <p className="text-xs text-destructive">
+            {translateUrlError(errors.siteWeb.message)}
+          </p>
         )}
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex items-center justify-between pt-2">
         <Button
           type="button"
-          variant="outline"
-          className="h-12 rounded-sm"
+          variant="ghost"
+          size="sm"
           onClick={() => router.push("/onboarding/1")}
+          aria-label={t("onboardingUniversite.step2.back")}
         >
-          <FiArrowLeft className="h-4 w-4" />
+          <FiArrowLeft className="mr-1.5 h-4 w-4" />
+          {t("onboardingUniversite.step2.back")}
         </Button>
-        <Button
-          type="submit"
-          disabled={isSubmitting || isUploadingLogo}
-          className="h-12 flex-1 rounded-sm"
-        >
+        <Button type="submit" disabled={isSubmitting || isUploadingLogo}>
           {isUploadingLogo ? (
             <>
-              <FiLoader className="h-4 w-4 animate-spin" />
-              Envoi du logo...
+              <FiLoader className="mr-2 h-4 w-4 animate-spin" />
+              {t("onboardingUniversite.step2.uploadingLogo")}
             </>
           ) : (
-            "Continuer"
+            t("onboardingUniversite.step2.continue")
           )}
         </Button>
       </div>

@@ -1,13 +1,6 @@
 "use client";
 
-/**
- * Recherche globale (AppHeader) — active sur tous les espaces.
- *
- * - Navigation du rôle (liste statique, sans déclencher d'API)
- * - Entités déjà en cache React Query (stagiaires, offres, candidatures…)
- * - Raccourci Ctrl/Cmd + K
- * - Clavier : ↑↓ Entrée Échap
- */
+
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -416,8 +409,7 @@ export default function GlobalSearch({ className, placeholder }) {
     return unique.slice(0, 12);
   }, [query, navItems, queryClient, type, t]);
 
-  // Index sûr sans setState dans un effect (react-hooks/set-state-in-effect).
-  // Reset à 0 via onChange quand la query change ; clamp si la liste raccourcit.
+ 
   const safeActiveIndex =
     results.length === 0 ? 0 : Math.min(activeIndex, results.length - 1);
 

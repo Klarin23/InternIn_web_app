@@ -35,7 +35,9 @@ export const completeOnboardingSchema = z.object({
   ville: z.string().min(1),
   dateNaissance: z.string().optional(),
   statutAcademique: z.enum(["etudiant", "jeune_diplome"]).default("etudiant"),
+  // Ne constitue jamais une preuve de rattachement. Le serveur ignore cette valeur pour un nouveau rattachement.
   idUniversite: z.string().optional(),
+  rattachementInvitationToken: z.string().min(32).max(128).optional(),
 
   formations: z.array(formationSchema).min(1),
   cvUrl: z.string().min(1, "Le CV est requis"),

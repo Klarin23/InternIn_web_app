@@ -1,7 +1,4 @@
-/**
- * Lecture centralisée du paramètre "validation automatique" + éléments cochés.
- * Source de vérité : table parametres_plateforme (singleton).
- */
+
 
 import { db } from "../db/index.js";
 import { parametresPlateforme } from "../db/schema.js";

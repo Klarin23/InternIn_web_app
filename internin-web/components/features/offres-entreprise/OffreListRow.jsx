@@ -28,6 +28,7 @@ import {
 } from "@/lib/queries/useCreateOffre";
 import OffreBadgesInfo from "./OffreBadgesInfo";
 import CandidatsRecentsAvatars from "./CandidatsRecentsAvatars";
+import { formatDateHeureLimite } from "@/lib/utils/dateLimiteOffre";
 
 const STATUT_LABELS_KEYS = {
   brouillon: "entrepriseSpace.offers.statusDraft",
@@ -57,17 +58,12 @@ function estExpiree(offre) {
   return (
     offre.statut === "publie" &&
     offre.dateLimiteCandidature &&
-    new Date(offre.dateLimiteCandidature) < new Date()
+    new Date(offre.dateLimiteCandidature) <= new Date()
   );
 }
 
 function formatDate(date, locale = "fr") {
-  if (!date) return "—";
-  const tag = String(locale).toLowerCase().startsWith("en") ? "en-GB" : "fr-FR";
-  return new Date(date).toLocaleDateString(tag, {
-    day: "2-digit",
-    month: "short",
-  });
+  return formatDateHeureLimite(date, locale) || "—";
 }
 
 function MenuItem({ icon: Icon, label, onClick, disabled, danger, loading }) {

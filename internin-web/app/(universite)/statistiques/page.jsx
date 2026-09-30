@@ -21,15 +21,16 @@ import {
   FiAward,
 } from "react-icons/fi";
 import AppHeader from "@/components/layout/AppHeader";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import RepartitionStagesCard from "@/components/features/dashboard-universite/RepartitionStagesCard";
 import EvolutionConventionsCard from "@/components/features/dashboard-universite/EvolutionConventionsCard";
 import { useStatistiquesUniversite } from "@/lib/queries/useStatistiquesUniversite";
 
-const DUREE_LABEL = {
-  "1_mois": "1 mois",
-  "2_mois": "2 mois",
-  "3_mois": "3 mois",
-  non_renseignee: "Non renseignée",
+const DUREE_LABEL_KEYS = {
+  "1_mois": "one",
+  "2_mois": "two",
+  "3_mois": "three",
+  non_renseignee: "unknown",
 };
 
 function StatCard({ icon: Icon, label, value, color }) {
@@ -47,6 +48,7 @@ function StatCard({ icon: Icon, label, value, color }) {
 }
 
 export default function StatistiquesPage() {
+  const { t } = useTranslation();
   const { data: stats, isLoading } = useStatistiquesUniversite();
 
   const dureeEntries = stats ? Object.entries(stats.repartitionDureeStage) : [];
@@ -55,8 +57,8 @@ export default function StatistiquesPage() {
   return (
     <>
       <AppHeader
-        title="Statistiques"
-        subtitle="Vue détaillée de l'activité de stages"
+        title={t("universiteSpace.statistics.title")}
+        subtitle={t("universiteSpace.statistics.subtitle")}
         refreshKeys={["universiteStats"]}
       />
 
@@ -64,7 +66,7 @@ export default function StatistiquesPage() {
         {isLoading && (
           <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
             <FiLoader className="h-5 w-5 animate-spin" />
-            Chargement...
+            {t("universiteSpace.settings.loading")}
           </div>
         )}
 
@@ -74,19 +76,19 @@ export default function StatistiquesPage() {
               <StatCard
                 icon={FiUsers}
                 value={stats.etudiantsInscrits}
-                label="Étudiants inscrits"
+                label={t("universiteSpace.statistics.students")}
                 color="bg-primary/10 text-primary"
               />
               <StatCard
                 icon={FiBriefcase}
                 value={stats.entreprisesPartenaires}
-                label="Entreprises partenaires"
+                label={t("universiteSpace.statistics.partners")}
                 color="bg-secondary/10 text-secondary"
               />
               <StatCard
                 icon={FiFileText}
                 value={stats.conventionsActives}
-                label="Conventions actives"
+                label={t("universiteSpace.statistics.activeConventions")}
                 color="bg-success/10 text-green-700"
               />
               <StatCard
@@ -96,7 +98,7 @@ export default function StatistiquesPage() {
                     ? `${stats.noteMoyenneGlobale}/20`
                     : "—"
                 }
-                label="Note moyenne des stagiaires"
+                label={t("universiteSpace.statistics.averageRating")}
                 color="bg-warning/10 text-amber-700"
               />
             </div>
@@ -109,11 +111,11 @@ export default function StatistiquesPage() {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div className="rounded-md border border-border bg-card p-5">
                 <h3 className="mb-4 text-sm font-bold text-foreground">
-                  Répartition par durée de stage
+                  {t("universiteSpace.statistics.durationTitle")}
                 </h3>
                 {dureeEntries.length === 0 ? (
                   <p className="py-6 text-center text-sm text-muted-foreground">
-                    Aucune convention pour l&apos;instant.
+                    {t("universiteSpace.statistics.emptyConventions")}
                   </p>
                 ) : (
                   <div className="space-y-4">
@@ -121,7 +123,7 @@ export default function StatistiquesPage() {
                       <div key={cle}>
                         <div className="mb-1.5 flex items-center justify-between text-sm">
                           <span className="font-medium text-foreground">
-                            {DUREE_LABEL[cle] || cle}
+                            {t(`universiteSpace.statistics.months.${DUREE_LABEL_KEYS[cle] || "unknown"}`)}
                           </span>
                           <span className="font-bold text-foreground">
                             {valeur}
@@ -141,11 +143,11 @@ export default function StatistiquesPage() {
 
               <div className="rounded-md border border-border bg-card p-5">
                 <h3 className="mb-4 text-sm font-bold text-foreground">
-                  Top entreprises partenaires
+                  {t("universiteSpace.statistics.topPartners")}
                 </h3>
                 {stats.topEntreprises.length === 0 ? (
                   <p className="py-6 text-center text-sm text-muted-foreground">
-                    Aucune entreprise partenaire pour l&apos;instant.
+                    {t("universiteSpace.statistics.emptyPartners")}
                   </p>
                 ) : (
                   <ul className="space-y-3">
@@ -158,7 +160,7 @@ export default function StatistiquesPage() {
                           {e.nomEntreprise}
                         </span>
                         <span className="text-muted-foreground">
-                          {e.nbEtudiants} étudiant{e.nbEtudiants > 1 ? "s" : ""}
+                          {e.nbEtudiants} {e.nbEtudiants > 1 ? t("universiteSpace.statistics.studentCountOther") : t("universiteSpace.statistics.studentCountOne")}
                         </span>
                       </li>
                     ))}

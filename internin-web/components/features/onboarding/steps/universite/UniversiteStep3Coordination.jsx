@@ -11,9 +11,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { universiteStep3Schema } from "@/lib/schemas/onboardingUniversite.schema";
 import { useOnboardingUniversiteStore } from "@/lib/store/useOnboardingUniversiteStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function UniversiteStep3Coordination() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { data, saveStepData } = useOnboardingUniversiteStore();
 
   const {
@@ -25,7 +27,6 @@ export default function UniversiteStep3Coordination() {
     defaultValues: {
       contactServiceCarriere: data.contactServiceCarriere || "",
       periodeStageHabituelle: data.periodeStageHabituelle || "",
-      heuresRecommandeesSemaine: data.heuresRecommandeesSemaine || "",
       nomCoordinateurStage: data.nomCoordinateurStage || "",
     },
   });
@@ -42,16 +43,16 @@ export default function UniversiteStep3Coordination() {
           <FiCalendar className="h-5 w-5" />
         </div>
         <h1 className="mb-1.5 text-2xl font-bold text-foreground">
-          Coordination des stages
+          {t("onboardingUniversite.step3.title")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Facultatif — aide les entreprises à mieux comprendre vos attentes.
+          {t("onboardingUniversite.step3.description")}
         </p>
       </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="contactServiceCarriere">
-          Contact du service carrière
+          {t("onboardingUniversite.step3.careerServiceContact")}
         </Label>
         <Input
           id="contactServiceCarriere"
@@ -62,7 +63,7 @@ export default function UniversiteStep3Coordination() {
 
       <div className="space-y-1.5">
         <Label htmlFor="nomCoordinateurStage">
-          Nom du coordinateur de stage
+          {t("onboardingUniversite.step3.internshipCoordinator")}
         </Label>
         <Input
           id="nomCoordinateurStage"
@@ -73,25 +74,15 @@ export default function UniversiteStep3Coordination() {
 
       <div className="space-y-1.5">
         <Label htmlFor="periodeStageHabituelle">
-          Période de stage habituelle
+          {t("onboardingUniversite.step3.usualInternshipPeriod")}
         </Label>
         <Input
           id="periodeStageHabituelle"
-          placeholder="Ex : Juin - Août"
+          placeholder={t(
+            "onboardingUniversite.step3.usualInternshipPeriodPlaceholder",
+          )}
           className="h-12 rounded-sm"
           {...register("periodeStageHabituelle")}
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="heuresRecommandeesSemaine">
-          Heures recommandées / semaine
-        </Label>
-        <Input
-          id="heuresRecommandeesSemaine"
-          type="number"
-          className="h-12 rounded-sm"
-          {...register("heuresRecommandeesSemaine")}
         />
       </div>
 
@@ -101,6 +92,7 @@ export default function UniversiteStep3Coordination() {
           variant="outline"
           className="h-12 rounded-sm"
           onClick={() => router.push("/onboarding/2")}
+          aria-label={t("onboardingUniversite.step3.back")}
         >
           <FiArrowLeft className="h-4 w-4" />
         </Button>
@@ -109,7 +101,7 @@ export default function UniversiteStep3Coordination() {
           disabled={isSubmitting}
           className="h-12 flex-1 rounded-sm"
         >
-          Continuer
+          {t("onboardingUniversite.step3.continue")}
         </Button>
       </div>
     </form>

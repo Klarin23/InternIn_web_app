@@ -10,7 +10,7 @@ export const universiteStep1Schema = z.object({
     .min(1, "L'e-mail officiel est requis")
     .email("Adresse e-mail invalide"),
   typeEtablissement: z.string().min(1, "Sélectionnez un type d'établissement"),
-  pays: z.string().min(1, "Le pays est requis"),
+  pays: z.literal("Cameroun", { errorMap: () => ({ message: "Le pays doit être le Cameroun" }) }),
   nombreEtudiants: z.string().optional(),
 });
 
@@ -22,6 +22,5 @@ export const universiteStep2Schema = z.object({
 export const universiteStep3Schema = z.object({
   contactServiceCarriere: z.string().optional(),
   periodeStageHabituelle: z.string().optional(),
-  heuresRecommandeesSemaine: z.string().optional(),
   nomCoordinateurStage: z.string().optional(),
 });

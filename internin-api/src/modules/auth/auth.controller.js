@@ -7,6 +7,7 @@ import {
   resetPassword,
   refreshAccessToken,
   logoutUser,
+  revokeAllSessions,
   loginWithGoogle,
 } from "./auth.service.js";
 import { deleteStagiaireAccount, deleteEntrepriseAccount } from "./accountDeletion.service.js";
@@ -91,6 +92,21 @@ export async function logoutController(req, res, next) {
     });
 
     res.status(200).json({ message: "Déconnecté avec succès" });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function revokeAllSessionsController(req, res, next) {
+  try {
+    await revokeAllSessions(req.user.idUtilisateur);
+    res.clearCookie("internin_refresh", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+    });
+    res.status(200).json({ message: "Toutes les sessions ont été révoquées." });
   } catch (err) {
     next(err);
   }

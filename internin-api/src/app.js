@@ -28,6 +28,7 @@ import partenariatsRoutes from "./modules/partenariats/partenariats.routes.js";
 import notificationsRoutes from "./modules/notifications/notifications.routes.js";
 import realtimeRoutes from "./modules/realtime/realtime.routes.js";
 import equipeRoutes from "./modules/equipe/equipe.routes.js";
+import rattachementsUniversiteRoutes from "./modules/rattachements-universite/rattachementsUniversite.routes.js";
 import superviseurRoutes from "./modules/superviseur/superviseur.routes.js";
 import messagesRoutes from "./modules/messages/messages.routes.js";
 import propositionsRoutes from "./modules/propositions/propositions.routes.js";
@@ -169,6 +170,7 @@ app.use("/stagiaires", stagiairesRoutes);
 
 app.use("/entreprises", entreprisesRoutes);
 app.use("/universites", universitesRoutes);
+app.use("/rattachements-universite", rattachementsUniversiteRoutes);
 
 app.use("/offres", offresRoutes);
 app.use("/candidatures", candidaturesRoutes);

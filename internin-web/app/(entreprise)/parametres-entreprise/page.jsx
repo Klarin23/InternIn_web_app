@@ -776,7 +776,7 @@ export default function ParametresEntreprisePage() {
   const [active, setActive] = useState("profil");
   const { data: profil, isLoading, isError, refetch } = useEntrepriseProfile();
 
-  const sections = useMemo(() => getSections(t), [t, locale]);
+  const sections = useMemo(() => getSections(t), [t]);
   const groups = useMemo(() => groupSections(sections), [sections]);
   const activeMeta = sections.find((s) => s.id === active);
 

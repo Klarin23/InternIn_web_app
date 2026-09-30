@@ -1,4 +1,4 @@
-import { eq, and, inArray, sql, desc } from "drizzle-orm";
+import { eq, and, inArray, sql, desc, asc } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
   utilisateurs,
@@ -15,10 +15,13 @@ import {
   entretiens,
   candidatures,
   offresStage,
+  membresEquipe,
+  affectationsSuperviseurStage,
 } from "../../db/schema.js";
 import { genererConventionPdf } from "../../utils/conventionPdf.js";
 import { peutActiverCompte } from "../../utils/emailVerificationGuard.js";
 import { creerNotification } from "../notifications/notifications.service.js";
+import { isAutoValidationEnabled, ELEMENT_UNIVERSITES } from "../../utils/autoValidation.js"
 
 
 export async function getUniversiteProfile(idUtilisateur) {
@@ -36,10 +39,6 @@ export async function getUniversiteProfile(idUtilisateur) {
   return universite;
 }
 
-// Met à jour les champs "opérationnels" du profil (Paramètres). Le nom,
-// l'e-mail officiel, le pays et le type d'établissement ne passent pas par
-// ici : ce sont des champs d'identité vérifiés par un administrateur, à
-// modifier uniquement via le support.
 export async function updateUniversiteProfile(idUtilisateur, payload) {
   const universite = await getUniversiteProfile(idUtilisateur);
 
@@ -53,9 +52,6 @@ export async function updateUniversiteProfile(idUtilisateur, payload) {
         : null,
       contactServiceCarriere: payload.contactServiceCarriere || null,
       periodeStageHabituelle: payload.periodeStageHabituelle || null,
-      heuresRecommandeesSemaine: payload.heuresRecommandeesSemaine
-        ? Number(payload.heuresRecommandeesSemaine)
-        : null,
       nomCoordinateurStage: payload.nomCoordinateurStage || null,
     })
     .where(eq(universites.idUniversite, universite.idUniversite))
@@ -64,16 +60,7 @@ export async function updateUniversiteProfile(idUtilisateur, payload) {
   return maj;
 }
 
-// Chiffres du tableau de bord "Espace Université". Tout est scopé à
-// l'université de l'utilisateur connecté via stages.idUniversite (rempli
-// dès qu'un stage est créé à partir d'une convention).
-//
-// Écart assumé vis-à-vis de la maquette : le schéma ne porte ni "filière"
-// d'études (table stagiaires) ni date d'approbation distincte sur une
-// convention — seulement dateCreation et un booléen approuveeParPlateforme.
-// Le graphique "Par filière" n'est donc pas construit (aucune donnée réelle
-// à afficher), et "Évolution des conventions" montre une seule courbe
-// (dépôts par mois) plutôt que dépôts vs validations.
+
 export async function getUniversiteStats(idUtilisateur) {
   const universite = await getUniversiteProfile(idUtilisateur);
   const idUniversite = universite.idUniversite;
@@ -90,10 +77,7 @@ export async function getUniversiteStats(idUtilisateur) {
       and(eq(stages.idUniversite, idUniversite), eq(stages.statut, "actif")),
     );
 
-  // Une entreprise est "partenaire" soit parce qu'un stage a déjà démarré
-  // avec elle (détection automatique), soit parce qu'elle a accepté une
-  // invitation de partenariat envoyée par l'université — même sans aucun
-  // stage pour l'instant. Les deux sources doivent être comptées ici.
+ 
   const [entreprisesStageRows, entreprisesInviteesRows] = await Promise.all([
     db
       .selectDistinct({ idEntreprise: stages.idEntreprise })
@@ -134,8 +118,7 @@ export async function getUniversiteStats(idUtilisateur) {
   const repartitionStatuts = { actif: 0, termine: 0, interrompu: 0 };
   for (const r of repartitionRows) repartitionStatuts[r.statut] = r.count;
 
-  // Dépôts de conventions des 6 derniers mois (mois calendaires), pour le
-  // graphique d'évolution.
+ 
   const depotsParMois = await db
     .select({
       mois: sql`to_char(${conventionsStage.dateCreation}, 'YYYY-MM')`.as(
@@ -149,8 +132,7 @@ export async function getUniversiteStats(idUtilisateur) {
     .groupBy(sql`to_char(${conventionsStage.dateCreation}, 'YYYY-MM')`)
     .orderBy(sql`to_char(${conventionsStage.dateCreation}, 'YYYY-MM')`);
 
-  // Alertes : les conventions en attente les plus anciennes, avec leur
-  // nombre de jours d'attente.
+
   const alertesRows = await db
     .select({
       idConvention: conventionsStage.idConvention,
@@ -185,16 +167,7 @@ export async function getUniversiteStats(idUtilisateur) {
   };
 }
 
-// Page "Entreprises" de l'espace université — liste les entreprises
-// partenaires, c'est-à-dire celles ayant accueilli au moins un stagiaire
-// de cette université (jointure via stages.idUniversite, seule table qui
-// relie entreprise ↔ université dans le schéma). Indicateurs agrégés par
-// entreprise : nombre d'étudiants placés, stages actifs, note moyenne.
-//
-// Écart assumé : "contact principal" vient de contacts_entreprise
-// (estContactPrincipal = true) — c'est un contact RH généraliste, pas
-// forcément la personne qui a supervisé un stagiaire de cette université
-// en particulier.
+
 export async function listEntreprisesPartenaires(idUtilisateur, options = {}) {
   const { recherche } = options;
   const universite = await getUniversiteProfile(idUtilisateur);
@@ -276,8 +249,7 @@ export async function listEntreprisesPartenaires(idUtilisateur, options = {}) {
     contactsRows.map((c) => [c.idEntreprise, c]),
   );
 
-  // Même logique de calcul de note que listEtudiants (moyenne des 6
-  // critères, ramenée sur 20) — gardée cohérente entre les deux pages.
+ 
   const notesParStage = new Map();
   for (const ev of evaluationsRows) {
     const notes = [
@@ -295,9 +267,7 @@ export async function listEntreprisesPartenaires(idUtilisateur, options = {}) {
   }
 
   const parEntreprise = new Map();
-  // On seed d'abord les partenaires venus uniquement d'une invitation
-  // acceptée (zéro stage pour l'instant), pour qu'ils apparaissent même
-  // sans stagesRows correspondantes.
+ 
   for (const idEntreprise of idsEntreprisesInvitees) {
     parEntreprise.set(idEntreprise, {
       idEntreprise,
@@ -351,9 +321,7 @@ export async function listEntreprisesPartenaires(idUtilisateur, options = {}) {
       stagesActifs: agg.stagesActifs,
       totalStages: agg.totalStages,
       noteMoyenne,
-      // "invitation" = partenaire obtenu via une invitation acceptée, sans
-      // (ou pas encore) de stage démarré ; "stage" = détecté automatiquement
-      // dès qu'un premier stage a démarré avec cette entreprise.
+     
       origine: agg.totalStages > 0 ? "stage" : "invitation",
     };
   });
@@ -370,25 +338,6 @@ export async function listEntreprisesPartenaires(idUtilisateur, options = {}) {
   return resultat;
 }
 
-// Page "Conventions" de l'espace université.
-//
-// Correctif : la version précédente passait par un INNER JOIN sur `stages`,
-// or une ligne `stages` n'existe QUE lorsque les 3 accords (entreprise,
-// stagiaire, plateforme) sont déjà réunis (cf. offresFinales.service.js,
-// bloc de création du stage). Résultat : cet INNER JOIN excluait de fait
-// TOUTES les conventions encore en attente — le statut "en_attente" du code
-// était écrit mais jamais atteignable en pratique.
-//
-// Correction : on remonte par la chaîne qui existe dès la création de la
-// convention, AVANT tout accord : conventions_stage → offres_finales →
-// entretiens → candidatures → stagiaires (+ offres_stage → entreprises pour
-// le nom de l'entreprise). On rattache ensuite `stages` en LEFT JOIN
-// uniquement pour connaître son statut quand il existe déjà.
-//
-// Le statut affiché reste calculé à l'identique qu'avant (le schéma ne
-// porte toujours pas de statut de refus distinct sur une convention) :
-// "en_attente" tant que les 3 accords ne sont pas réunis, sinon calqué sur
-// l'état réel du stage (actif ⟶ "active", sinon ⟶ "terminee").
 export async function listConventions(idUtilisateur, options = {}) {
   const { recherche, statut } = options;
   const universite = await getUniversiteProfile(idUtilisateur);
@@ -587,9 +536,6 @@ export async function validerConvention(idUtilisateur, idConvention, valider) {
   return maj;
 }
 
-// Génère (à chaque appel, pour rester à jour) un PDF récapitulatif de la
-// convention et renvoie son URL absolue — même approche que le certificat
-// de stage (utils/certificatPdf.js).
 export async function genererPdfConvention(idUtilisateur, idConvention, lang = "fr") {
   const universite = await getUniversiteProfile(idUtilisateur);
   const c = await getConventionUniversiteOuThrow(
@@ -656,13 +602,7 @@ export async function genererPdfConvention(idUtilisateur, idConvention, lang = "
   return { url: `${base}/uploads/${cheminRelatif}` };
 }
 
-// Page "Statistiques" de l'espace université — vue détaillée qui réutilise
-// les agrégats déjà calculés pour le tableau de bord (getUniversiteStats) et
-// pour la page Entreprises (listEntreprisesPartenaires, déjà triée par
-// nombre d'étudiants placés), et y ajoute deux indicateurs propres à cette
-// page : la note moyenne globale (mêmes 6 critères d'évaluation que les
-// pages Étudiants/Entreprises, ramenée sur 20) et la répartition des stages
-// par durée déclarée sur l'offre finale.
+
 export async function getStatistiquesUniversite(idUtilisateur) {
   const universite = await getUniversiteProfile(idUtilisateur);
   const idUniversite = universite.idUniversite;
@@ -768,9 +708,6 @@ export async function completeUniversiteOnboarding(idUtilisateur, payload) {
           : null,
         contactServiceCarriere: payload.contactServiceCarriere || null,
         periodeStageHabituelle: payload.periodeStageHabituelle || null,
-        heuresRecommandeesSemaine: payload.heuresRecommandeesSemaine
-          ? Number(payload.heuresRecommandeesSemaine)
-          : null,
         nomCoordinateurStage: payload.nomCoordinateurStage || null,
         statutVerification: autoVerif ? "verifiee" : "en_attente",
         dateVerification: autoVerif ? new Date() : null,
@@ -779,7 +716,7 @@ export async function completeUniversiteOnboarding(idUtilisateur, payload) {
 
     // Le compte ne passe à "actif" que si l'email a réellement été vérifié
     // (jamais un simple flag envoyé par le client). Sinon il reste "inactif" :
-    // l'onboarding est bien enregistré, l'activation attend la vérification.
+
     await tx
       .update(utilisateurs)
       .set({
@@ -794,17 +731,6 @@ export async function completeUniversiteOnboarding(idUtilisateur, payload) {
   });
 }
 
-// Page "Étudiants" de l'espace université.
-//
-// Écarts assumés vis-à-vis de la maquette (aucune donnée inventée) :
-// - Pas de colonne "Tuteur académique" dans le schéma : la colonne
-//   "Superviseur" ci-dessous montre le contact CÔTÉ ENTREPRISE
-//   (stages.idContactSuperviseur), pas un tuteur académique interne —
-//   cette fonctionnalité n'existe pas encore.
-// - Pas de "promotion" (cohorte 2024-2025) en base : on affiche l'année
-//   d'obtention si elle est connue, sinon l'année d'étude déclarée.
-// - "Note" = moyenne des 6 critères des évaluations hebdomadaires du stage
-//   (échelle 1-5), ramenée sur 20. "—" si aucune évaluation n'existe encore.
 export async function listEtudiants(idUtilisateur, options = {}) {
   const { recherche, statut, page = 1, parPage = 20 } = options;
   const universite = await getUniversiteProfile(idUtilisateur);
@@ -974,5 +900,358 @@ export async function listEtudiants(idUtilisateur, options = {}) {
     data: donneesPage,
     pagination: { page: pageBornee, parPage: Number(parPage), total, totalPages },
     stats,
+  };
+}
+
+
+// -----------------------------------------------------------------------
+// Annuaire institutionnel des maîtres de stage
+// -----------------------------------------------------------------------
+
+const MAITRES_PAGE_MAX = 50;
+const MAITRES_DEFAULT_PAGE_SIZE = 20;
+const MAITRES_STATUTS = new Set(["invite", "actif", "desactive"]);
+const MAITRES_TRI = new Set(["nom", "entreprise", "stagiaires", "stages"]);
+
+function normaliserPaginationMaitres(page, parPage) {
+  const pageNumber = Number.isFinite(Number(page)) && Number(page) > 0 ? Math.floor(Number(page)) : 1;
+  const size = Number.isFinite(Number(parPage)) && Number(parPage) > 0
+    ? Math.min(Math.floor(Number(parPage)), MAITRES_PAGE_MAX)
+    : MAITRES_DEFAULT_PAGE_SIZE;
+  return { page: pageNumber, parPage: size, offset: (pageNumber - 1) * size };
+}
+
+function normaliserRecherche(value) {
+  const trimmed = String(value ?? "").trim();
+  return trimmed.length > 100 ? trimmed.slice(0, 100) : trimmed;
+}
+
+function conditionMaitres(options) {
+  const conditions = [];
+  if (options.statut && MAITRES_STATUTS.has(options.statut)) {
+    conditions.push(eq(membresEquipe.statutMembre, options.statut));
+  }
+  if (options.encadrement === "actuel") {
+    conditions.push(eq(stages.statut, "actif"));
+  }
+  if (options.encadrement === "aucun") {
+    conditions.push(sql`NOT EXISTS (SELECT 1 FROM affectations_superviseur_stage a2 INNER JOIN stages s2 ON s2.id_stage = a2.id_stage WHERE a2.id_membre = ${membresEquipe.idMembre} AND s2.id_universite = ${options.idUniversite} AND s2.statut = 'actif')`);
+  }
+  const recherche = normaliserRecherche(options.recherche);
+  if (recherche) {
+    const pattern = `%${recherche}%`;
+    conditions.push(
+      sql`(${membresEquipe.nom} ILIKE ${pattern} OR ${entreprises.nomEntreprise} ILIKE ${pattern} OR CAST(${membresEquipe.roleEquipe} AS text) ILIKE ${pattern})`,
+    );
+  }
+  if (options.idEntreprise) {
+    conditions.push(eq(entreprises.idEntreprise, options.idEntreprise));
+  }
+  return conditions;
+}
+
+export async function listMaitresDeStage(idUtilisateur, options = {}) {
+  const universite = await getUniversiteProfile(idUtilisateur);
+  const idUniversite = universite.idUniversite;
+  const { page, parPage, offset } = normaliserPaginationMaitres(options.page, options.parPage);
+  const recherche = normaliserRecherche(options.recherche);
+  const tri = MAITRES_TRI.has(options.tri) ? options.tri : "nom";
+  const ordre = options.ordre === "desc" ? "desc" : "asc";
+
+  const conditions = [eq(stages.idUniversite, idUniversite), ...conditionMaitres({ ...options, recherche, idUniversite })];
+
+  const orderBy = {
+    nom: ordre === "desc" ? desc(membresEquipe.nom) : asc(membresEquipe.nom),
+    entreprise: ordre === "desc" ? desc(entreprises.nomEntreprise) : asc(entreprises.nomEntreprise),
+    stagiaires: ordre === "desc"
+      ? desc(sql`count(distinct ${stages.idStagiaire})`)
+      : asc(sql`count(distinct ${stages.idStagiaire})`),
+    stages: ordre === "desc"
+      ? desc(sql`count(distinct ${stages.idStage})`)
+      : asc(sql`count(distinct ${stages.idStage})`),
+  }[tri];
+
+  const groupBy = [
+    membresEquipe.idMembre,
+    membresEquipe.nom,
+    membresEquipe.roleEquipe,
+    membresEquipe.statutMembre,
+    membresEquipe.dateActivation,
+    membresEquipe.dateCreation,
+    entreprises.idEntreprise,
+    entreprises.nomEntreprise,
+    entreprises.logoUrl,
+    entreprises.ville,
+  ];
+
+  const [rows, countRows, kpiRows, entreprisesRows] = await Promise.all([
+    db
+      .select({
+        idMembre: membresEquipe.idMembre,
+        nom: membresEquipe.nom,
+        roleEquipe: membresEquipe.roleEquipe,
+        statutMembre: membresEquipe.statutMembre,
+        dateActivation: membresEquipe.dateActivation,
+        dateCreation: membresEquipe.dateCreation,
+        idEntreprise: entreprises.idEntreprise,
+        nomEntreprise: entreprises.nomEntreprise,
+        logoEntrepriseUrl: entreprises.logoUrl,
+        villeEntreprise: entreprises.ville,
+        stagiairesActuels: sql`count(distinct ${stages.idStagiaire}) filter (where ${stages.statut} = 'actif')::int`,
+        totalStagiaires: sql`count(distinct ${stages.idStagiaire})::int`,
+        totalStages: sql`count(distinct ${stages.idStage})::int`,
+        evaluationsEnRetard: sql`count(distinct ${evaluationsHebdomadaires.idEvaluation}) filter (where ${evaluationsHebdomadaires.statut} = 'en_retard')::int`,
+      })
+      .from(membresEquipe)
+      .innerJoin(affectationsSuperviseurStage, eq(affectationsSuperviseurStage.idMembre, membresEquipe.idMembre))
+      .innerJoin(stages, eq(stages.idStage, affectationsSuperviseurStage.idStage))
+      .innerJoin(stagiaires, eq(stagiaires.idStagiaire, stages.idStagiaire))
+      .innerJoin(entreprises, eq(entreprises.idEntreprise, membresEquipe.idEntreprise))
+      .leftJoin(evaluationsHebdomadaires, eq(evaluationsHebdomadaires.idStage, stages.idStage))
+      .where(and(...conditions))
+      .groupBy(...groupBy)
+      .orderBy(orderBy, asc(membresEquipe.idMembre))
+      .limit(parPage)
+      .offset(offset),
+    db
+      .select({ count: sql`count(distinct ${membresEquipe.idMembre})::int` })
+      .from(membresEquipe)
+      .innerJoin(affectationsSuperviseurStage, eq(affectationsSuperviseurStage.idMembre, membresEquipe.idMembre))
+      .innerJoin(stages, eq(stages.idStage, affectationsSuperviseurStage.idStage))
+      .innerJoin(stagiaires, eq(stagiaires.idStagiaire, stages.idStagiaire))
+      .innerJoin(entreprises, eq(entreprises.idEntreprise, membresEquipe.idEntreprise))
+      .where(and(...conditions)),
+    db
+      .select({
+        maitresActifs: sql`count(distinct ${membresEquipe.idMembre}) filter (where ${membresEquipe.statutMembre} = 'actif' and ${stages.statut} = 'actif')::int`,
+        stagiairesActuellementEncadres: sql`count(distinct ${stages.idStagiaire}) filter (where ${stages.statut} = 'actif')::int`,
+        entreprisesConcernees: sql`count(distinct ${entreprises.idEntreprise})::int`,
+        evaluationsASurveiller: sql`count(distinct ${evaluationsHebdomadaires.idEvaluation}) filter (where ${evaluationsHebdomadaires.statut} = 'en_retard')::int`,
+      })
+      .from(membresEquipe)
+      .innerJoin(affectationsSuperviseurStage, eq(affectationsSuperviseurStage.idMembre, membresEquipe.idMembre))
+      .innerJoin(stages, eq(stages.idStage, affectationsSuperviseurStage.idStage))
+      .innerJoin(stagiaires, eq(stagiaires.idStagiaire, stages.idStagiaire))
+      .innerJoin(entreprises, eq(entreprises.idEntreprise, membresEquipe.idEntreprise))
+      .leftJoin(evaluationsHebdomadaires, eq(evaluationsHebdomadaires.idStage, stages.idStage))
+      .where(eq(stages.idUniversite, idUniversite)),
+    db
+      .selectDistinct({
+        idEntreprise: entreprises.idEntreprise,
+        nomEntreprise: entreprises.nomEntreprise,
+      })
+      .from(membresEquipe)
+      .innerJoin(affectationsSuperviseurStage, eq(affectationsSuperviseurStage.idMembre, membresEquipe.idMembre))
+      .innerJoin(stages, eq(stages.idStage, affectationsSuperviseurStage.idStage))
+      .innerJoin(entreprises, eq(entreprises.idEntreprise, membresEquipe.idEntreprise))
+      .where(eq(stages.idUniversite, idUniversite))
+      .orderBy(asc(entreprises.nomEntreprise)),
+  ]);
+
+  const total = Number(countRows[0]?.count ?? 0);
+  const totalPages = total > 0 ? Math.ceil(total / parPage) : 0;
+
+  return {
+    data: rows.map((row) => ({
+      idMembre: row.idMembre,
+      nom: row.nom,
+      roleEquipe: row.roleEquipe,
+      statutMembre: row.statutMembre,
+      dateActivation: row.dateActivation,
+      dateCreation: row.dateCreation,
+      entreprise: {
+        idEntreprise: row.idEntreprise,
+        nomEntreprise: row.nomEntreprise,
+        logoUrl: row.logoEntrepriseUrl,
+        ville: row.villeEntreprise,
+      },
+      stagiairesActuels: Number(row.stagiairesActuels ?? 0),
+      totalStagiaires: Number(row.totalStagiaires ?? 0),
+      totalStages: Number(row.totalStages ?? 0),
+      evaluationsEnRetard: Number(row.evaluationsEnRetard ?? 0),
+    })),
+    pagination: { page, parPage, total, totalPages },
+    kpis: {
+      maitresActifs: Number(kpiRows[0]?.maitresActifs ?? 0),
+      stagiairesActuellementEncadres: Number(kpiRows[0]?.stagiairesActuellementEncadres ?? 0),
+      entreprisesConcernees: Number(kpiRows[0]?.entreprisesConcernees ?? 0),
+      evaluationsASurveiller: Number(kpiRows[0]?.evaluationsASurveiller ?? 0),
+    },
+    filtres: {
+      entreprises: entreprisesRows.map((entreprise) => ({
+        idEntreprise: entreprise.idEntreprise,
+        nomEntreprise: entreprise.nomEntreprise,
+      })),
+    },
+  };
+}
+
+export async function getMaitreDeStageDetail(idUtilisateur, idMembre) {
+  const universite = await getUniversiteProfile(idUtilisateur);
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(idMembre))) {
+    const err = new Error("Maître de stage introuvable");
+    err.status = 404;
+    throw err;
+  }
+
+  const [membre] = await db
+    .select({
+      idMembre: membresEquipe.idMembre,
+      nom: membresEquipe.nom,
+      roleEquipe: membresEquipe.roleEquipe,
+      statutMembre: membresEquipe.statutMembre,
+      dateActivation: membresEquipe.dateActivation,
+      dateCreation: membresEquipe.dateCreation,
+      idEntreprise: entreprises.idEntreprise,
+      nomEntreprise: entreprises.nomEntreprise,
+      logoEntrepriseUrl: entreprises.logoUrl,
+      villeEntreprise: entreprises.ville,
+    })
+    .from(membresEquipe)
+    .innerJoin(affectationsSuperviseurStage, eq(affectationsSuperviseurStage.idMembre, membresEquipe.idMembre))
+    .innerJoin(stages, eq(stages.idStage, affectationsSuperviseurStage.idStage))
+    .innerJoin(entreprises, eq(entreprises.idEntreprise, membresEquipe.idEntreprise))
+    .where(and(eq(membresEquipe.idMembre, idMembre), eq(stages.idUniversite, universite.idUniversite)))
+    .limit(1);
+
+  if (!membre) {
+    const err = new Error("Maître de stage introuvable");
+    err.status = 404;
+    throw err;
+  }
+
+  const stagesRows = await db
+    .select({
+      idStage: stages.idStage,
+      idStagiaire: stagiaires.idStagiaire,
+      prenomStagiaire: stagiaires.prenom,
+      nomStagiaire: stagiaires.nom,
+      photoProfilUrl: stagiaires.photoProfilUrl,
+      statutStage: stages.statut,
+      dateDebut: stages.dateDebut,
+      dateFinPrevue: stages.dateFinPrevue,
+      dateFinReelle: stages.dateFinReelle,
+      progressionPourcentage: stages.progressionPourcentage,
+      idEntreprise: entreprises.idEntreprise,
+      nomEntreprise: entreprises.nomEntreprise,
+      villeEntreprise: entreprises.ville,
+    })
+    .from(affectationsSuperviseurStage)
+    .innerJoin(stages, eq(stages.idStage, affectationsSuperviseurStage.idStage))
+    .innerJoin(stagiaires, eq(stagiaires.idStagiaire, stages.idStagiaire))
+    .innerJoin(entreprises, eq(entreprises.idEntreprise, stages.idEntreprise))
+    .where(and(eq(affectationsSuperviseurStage.idMembre, idMembre), eq(stages.idUniversite, universite.idUniversite)))
+    .orderBy(desc(stages.dateDebut));
+
+  const idsStages = stagesRows.map((s) => s.idStage);
+  const [formationsRows, evaluationsRows] = idsStages.length
+    ? await Promise.all([
+        db
+          .select({
+            idStagiaire: formations.idStagiaire,
+            diplome: formations.diplome,
+            anneeEtude: formations.anneeEtude,
+            anneeObtention: formations.anneeObtention,
+          })
+          .from(formations)
+          .where(inArray(formations.idStagiaire, stagesRows.map((s) => s.idStagiaire))),
+        db
+          .select({
+            idEvaluation: evaluationsHebdomadaires.idEvaluation,
+            idStage: evaluationsHebdomadaires.idStage,
+            numeroSemaine: evaluationsHebdomadaires.numeroSemaine,
+            statut: evaluationsHebdomadaires.statut,
+            dateSoumission: evaluationsHebdomadaires.dateSoumission,
+          })
+          .from(evaluationsHebdomadaires)
+          .where(inArray(evaluationsHebdomadaires.idStage, idsStages))
+          .orderBy(desc(evaluationsHebdomadaires.dateSoumission)),
+      ])
+    : [[], []];
+
+  const formationParStagiaire = new Map();
+  for (const formation of formationsRows) {
+    const current = formationParStagiaire.get(formation.idStagiaire);
+    if (!current || Number(formation.anneeObtention ?? formation.anneeEtude ?? 0) > Number(current.anneeObtention ?? current.anneeEtude ?? 0)) {
+      formationParStagiaire.set(formation.idStagiaire, formation);
+    }
+  }
+
+  const evaluationsParStage = new Map();
+  for (const evaluation of evaluationsRows) {
+    const list = evaluationsParStage.get(evaluation.idStage) || [];
+    list.push(evaluation);
+    evaluationsParStage.set(evaluation.idStage, list);
+  }
+
+  const encadrementActuel = stagesRows.filter((s) => s.statut === "actif");
+  const historique = stagesRows.filter((s) => s.statut !== "actif");
+
+  const enrichStage = (stage) => {
+    const evaluationList = evaluationsParStage.get(stage.idStage) || [];
+    const derniereEvaluation = evaluationList.find((e) => e.dateSoumission) || null;
+    return {
+      idStage: stage.idStage,
+      stagiaire: {
+        idStagiaire: stage.idStagiaire,
+        prenom: stage.prenomStagiaire,
+        nom: stage.nomStagiaire,
+        photoProfilUrl: stage.photoProfilUrl,
+        formation: formationParStagiaire.get(stage.idStagiaire)?.diplome || null,
+      },
+      entreprise: {
+        idEntreprise: stage.idEntreprise,
+        nomEntreprise: stage.nomEntreprise,
+        ville: stage.villeEntreprise,
+      },
+      statutStage: stage.statutStage,
+      dateDebut: stage.dateDebut,
+      dateFinPrevue: stage.dateFinPrevue,
+      dateFinReelle: stage.dateFinReelle,
+      progressionPourcentage: stage.progressionPourcentage,
+      evaluation: {
+        total: evaluationList.length,
+        enRetard: evaluationList.filter((e) => e.statut === "en_retard").length,
+        derniere: derniereEvaluation
+          ? {
+              idEvaluation: derniereEvaluation.idEvaluation,
+              numeroSemaine: derniereEvaluation.numeroSemaine,
+              statut: derniereEvaluation.statut,
+              dateSoumission: derniereEvaluation.dateSoumission,
+            }
+          : null,
+      },
+    };
+  };
+
+  return {
+    maitre: {
+      idMembre: membre.idMembre,
+      nom: membre.nom,
+      roleEquipe: membre.roleEquipe,
+      statutMembre: membre.statutMembre,
+      dateActivation: membre.dateActivation,
+      dateCreation: membre.dateCreation,
+      entreprise: {
+        idEntreprise: membre.idEntreprise,
+        nomEntreprise: membre.nomEntreprise,
+        logoUrl: membre.logoEntrepriseUrl,
+        ville: membre.villeEntreprise,
+      },
+    },
+    encadrementActuel: encadrementActuel.map(enrichStage),
+    historique: historique.map(enrichStage),
+    resumeEvaluations: {
+      realisees: evaluationsRows.filter((e) => e.statut === "soumise").length,
+      enRetard: evaluationsRows.filter((e) => e.statut === "en_retard").length,
+      enAttente: evaluationsRows.filter((e) => e.statut === "en_attente").length,
+      derniere: evaluationsRows.find((e) => e.dateSoumission)
+        ? {
+            dateSoumission: evaluationsRows.find((e) => e.dateSoumission).dateSoumission,
+            numeroSemaine: evaluationsRows.find((e) => e.dateSoumission).numeroSemaine,
+          }
+        : null,
+    },
   };
 }

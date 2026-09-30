@@ -25,10 +25,9 @@ export default function ActionsRapidesBanner({ offres, candidatures, entretiens 
 
   const offresExpirentBientot = (offres || []).filter((o) => {
     if (o.statut !== "publie" || !o.dateLimiteCandidature) return false;
-    const jours = Math.ceil(
-      (new Date(o.dateLimiteCandidature) - new Date()) / 86400000,
-    );
-    return jours >= 0 && jours <= 7;
+    const millisecondesRestantes = new Date(o.dateLimiteCandidature).getTime() - Date.now();
+    const jours = Math.ceil(millisecondesRestantes / 86400000);
+    return Number.isFinite(millisecondesRestantes) && millisecondesRestantes >= 0 && jours <= 7;
   }).length;
 
   const nouvellesCandidatures = (candidatures || []).filter(

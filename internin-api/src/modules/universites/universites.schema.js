@@ -10,7 +10,6 @@ export const completeOnboardingUniversiteSchema = z.object({
   logoUrl: z.string().optional(),
   contactServiceCarriere: z.string().optional(),
   periodeStageHabituelle: z.string().optional(),
-  heuresRecommandeesSemaine: z.string().optional(),
   nomCoordinateurStage: z.string().optional(),
 });
 
@@ -26,7 +25,6 @@ export const updateProfilUniversiteSchema = z.object({
   nombreEtudiants: z.string().optional(),
   contactServiceCarriere: z.string().optional(),
   periodeStageHabituelle: z.string().optional(),
-  heuresRecommandeesSemaine: z.string().optional(),
   nomCoordinateurStage: z.string().optional(),
 });
 

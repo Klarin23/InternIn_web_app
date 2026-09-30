@@ -56,30 +56,53 @@ function isPortaledMenuTarget(target) {
   );
 }
 
-/** Un Select/Popover est actuellement ouvert dans le document. */
-function hasOpenPortaledMenu() {
-  if (typeof document === "undefined") return false;
-  return Boolean(
-    document.querySelector(
-      [
-        '[data-slot="select-content"][data-state="open"]',
-        "[data-radix-select-content][data-state=open]",
-        '[data-slot="popover-content"][data-state="open"]',
-        '[data-slot="dropdown-menu-content"][data-state="open"]',
-        '[role="listbox"]',
-      ].join(", "),
-    ),
-  );
+// Combien de temps après la fermeture d'un menu imbriqué (Select, Popover…)
+// on continue d'ignorer une tentative de fermeture du Dialog. Ce délai n'a
+// pas besoin d'être précis au timing exact des événements internes de
+// Radix : il doit juste être largement supérieur au temps que prend React
+// pour traiter un changement d'état (quelques ms), tout en restant
+// imperceptible pour l'utilisateur. 300 ms couvre confortablement les deux.
+const PORTALED_MENU_GRACE_MS = 300;
+
+/**
+ * Contexte permettant à un menu en portal (Select, futur Popover/DropdownMenu…)
+ * imbriqué dans un Dialog de signaler ses changements d'état d'ouverture au
+ * Dialog parent, via le callback `onOpenChange` PUBLIC et garanti par Radix —
+ * plutôt que de tenter de déduire cet état en relisant le DOM après coup
+ * (attribut `data-state`), ce qui s'est révélé être une source de bug :
+ * Radix peut avoir déjà fermé/démonté le menu, ou mis à jour son
+ * `data-state`, avant que le Dialog n'ait eu l'occasion de vérifier l'état,
+ * selon l'ordre — non garanti et non documenté — dans lequel les
+ * gestionnaires internes de Radix s'exécutent pour un même clic.
+ *
+ * En s'appuyant sur `onOpenChange` (toujours appelé, dans un ordre ou dans
+ * l'autre, autour du moment où Radix décide de fermer le Dialog) combiné à
+ * une courte fenêtre de grâce, le correctif fonctionne quel que soit cet
+ * ordre : que le menu se signale "fermé" avant ou après que le Dialog
+ * vérifie, le résultat est correct dans les deux cas.
+ */
+const PortaledMenuActivityContext = React.createContext(null);
+
+function usePortaledMenuActivityReporter() {
+  const report = React.useContext(PortaledMenuActivityContext);
+  // En dehors d'un Dialog (Select utilisé seul), pas de garde à alimenter.
+  return report ?? (() => {});
 }
 
 /**
- * Empêche le Dialog de se fermer lorsque l'utilisateur interagit avec un
- * Select/Popover en portal, ou ferme simplement ce menu en cliquant « à côté ».
- * Un second clic réellement hors du Dialog conserve le comportement normal.
+ * Empêche le Dialog de se fermer lorsque l'utilisateur ferme un
+ * Select/Popover imbriqué en cliquant « à côté » sans rien choisir.
+ * Un second clic réellement hors du Dialog (au-delà de la fenêtre de grâce)
+ * conserve le comportement normal de fermeture.
  */
-function preventDialogDismissForPortaledMenu(event) {
+function preventDialogDismissForPortaledMenu(event, activityState) {
   const target = event.target;
-  if (isPortaledMenuTarget(target) || hasOpenPortaledMenu()) {
+  const menuRecemmentActif =
+    Boolean(activityState) &&
+    (activityState.openCount > 0 ||
+      Date.now() - activityState.lastCloseAt < PORTALED_MENU_GRACE_MS);
+
+  if (isPortaledMenuTarget(target) || menuRecemmentActif) {
     event.preventDefault();
     return true;
   }
@@ -96,6 +119,19 @@ function DialogContent({
   ...props
 }) {
   const { t } = useTranslation();
+  // openCount : nombre de menus imbriqués (Select…) actuellement ouverts.
+  // lastCloseAt : horodatage de la dernière fermeture d'un tel menu.
+  const menuActivityRef = React.useRef({ openCount: 0, lastCloseAt: 0 });
+  const reportPortaledMenuOpenChange = React.useCallback((isOpen) => {
+    const state = menuActivityRef.current;
+    if (isOpen) {
+      state.openCount += 1;
+    } else {
+      state.openCount = Math.max(0, state.openCount - 1);
+      state.lastCloseAt = Date.now();
+    }
+  }, []);
+
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -107,19 +143,21 @@ function DialogContent({
         )}
         {...props}
         onPointerDownOutside={(event) => {
-          preventDialogDismissForPortaledMenu(event);
+          preventDialogDismissForPortaledMenu(event, menuActivityRef.current);
           onPointerDownOutside?.(event);
         }}
         onInteractOutside={(event) => {
-          preventDialogDismissForPortaledMenu(event);
+          preventDialogDismissForPortaledMenu(event, menuActivityRef.current);
           onInteractOutside?.(event);
         }}
         onFocusOutside={(event) => {
-          preventDialogDismissForPortaledMenu(event);
+          preventDialogDismissForPortaledMenu(event, menuActivityRef.current);
           onFocusOutside?.(event);
         }}
       >
-        {children}
+        <PortaledMenuActivityContext.Provider value={reportPortaledMenuOpenChange}>
+          {children}
+        </PortaledMenuActivityContext.Provider>
         {showCloseButton && (
           <DialogPrimitive.Close data-slot="dialog-close" asChild>
             <Button
@@ -210,4 +248,5 @@ export {
   DialogPortal,
   DialogTitle,
   DialogTrigger,
+  usePortaledMenuActivityReporter,
 };

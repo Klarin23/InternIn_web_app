@@ -1,39 +1,78 @@
-// Écart assumé vis-à-vis de la maquette : le schéma ne connaît que 3 statuts
-// de stage réels (actif / terminé / interrompu) — pas de statut "refusé" ou
-// "en attente" au niveau du stage lui-même (ça, c'est le statut de la
-// convention qui le précède). On affiche donc ces 3 catégories réelles
-// plutôt que les 4 de la maquette.
+"use client";
+
+import { useTranslation } from "@/lib/i18n/useTranslation";
+import { cn } from "@/lib/utils";
+
 export default function RepartitionStagesCard({ repartition }) {
+  const { t } = useTranslation();
   const { actif = 0, termine = 0, interrompu = 0 } = repartition || {};
-  const total = actif + termine + interrompu || 1;
+  const total = actif + termine + interrompu;
+  const denom = total || 1;
 
   const lignes = [
-    { label: "En cours", value: actif, color: "bg-primary" },
-    { label: "Terminés", value: termine, color: "bg-success" },
-    { label: "Interrompus", value: interrompu, color: "bg-destructive" },
+    {
+      key: "actif",
+      label: t("universiteSpace.dashboard.stagesInProgress"),
+      value: actif,
+      bar: "bg-teal-500",
+      text: "text-teal-700 dark:text-teal-300",
+    },
+    {
+      key: "termine",
+      label: t("universiteSpace.dashboard.stagesCompleted"),
+      value: termine,
+      bar: "bg-[#5B3DF5]",
+      text: "text-[#5B3DF5] dark:text-[#A78BFA]",
+    },
+    {
+      key: "interrompu",
+      label: t("universiteSpace.dashboard.stagesInterrupted"),
+      value: interrompu,
+      bar: "bg-destructive",
+      text: "text-destructive",
+    },
   ];
 
   return (
-    <div className="rounded-md border border-border bg-card p-5">
-      <h3 className="mb-4 text-sm font-bold text-foreground">
-        Statuts des stages
-      </h3>
-      <div className="space-y-4">
+    <div className="flex h-full flex-col rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+        {t("universiteSpace.dashboard.stagesLabel")}
+      </p>
+      <div className="mt-3 flex items-baseline gap-2">
+        <span className="text-4xl font-bold tabular-nums tracking-tight text-foreground">
+          {actif}
+        </span>
+        <span className="text-sm text-muted-foreground">
+          {t("universiteSpace.dashboard.stagesActiveNow")}
+        </span>
+      </div>
+
+      <div className="mt-6 space-y-4">
         {lignes.map((ligne) => (
-          <div key={ligne.label}>
+          <div key={ligne.key}>
             <div className="mb-1.5 flex items-center justify-between text-sm">
               <span className="font-medium text-foreground">{ligne.label}</span>
-              <span className="font-bold text-foreground">{ligne.value}</span>
+              <span className={cn("font-bold tabular-nums", ligne.text)}>
+                {ligne.value}
+              </span>
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
               <div
-                className={`h-full rounded-full ${ligne.color}`}
-                style={{ width: `${(ligne.value / total) * 100}%` }}
+                className={cn("h-full rounded-full transition-all", ligne.bar)}
+                style={{
+                  width: `${Math.min(100, (ligne.value / denom) * 100)}%`,
+                }}
               />
             </div>
           </div>
         ))}
       </div>
+
+      {total === 0 && (
+        <p className="mt-4 text-xs text-muted-foreground">
+          {t("universiteSpace.dashboard.stagesEmpty")}
+        </p>
+      )}
     </div>
   );
 }

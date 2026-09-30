@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import { db } from "../db/index.js";
 import { parametresPlateforme } from "../db/schema.js";
 import { redactSensitiveText, redactSensitiveUrl } from "./redactUrl.js";
+import { escapeHtml, stripControlChars } from "./htmlEscape.js";
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -151,13 +152,36 @@ export async function sendInvitationEmail({
   email,
   nomEntreprise,
   roleEquipe,
-  invitationUrl,
+  token,
 }) {
+  // L'URL d'invitation est construite ici, côté serveur, à partir d'un
+  // token cryptographiquement aléatoire (crypto.randomBytes, généré dans
+  // equipe.service.js) — jamais à partir d'une valeur fournie par
+  // l'entreprise. Même construction que sendVerificationEmail /
+  // sendPasswordResetEmail ci-dessus : aucune donnée non fiable ne peut
+  // devenir une URL arbitraire.
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  const invitationUrl = `${frontendUrl}/invitation/${encodeURIComponent(token)}`;
+
   const roleLabel = roleEquipe || "membre";
+
+  // Sujet : pas un contexte HTML (pas besoin d'échappement HTML ici), mais
+  // on neutralise les caractères de contrôle (retour à la ligne, etc.) par
+  // précaution — uniquement pour le rendu du sujet, la donnée en base
+  // (entreprise.nomEntreprise) n'est jamais modifiée.
+  const nomEntrepriseSujet = stripControlChars(nomEntreprise) || "une équipe";
+
+  // Contexte HTML : nomEntreprise (texte libre saisi par l'entreprise à
+  // l'onboarding) et roleLabel sont échappés avant insertion dans le
+  // template. La version texte brut ci-dessous n'est pas interprétée comme
+  // du HTML et n'a donc pas besoin de cet échappement — elle garde les
+  // valeurs telles quelles, exactement comme avant.
+  const nomEntrepriseHtml = escapeHtml(nomEntreprise || "une entreprise");
+  const roleLabelHtml = escapeHtml(roleLabel);
 
   return sendMail({
     to: email,
-    subject: `Invitation à rejoindre ${nomEntreprise || "une équipe"} — InternIn`,
+    subject: `Invitation à rejoindre ${nomEntrepriseSujet} — InternIn`,
     text: `
 Vous êtes invité(e) à rejoindre ${nomEntreprise || "une entreprise"} sur InternIn
 en tant que ${roleLabel}.
@@ -174,8 +198,8 @@ L'équipe InternIn
         <h1>Invitation à rejoindre une équipe</h1>
         <p>
           Vous êtes invité(e) à rejoindre
-          <strong>${nomEntreprise || "une entreprise"}</strong>
-          sur InternIn en tant que <strong>${roleLabel}</strong>.
+          <strong>${nomEntrepriseHtml}</strong>
+          sur InternIn en tant que <strong>${roleLabelHtml}</strong>.
         </p>
         <p style="margin: 24px 0;">
           <a href="${invitationUrl}"
@@ -185,6 +209,53 @@ L'équipe InternIn
         </p>
         <p style="color:#666;font-size:13px;">
           Si vous n'êtes pas à l'origine de cette invitation, ignorez cet e-mail.
+        </p>
+      </div>
+    `,
+  });
+}
+
+
+export async function sendUniversiteStudentInvitationEmail({
+  email,
+  nomUniversite,
+  token,
+  dateExpiration,
+}) {
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  const invitationUrl = `${frontendUrl}/rejoindre/universite/${encodeURIComponent(token)}`;
+  const universiteHtml = escapeHtml(nomUniversite || "votre établissement");
+  const expiration = dateExpiration
+    ? new Date(dateExpiration).toLocaleString("fr-FR")
+    : "dans 48 heures";
+
+  return sendMail({
+    to: email,
+    subject: `Invitation à rejoindre ${stripControlChars(nomUniversite || "votre établissement")} — InternIn`,
+    text: `Votre établissement ${nomUniversite || "vous"} vous invite à rejoindre son espace étudiant sur InternIn.
+
+Ouvrez ce lien pour consulter et accepter l'invitation :
+${invitationUrl}
+
+Cette invitation est personnelle, à usage unique et expire ${expiration}.
+Si vous n'êtes pas concerné(e), ignorez cet e-mail.
+
+L'équipe InternIn`,
+    html: `
+      <div style="font-family:Arial,sans-serif;padding:24px;color:#111827;">
+        <h1>Invitation universitaire</h1>
+        <p>
+          <strong>${universiteHtml}</strong> vous invite à rejoindre son
+          établissement sur InternIn.
+        </p>
+        <p style="margin:24px 0;">
+          <a href="${invitationUrl}"
+             style="background:#14B8A6;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;">
+            Consulter l'invitation
+          </a>
+        </p>
+        <p style="color:#667085;font-size:13px;">
+          Invitation personnelle, à usage unique. Elle expire ${escapeHtml(expiration)}.
         </p>
       </div>
     `,

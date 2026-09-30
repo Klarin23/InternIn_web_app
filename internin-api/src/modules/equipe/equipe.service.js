@@ -1178,6 +1178,7 @@ export async function getMonProfil(idUtilisateur) {
       estAdminPrincipal: membresEquipe.estAdminPrincipal,
       permissionsPersonnalisees: membresEquipe.permissionsPersonnalisees,
       nomEntreprise: entreprises.nomEntreprise,
+      logoUrl: entreprises.logoUrl,
       statutMembre: membresEquipe.statutMembre,
     })
     .from(membresEquipe)
@@ -1206,6 +1207,7 @@ export async function getMonProfil(idUtilisateur) {
     roleEquipe: membre.roleEquipe,
     estAdminPrincipal: membre.estAdminPrincipal,
     nomEntreprise: membre.nomEntreprise,
+    logoUrl: membre.logoUrl,
     statutMembre: membre.statutMembre,
     permissions,
     isProprietaire: false,

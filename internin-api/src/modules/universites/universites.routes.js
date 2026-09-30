@@ -10,6 +10,8 @@ import {
   validerConventionHandler,
   genererPdfConventionHandler,
   getStatistiquesHandler,
+  listMaitresDeStageHandler,
+  getMaitreDeStageDetailHandler,
 } from "./universites.controller.js";
 import { requireAuth } from "../../middlewares/auth.middleware.js";
 import { requireRole } from "../../middlewares/role.middleware.js";
@@ -78,6 +80,20 @@ router.get(
   requireAuth,
   requireRole("universite"),
   getStatistiquesHandler,
+);
+
+router.get(
+  "/maitres-de-stage",
+  requireAuth,
+  requireRole("universite"),
+  listMaitresDeStageHandler,
+);
+
+router.get(
+  "/maitres-de-stage/:idMembre",
+  requireAuth,
+  requireRole("universite"),
+  getMaitreDeStageDetailHandler,
 );
 
 export default router;

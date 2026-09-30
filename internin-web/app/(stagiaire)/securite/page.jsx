@@ -317,7 +317,7 @@ function StudentReportMessages({ idLitige, closed, attendInfo }) {
                 className={cn(
                   "rounded-lg border px-3 py-2 text-sm",
                   m.roleAuteur === "admin"
-                    ? "border-violet-500/20 bg-violet-500/[0.04]"
+                    ? "border-violet-500/20 bg-violet-500/4"
                     : "border-border bg-muted/30",
                 )}
               >
@@ -358,7 +358,7 @@ function StudentReportMessages({ idLitige, closed, attendInfo }) {
           {/* Dropzone */}
           <label
             className={cn(
-              "flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border/80 bg-muted/20 px-4 py-6 text-center transition hover:border-teal-500/40 hover:bg-teal-500/[0.04]",
+              "flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border/80 bg-muted/20 px-4 py-6 text-center transition hover:border-teal-500/40 hover:bg-teal-500/4",
             )}
           >
             <FiUpload className="h-5 w-5 text-teal-600 dark:text-teal-400" />
@@ -535,7 +535,7 @@ export default function SecuritePage() {
       setErrors(e);
       return Object.keys(e).length === 0;
     },
-    [form],
+    [form, t],
   );
 
   const next = () => {

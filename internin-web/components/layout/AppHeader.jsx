@@ -56,8 +56,8 @@ export default function AppHeader({
   }
 
   return (
-    <header className="sticky top-0 z-30 flex min-h-[56px] items-center justify-between gap-4 border-b border-border bg-card/95 px-4 py-2.5 backdrop-blur-sm md:px-6 transition-colors duration-300">
-      <div className="flex min-w-0 items-center gap-3">
+    <header className="sticky top-0 z-30 flex min-h-[56px] items-center justify-between gap-2 border-b border-border bg-card/95 px-2 py-2.5 backdrop-blur-sm sm:gap-3 sm:px-4 md:px-6 transition-colors duration-300">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
         <button
           type="button"
           onClick={toggleMobileNav}
@@ -103,7 +103,7 @@ export default function AppHeader({
       </div>
 
       {/* Recherche : locale (page) si onSearchChange fourni, sinon globale */}
-      <div className="hidden flex-1 justify-center lg:flex">
+      <div className="hidden min-w-0 flex-1 justify-center lg:flex">
         {onSearchChange ? (
           <div className="flex w-full max-w-[360px] items-center gap-2 rounded-full bg-muted px-4 py-2 text-sm text-muted-foreground">
             <FiSearch className="h-4 w-4 flex-shrink-0" />
@@ -121,18 +121,18 @@ export default function AppHeader({
         )}
       </div>
 
-      <div className="flex flex-shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center gap-1 sm:gap-2">
         {/* Recherche compacte mobile */}
-        <div className="lg:hidden">
+        <div className="hidden sm:block lg:hidden min-w-0">
           {!onSearchChange && (
             <GlobalSearch
-              className="max-w-[140px] sm:max-w-[200px]"
+              className="w-[140px] max-w-[140px]"
               placeholder={placeholderRecherche}
             />
           )}
         </div>
 
-        <LanguageSwitcher />
+        <LanguageSwitcher compactOnMobile />
         <ThemeToggle />
         <SecurityHeaderIndicator />
         <NotificationsCenter />

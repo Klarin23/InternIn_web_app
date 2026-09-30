@@ -26,6 +26,7 @@ import {
 import { toast } from "@/lib/store/useToastStore";
 import { exporterCandidaturesCsv } from "@/lib/utils/exportCsv";
 import CandidatsRecentsAvatars from "./CandidatsRecentsAvatars";
+import { formatDateHeureLimite } from "@/lib/utils/dateLimiteOffre";
 import {
   useUpdateOffre,
   useDeleteOffre,
@@ -67,17 +68,12 @@ function estExpiree(offre) {
   return (
     offre.statut === "publie" &&
     offre.dateLimiteCandidature &&
-    new Date(offre.dateLimiteCandidature) < new Date()
+    new Date(offre.dateLimiteCandidature) <= new Date()
   );
 }
 
 function formatDate(date, locale = "fr-FR") {
-  if (!date) return null;
-  return new Date(date).toLocaleDateString(locale, {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDateHeureLimite(date, locale) || null;
 }
 
 function MenuItem({ icon: Icon, label, onClick, disabled, danger, loading }) {

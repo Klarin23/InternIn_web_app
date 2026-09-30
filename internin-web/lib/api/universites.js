@@ -62,3 +62,108 @@ export function genererPdfConventionRequest(idConvention, token) {
 export function getStatistiquesUniversiteRequest(token) {
   return apiFetch("/universites/statistiques", { token });
 }
+
+export function creerInvitationEtudiantRequest(email, token) {
+  return apiFetch("/rattachements-universite/universites/moi/invitations", {
+    method: "POST",
+    body: { email },
+    token,
+  });
+}
+
+export function getDemandesRattachementUniversiteRequest(token) {
+  return apiFetch("/rattachements-universite/universites/moi/demandes", {
+    token,
+  });
+}
+
+export function confirmerDemandeRattachementRequest(idRattachement, token) {
+  return apiFetch(
+    `/rattachements-universite/universites/moi/demandes/${idRattachement}/confirmer`,
+    { method: "POST", token },
+  );
+}
+
+export function refuserDemandeRattachementRequest(idRattachement, token) {
+  return apiFetch(
+    `/rattachements-universite/universites/moi/demandes/${idRattachement}/refuser`,
+    { method: "POST", token },
+  );
+}
+
+export function creerCodeRattachementRequest(token) {
+  return apiFetch("/rattachements-universite/universites/moi/code", {
+    method: "POST",
+    token,
+  });
+}
+
+export function getCodeRattachementRequest(token) {
+  return apiFetch("/rattachements-universite/universites/moi/code", { token });
+}
+
+export function creerLienRattachementRequest(token) {
+  return apiFetch("/rattachements-universite/universites/moi/lien", {
+    method: "POST",
+    token,
+  });
+}
+
+export function getRattachementEtudiantRequest(token) {
+  return apiFetch("/rattachements-universite/stagiaires/moi/rattachement", {
+    token,
+  });
+}
+
+export function getInvitationUniversiteRequest(rawToken) {
+  return apiFetch(
+    `/rattachements-universite/invitations/${encodeURIComponent(rawToken)}`,
+  );
+}
+
+export function accepterInvitationUniversiteRequest(rawToken, token) {
+  return apiFetch(
+    `/rattachements-universite/invitations/${encodeURIComponent(rawToken)}/accepter`,
+    { method: "POST", token },
+  );
+}
+
+export function refuserInvitationUniversiteRequest(rawToken, token) {
+  return apiFetch(
+    `/rattachements-universite/invitations/${encodeURIComponent(rawToken)}/refuser`,
+    { method: "POST", token },
+  );
+}
+
+export function rejoindreUniversiteParCodeRequest(code, token) {
+  return apiFetch("/rattachements-universite/stagiaires/moi/rattachement/code", {
+    method: "POST",
+    body: { code },
+    token,
+  });
+}
+
+export function rejoindreUniversiteParLienRequest(rawToken, token) {
+  return apiFetch(
+    `/rattachements-universite/stagiaires/moi/rattachement/lien/${encodeURIComponent(rawToken)}`,
+    { method: "POST", token },
+  );
+}
+
+export function getMaitresDeStageUniversiteRequest(token, params = {}) {
+  const query = new URLSearchParams();
+  if (params.recherche) query.set("recherche", params.recherche);
+  if (params.entreprise) query.set("entreprise", params.entreprise);
+  if (params.statut) query.set("statut", params.statut);
+  if (params.encadrement) query.set("encadrement", params.encadrement);
+  if (params.page) query.set("page", String(params.page));
+  if (params.parPage) query.set("parPage", String(params.parPage));
+  if (params.tri) query.set("tri", params.tri);
+  if (params.ordre) query.set("ordre", params.ordre);
+  const qs = query.toString();
+  return apiFetch(`/universites/maitres-de-stage${qs ? `?${qs}` : ""}`, { token });
+}
+
+export function getMaitreDeStageUniversiteDetailRequest(idMembre, token) {
+  return apiFetch(`/universites/maitres-de-stage/${encodeURIComponent(idMembre)}`, { token });
+}

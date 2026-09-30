@@ -83,3 +83,15 @@ export const sseConnectLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Trop de connexions temps réel. Réessayez plus tard." },
 });
+
+
+// Actions de rattachement universitaire : les tokens/codes sont des secrets
+// mais peuvent être attaqués en rafale. Limite volontairement plus stricte
+// que le quota global, sans modifier les limites d'authentification existantes.
+export const rattachementSensitiveLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.RATTACHEMENT_RATE_LIMIT_MAX || 20),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Trop de tentatives. Réessayez dans quelques minutes." },
+});

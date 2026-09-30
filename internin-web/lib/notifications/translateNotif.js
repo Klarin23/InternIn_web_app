@@ -30,6 +30,11 @@ function extractWeek(titre = "", message = "") {
   return m2?.[1] || "";
 }
 
+
+function extractUniversity(message = "") {
+  const m = String(message).match(/^(.+?)\s+vous\s+(?:a invité|invite)/i);
+  return m?.[1]?.trim() || "";
+}
 /** Normalise type API (entretien.planifie → entretien_planifie, etc.) */
 function normalizeType(type = "") {
   let t = String(type || "").toLowerCase().trim();
@@ -112,7 +117,7 @@ export function translateNotification(n, t) {
   const titleKey = `notifications.types.${type}.title`;
   const messageKey = `notifications.types.${type}.message`;
 
-  const company = extractCompany(n.message) || "—";
+  const company = extractCompany(n.message) || extractUniversity(n.message) || "—";
   const offer = extractOffer(n.message) || extractOffer(n.titre) || "—";
   const week = extractWeek(n.titre, n.message) || "—";
 

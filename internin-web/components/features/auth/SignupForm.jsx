@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,9 +19,19 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function SignupForm({ role }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t } = useTranslation();
   const setSession = useAuthStore((state) => state.setSession);
   const [serverError, setServerError] = useState(null);
+
+  useEffect(() => {
+    if (role !== "stagiaire" || typeof window === "undefined") return;
+    const invitation = searchParams.get("invitation");
+    if (invitation && invitation.length >= 32 && invitation.length <= 128) {
+      window.localStorage.setItem("internin_universite_invitation", invitation);
+    }
+  }, [role, searchParams]);
+
   const roleLabel = t(`auth.signup.roleLabels.${role}`);
   const title = t(`auth.signup.titles.${role}`);
 

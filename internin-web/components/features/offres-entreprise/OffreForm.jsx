@@ -8,7 +8,7 @@
 // Les mutations, le schéma Zod et le système de toast existants sont
 // entièrement réutilisés — seule la présentation change.
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,6 +28,7 @@ import StepMissionsProfil from "./steps/StepMissionsProfil";
 import StepConditionsStage from "./steps/StepConditionsStage";
 import StepApercu from "./steps/StepApercu";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { dateHeureDoualaToInstant, getDateLimiteParts } from "@/lib/utils/dateLimiteOffre";
 import {
   SECTEUR_OPTIONS,
   DEPARTEMENT_OPTIONS,
@@ -51,6 +52,25 @@ export default function OffreForm({
 
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const [currentStep, setCurrentStep] = useState(1);
+  const formRef = useRef(null);
+
+  // Le scroll est géré par le conteneur de `OffreFormDialog`, pas par ce
+  // formulaire. Quand une étape change, ce conteneur conserve donc sa
+  // position précédente. On le replace explicitement en haut après chaque
+  // changement d'étape pour que la nouvelle étape commence toujours au top.
+  useLayoutEffect(() => {
+    const scrollContainer = formRef.current?.closest(
+      ".offre-form-dialog-scroll-area",
+    );
+
+    if (!scrollContainer) return undefined;
+
+    const frame = window.requestAnimationFrame(() => {
+      scrollContainer.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [currentStep]);
   // Distingue quel bouton (brouillon vs publication) est en cours de
   // soumission, pour n'afficher le loader que sur le bon bouton à l'étape 4.
   const [publishingStatut, setPublishingStatut] = useState(null);
@@ -63,6 +83,7 @@ export default function OffreForm({
     existingOffre?.departement,
     DEPARTEMENT_OPTIONS,
   );
+  const deadlineInit = getDateLimiteParts(existingOffre?.dateLimiteCandidature);
 
   const {
     register,
@@ -71,6 +92,7 @@ export default function OffreForm({
     watch,
     trigger,
     formState: { errors },
+    setError,
   } = useForm({
     resolver: zodResolver(offreFormSchema),
     defaultValues: {
@@ -93,7 +115,8 @@ export default function OffreForm({
           : String(existingOffre?.remunerationOptions?.find((r) => r.type !== "aucune")?.montant ?? ""),
       nombrePostes: existingOffre?.nombrePostes || 1,
       dureeStage: existingOffre?.dureeStage || undefined,
-      dateLimiteCandidature: existingOffre?.dateLimiteCandidature || "",
+      dateLimiteCandidature: deadlineInit.date,
+      heureLimiteCandidature: deadlineInit.time,
     },
   });
 
@@ -123,6 +146,7 @@ export default function OffreForm({
     const {
       secteurActiviteCustom,
       departementCustom,
+      heureLimiteCandidature,
       secteurActivite,
       departement,
       ...rest
@@ -141,13 +165,23 @@ export default function OffreForm({
           ? departement
           : resolveOffreListValue(departement, departementCustom) || null,
       montantRemuneration: vals.montantRemuneration || null,
-      dateLimiteCandidature: vals.dateLimiteCandidature || null,
+      dateLimiteCandidature: vals.dateLimiteCandidature && heureLimiteCandidature
+        ? `${vals.dateLimiteCandidature}T${heureLimiteCandidature}`
+        : null,
     };
   }
 
   async function submitWithStatut(payloadValues, statut) {
-    setPublishingStatut(statut);
     const cleanValues = sanitizePayload(payloadValues);
+    if (statut === "publie" && cleanValues.dateLimiteCandidature) {
+      const deadline = dateHeureDoualaToInstant(payloadValues.dateLimiteCandidature, payloadValues.heureLimiteCandidature);
+      if (!deadline || deadline.getTime() <= Date.now()) {
+        setError("heureLimiteCandidature", { type: "manual", message: t("entrepriseSpace.offers.deadlineMustBeFuture") });
+        setCurrentStep(3);
+        return;
+      }
+    }
+    setPublishingStatut(statut);
     try {
       if (isEditing) {
         await updateMutation.mutateAsync({
@@ -179,11 +213,18 @@ export default function OffreForm({
 
   // À la dernière étape, validation complète du schéma avant publication
   // (point 10), qu'il s'agisse d'un brouillon ou d'une publication.
-  const handleSaveDraft = handleSubmit((vals) =>
-    submitWithStatut(vals, "brouillon"),
+  const handleInvalid = (formErrors) => {
+    if (formErrors.dateLimiteCandidature || formErrors.heureLimiteCandidature) {
+      setCurrentStep(3);
+    }
+  };
+  const handleSaveDraft = handleSubmit(
+    (vals) => submitWithStatut(vals, "brouillon"),
+    handleInvalid,
   );
-  const handlePublish = handleSubmit((vals) =>
-    submitWithStatut(vals, "publie"),
+  const handlePublish = handleSubmit(
+    (vals) => submitWithStatut(vals, "publie"),
+    handleInvalid,
   );
 
   return (
@@ -191,7 +232,7 @@ export default function OffreForm({
       <Confetti trigger={confettiTrigger} />
       <OffreFormStepper currentStep={currentStep} />
 
-      <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+      <form ref={formRef} className="space-y-5" onSubmit={(e) => e.preventDefault()}>
         {mutation.isError && (
           <div className="flex items-center gap-2 rounded-sm border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             <FiAlertCircle className="h-4 w-4 shrink-0" />

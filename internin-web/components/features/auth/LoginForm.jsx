@@ -42,8 +42,21 @@ export default function LoginForm() {
         const { user, token, refreshToken } = await loginRequest(data);
         setSession(user, token, refreshToken ?? null);
 
-        const path = await getPostLoginPath(user, token);
-        router.push(path);
+        let pendingInvitation = null;
+        if (typeof window !== "undefined" && user.typeUtilisateur === "stagiaire") {
+          pendingInvitation = window.localStorage.getItem(
+            "internin_universite_invitation",
+          );
+        }
+
+        if (pendingInvitation) {
+          router.push(
+            `/rejoindre/universite/${encodeURIComponent(pendingInvitation)}`,
+          );
+        } else {
+          const path = await getPostLoginPath(user, token);
+          router.push(path);
+        }
       } catch (err) {
         setServerError(err.message);
       }

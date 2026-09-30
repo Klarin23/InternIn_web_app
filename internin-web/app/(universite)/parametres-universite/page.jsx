@@ -1,292 +1,48 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { FiLoader, FiImage, FiX, FiCheckCircle, FiClock } from "react-icons/fi";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { FiAlertCircle, FiBell, FiBookOpen, FiCheck, FiChevronRight, FiClock, FiImage, FiInfo, FiLoader, FiLock, FiLogOut, FiSave, FiShield, FiUser, FiUsers, FiX } from "react-icons/fi";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import AppHeader from "@/components/layout/AppHeader";
-import {
-  useUniversiteProfile,
-  useUpdateUniversiteProfile,
-} from "@/lib/queries/useUniversiteProfile";
+import { useUniversiteProfile, useUpdateUniversiteProfile } from "@/lib/queries/useUniversiteProfile";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { uploadDocumentRequest } from "@/lib/api/documents";
+import { revokeAllSessionsRequest } from "@/lib/api/auth";
 
-function Section({ title, description, children }) {
-  return (
-    <div className="overflow-hidden rounded-md border border-border bg-card">
-      <div className="border-b border-border bg-muted/40 px-5 py-3">
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-        {description && (
-          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
-        )}
-      </div>
-      <div className="divide-y divide-border">{children}</div>
-    </div>
-  );
+const NAV = [
+  ["profile", FiUser, "profileSection"],
+  ["coordination", FiBookOpen, "coordinationSection"],
+  ["notifications", FiBell, "notificationsSection"],
+  ["students", FiUsers, "studentsSection"],
+  ["security", FiShield, "securitySection"],
+];
+
+function Section({ id, icon: Icon, title, description, children }) {
+  return <section id={id} className="scroll-mt-28 min-w-0 overflow-hidden rounded-2xl border border-border bg-card shadow-sm"><div className="flex gap-4 border-b border-border bg-muted/20 px-5 py-5 sm:px-6"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="h-5 w-5" /></div><div><h2 className="text-base font-semibold text-foreground">{title}</h2><p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p></div></div>{children}</section>;
 }
+function Field({ label, description, children }) { return <div className="grid min-w-0 gap-3 border-b border-border px-5 py-4 last:border-b-0 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)] lg:items-center lg:gap-8 lg:px-6"><div><p className="text-sm font-medium text-foreground">{label}</p>{description && <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>}</div><div>{children}</div></div>; }
+function Input({ value, onChange, placeholder, type="text", disabled }) { return <input value={value ?? ""} onChange={e=>onChange(e.target.value)} placeholder={placeholder} type={type} disabled={disabled} className="h-11 w-full rounded-xl border border-border bg-background px-3.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:opacity-60" />; }
+function Readonly({ children }) { return <div className="rounded-xl border border-border bg-muted/30 px-3.5 py-2.5 text-sm text-foreground">{children || "—"}</div>; }
+function Badge({ status, t }) { const ok=status==="verifiee"; return <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${ok?"bg-primary/10 text-primary":"bg-amber-500/10 text-amber-700 dark:text-amber-300"}`}>{ok?<FiCheck/>:<FiClock/>}{ok?t("universiteSpace.settings.verified"):t("universiteSpace.settings.pendingVerification")}</span>; }
+function QuickLink({ href, icon:Icon, title, description }) { return <Link href={href} className="group flex items-center gap-3 rounded-xl border border-border bg-background p-4 transition hover:border-primary/30 hover:bg-primary/[0.03]"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground group-hover:bg-primary/10 group-hover:text-primary"><Icon/></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-foreground">{title}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{description}</span></span><FiChevronRight className="text-muted-foreground group-hover:text-primary"/></Link>; }
+function LogoEditor({ value, onSaved, disabled, t }) { const token=useAuthStore(s=>s.token); const ref=useRef(null); const [busy,setBusy]=useState(false); const [error,setError]=useState(""); async function pick(file){setError("");if(!file)return;if(!["image/png","image/jpeg"].includes(file.type)){setError(t("universiteSpace.settings.uploadFormatError"));return;}if(file.size>2*1024*1024){setError(t("universiteSpace.settings.uploadSizeError"));return;}setBusy(true);try{const r=await uploadDocumentRequest(file,"logo",token);await onSaved(r.url);}catch(e){setError(e?.message||t("universiteSpace.settings.saveError"));}finally{setBusy(false);if(ref.current)ref.current.value="";}}return <div className="flex flex-col items-start gap-3 sm:items-end"><div className="flex items-center gap-3"><div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-border bg-muted">{value?<img src={value} alt="" className="h-full w-full object-cover"/>:<FiImage className="h-6 w-6 text-muted-foreground"/>}</div><div><p className="text-sm font-medium">{t("universiteSpace.settings.logo")}</p><p className="text-xs text-muted-foreground">PNG/JPEG · 2 Mo max.</p></div></div><div className="flex flex-wrap gap-2"><button type="button" onClick={()=>ref.current?.click()} disabled={disabled||busy} className="inline-flex h-10 items-center gap-2 rounded-xl border border-border px-3.5 text-sm font-medium hover:bg-muted disabled:opacity-60">{busy?<FiLoader className="animate-spin"/>:<FiImage/>}{value?t("universiteSpace.settings.changeLogo"):t("universiteSpace.settings.addLogo")}</button>{value&&<button type="button" onClick={()=>onSaved("")} disabled={disabled||busy} className="inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><FiX/>{t("universiteSpace.settings.remove")}</button>}</div><input ref={ref} type="file" accept=".png,.jpg,.jpeg,image/png,image/jpeg" className="hidden" onChange={e=>pick(e.target.files?.[0])}/>{error&&<p className="text-xs text-destructive">{error}</p>}</div>; }
 
-function Row({ label, description, children }) {
-  return (
-    <div className="flex items-center justify-between gap-6 px-5 py-4">
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-foreground">{label}</p>
-        {description && (
-          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
-        )}
-      </div>
-      <div className="flex-shrink-0">{children}</div>
-    </div>
-  );
-}
-
-// Non contrôlé : `key={value}` force un remount (donc un nouveau
-// defaultValue) chaque fois que la valeur source change depuis l'extérieur
-// (ex. après un succès de mutation) — seul le blur déclenche l'enregistrement.
-function TextField({ value, onCommit, disabled, placeholder, width = "w-56" }) {
-  return (
-    <input
-      key={value}
-      type="text"
-      defaultValue={value || ""}
-      placeholder={placeholder}
-      disabled={disabled}
-      onBlur={(e) => {
-        const v = e.target.value.trim();
-        if (v !== (value || "")) onCommit(v);
-      }}
-      className={`${width} rounded-md border border-border bg-white px-3 py-2 text-sm text-foreground outline-none focus:border-primary`}
-    />
-  );
-}
-
-function NumberField({ value, onCommit, disabled }) {
-  return (
-    <input
-      key={value}
-      type="number"
-      defaultValue={value ?? ""}
-      disabled={disabled}
-      onBlur={(e) => {
-        const n = e.target.value === "" ? null : Number(e.target.value);
-        if (n !== value && !(n === null && !value)) onCommit(n ?? "");
-      }}
-      className="w-24 rounded-md border border-border bg-white px-3 py-2 text-right text-sm text-foreground outline-none focus:border-primary"
-    />
-  );
-}
-
-function StatutVerificationBadge({ statut }) {
-  if (statut === "verifiee") {
-    return (
-      <span className="flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-        <FiCheckCircle className="h-3.5 w-3.5" />
-        Vérifiée
-      </span>
-    );
-  }
-  return (
-    <span className="flex items-center gap-1.5 rounded-full bg-warning/10 px-2.5 py-1 text-xs font-semibold text-amber-700">
-      <FiClock className="h-3.5 w-3.5" />
-      En attente de vérification
-    </span>
-  );
-}
-
-function LogoField({ logoUrl, onCommit, disabled }) {
-  const token = useAuthStore((state) => state.token);
-  const [isUploading, setIsUploading] = useState(false);
-  const [erreur, setErreur] = useState(null);
-  const inputRef = useRef(null);
-
-  async function handleSelect(file) {
-    setErreur(null);
-    if (!["image/png", "image/jpeg"].includes(file.type)) {
-      setErreur("Format non autorisé — utilisez un PNG ou JPEG.");
-      return;
-    }
-    setIsUploading(true);
-    try {
-      const { url } = await uploadDocumentRequest(file, "logo", token);
-      onCommit(url);
-    } catch (err) {
-      setErreur(err.message);
-    } finally {
-      setIsUploading(false);
-    }
-  }
-
-  return (
-    <div className="flex flex-col items-end gap-1.5">
-      <div className="flex items-center gap-3">
-        {logoUrl ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={logoUrl}
-              alt="Logo de l'établissement"
-              className="h-10 w-10 rounded-sm border border-border object-cover"
-            />
-            <button
-              type="button"
-              onClick={() => onCommit("")}
-              disabled={disabled || isUploading}
-              className="text-xs font-medium text-muted-foreground hover:text-destructive"
-            >
-              <FiX className="mr-1 inline h-3.5 w-3.5" />
-              Retirer
-            </button>
-          </>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={disabled || isUploading}
-          className="flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-2 text-xs font-medium text-foreground hover:bg-muted"
-        >
-          {isUploading ? (
-            <FiLoader className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <FiImage className="h-3.5 w-3.5" />
-          )}
-          {logoUrl ? "Changer" : "Ajouter un logo"}
-        </button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".png,.jpg,.jpeg"
-          className="hidden"
-          onChange={(e) =>
-            e.target.files?.[0] && handleSelect(e.target.files[0])
-          }
-        />
-      </div>
-      {erreur && <p className="text-xs text-destructive">{erreur}</p>}
-    </div>
-  );
-}
-
-export default function ParametresUniversitePage() {
-  const [recherche, setRecherche] = useState("");
-  const { data: profile, isLoading } = useUniversiteProfile();
-  const updateMutation = useUpdateUniversiteProfile();
-
-  function commit(champ, valeur) {
-    updateMutation.mutate({ [champ]: valeur });
-  }
-
-  return (
-    <>
-      <AppHeader
-        title="Paramètres"
-        subtitle="Informations et préférences de l'établissement"
-        searchValue={recherche}
-        onSearchChange={setRecherche}
-      />
-
-      <div className="max-w-2xl space-y-6 px-6 py-6">
-        {isLoading && (
-          <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
-            <FiLoader className="h-5 w-5 animate-spin" />
-            Chargement...
-          </div>
-        )}
-
-        {profile && (
-          <>
-            <Section
-              title="Établissement"
-              description="Ces informations ont été vérifiées lors de l'inscription. Pour les corriger, contactez le support."
-            >
-              <Row label="Nom de l'établissement">
-                <span className="text-sm text-foreground">
-                  {profile.nomUniversite}
-                </span>
-              </Row>
-              <Row label="E-mail officiel">
-                <span className="text-sm text-foreground">
-                  {profile.emailOfficiel}
-                </span>
-              </Row>
-              <Row label="Type d'établissement">
-                <span className="text-sm text-foreground">
-                  {profile.typeEtablissement}
-                </span>
-              </Row>
-              <Row label="Pays">
-                <span className="text-sm text-foreground">{profile.pays}</span>
-              </Row>
-              <Row label="Statut de vérification">
-                <StatutVerificationBadge statut={profile.statutVerification} />
-              </Row>
-            </Section>
-
-            <Section title="Présence en ligne">
-              <Row
-                label="Logo de l'établissement"
-                description="Visible par les entreprises partenaires"
-              >
-                <LogoField
-                  logoUrl={profile.logoUrl}
-                  disabled={updateMutation.isPending}
-                  onCommit={(v) => commit("logoUrl", v)}
-                />
-              </Row>
-              <Row label="Site web">
-                <TextField
-                  value={profile.siteWeb}
-                  placeholder="https://votre-universite.edu"
-                  disabled={updateMutation.isPending}
-                  onCommit={(v) => commit("siteWeb", v)}
-                />
-              </Row>
-            </Section>
-
-            <Section
-              title="Coordination des stages"
-              description="Aide les entreprises partenaires à mieux comprendre vos attentes"
-            >
-              <Row label="Nom du coordinateur de stage">
-                <TextField
-                  value={profile.nomCoordinateurStage}
-                  disabled={updateMutation.isPending}
-                  onCommit={(v) => commit("nomCoordinateurStage", v)}
-                />
-              </Row>
-              <Row label="Contact du service carrière">
-                <TextField
-                  value={profile.contactServiceCarriere}
-                  disabled={updateMutation.isPending}
-                  onCommit={(v) => commit("contactServiceCarriere", v)}
-                />
-              </Row>
-              <Row
-                label="Période de stage habituelle"
-                description="Ex : Juin - Août"
-              >
-                <TextField
-                  value={profile.periodeStageHabituelle}
-                  placeholder="Juin - Août"
-                  disabled={updateMutation.isPending}
-                  onCommit={(v) => commit("periodeStageHabituelle", v)}
-                />
-              </Row>
-              <Row label="Heures recommandées / semaine">
-                <NumberField
-                  value={profile.heuresRecommandeesSemaine}
-                  disabled={updateMutation.isPending}
-                  onCommit={(v) => commit("heuresRecommandeesSemaine", v)}
-                />
-              </Row>
-              <Row label="Nombre d'étudiants">
-                <NumberField
-                  value={profile.nombreEtudiants}
-                  disabled={updateMutation.isPending}
-                  onCommit={(v) => commit("nombreEtudiants", v)}
-                />
-              </Row>
-            </Section>
-          </>
-        )}
-      </div>
-    </>
-  );
+export default function ParametresUniversitePage(){
+ const {t}=useTranslation(); const router=useRouter(); const token=useAuthStore(s=>s.token); const clearSession=useAuthStore(s=>s.clearSession); const {data:profile,isLoading,isError,refetch}=useUniversiteProfile(); const mutation=useUpdateUniversiteProfile(); const [active,setActive]=useState("profile"); const [draft,setDraft]=useState(null); const [message,setMessage]=useState(""); const [securityBusy,setSecurityBusy]=useState(false); const [securityError,setSecurityError]=useState("");
+ useEffect(()=>{if(profile)setDraft({siteWeb:profile.siteWeb||"",logoUrl:profile.logoUrl||"",nombreEtudiants:profile.nombreEtudiants??"",contactServiceCarriere:profile.contactServiceCarriere||"",periodeStageHabituelle:profile.periodeStageHabituelle||"",nomCoordinateurStage:profile.nomCoordinateurStage||""})},[profile]);
+ const dirty=useMemo(()=>profile&&draft&&["siteWeb","logoUrl","nombreEtudiants","contactServiceCarriere","periodeStageHabituelle","nomCoordinateurStage"].some(k=>String(profile[k]??"")!==String(draft[k]??"")),[profile,draft]);
+ const set=(k,v)=>{setDraft(d=>({...d,[k]:v}));setMessage("");};
+ async function save(){if(!dirty)return;try{await mutation.mutateAsync(draft);setMessage(t("universiteSpace.settings.saved"));}catch{setMessage(t("universiteSpace.settings.saveError"));}}
+ async function saveLogo(url){set("logoUrl",url);try{await mutation.mutateAsync({logoUrl:url});setMessage(t("universiteSpace.settings.saved"));}catch{setMessage(t("universiteSpace.settings.saveError"));}}
+ async function revoke(){if(!token||!window.confirm(t("universiteSpace.settings.revokeSessionsConfirm")))return;setSecurityBusy(true);try{await revokeAllSessionsRequest(token);clearSession();router.replace("/connexion");}catch(e){setSecurityError(e?.message||t("universiteSpace.settings.saveError"));}finally{setSecurityBusy(false);}}
+ const jump=id=>{setActive(id);document.getElementById(id)?.scrollIntoView({behavior:"smooth",block:"start"});};
+ return <><AppHeader title={t("universiteSpace.settings.title")} subtitle={t("universiteSpace.settings.subtitle")}/><div className="min-h-[calc(100vh-80px)] min-w-0 overflow-x-hidden bg-muted/20 px-4 py-5 sm:px-6 lg:px-8"><div className="mx-auto min-w-0 max-w-6xl"><div className="relative mb-6 overflow-hidden rounded-3xl border border-border bg-card shadow-sm"><div className="h-1 bg-gradient-to-r from-primary via-primary/50 to-transparent"/><div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:p-7"><div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border bg-muted">{profile?.logoUrl?<img src={profile.logoUrl} alt="" className="h-full w-full object-cover"/>:<FiBookOpen className="h-8 w-8 text-muted-foreground"/>}</div><div className="min-w-0 flex-1"><p className="text-xs font-semibold uppercase tracking-[.16em] text-primary">{t("universiteSpace.settings.institutionLabel")}</p><h1 className="mt-1 truncate text-xl font-bold tracking-tight sm:text-2xl">{profile?.nomUniversite||"—"}</h1><div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><span>{profile?.typeEtablissement||"—"}</span><span>•</span><span>{profile?.pays||"—"}</span>{profile&&<Badge status={profile.statutVerification} t={t}/>}</div></div>{dirty&&<span className="inline-flex items-center gap-2 rounded-xl bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-700 dark:text-amber-300"><FiAlertCircle/>{t("universiteSpace.settings.unsaved")}</span>}</div></div><div className="grid min-w-0 gap-6 lg:grid-cols-[220px_minmax(0,1fr)]"><aside className="min-w-0 lg:sticky lg:top-24 lg:h-fit"><nav className="grid grid-cols-2 gap-1 rounded-2xl border border-border bg-card p-2 shadow-sm sm:grid-cols-3 lg:grid-cols-1">{NAV.map(([id,Icon,key])=><button key={id} type="button" onClick={()=>jump(id)} className={`flex min-w-0 items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium ${active===id?"bg-primary/10 text-primary":"text-muted-foreground hover:bg-muted hover:text-foreground"}`}><Icon/>{t(`universiteSpace.settings.${key}`)}</button>)}</nav></aside><main className="min-w-0 space-y-6">{isLoading&&<div className="rounded-2xl border border-border bg-card py-20 text-center text-sm text-muted-foreground"><FiLoader className="mx-auto mb-2 animate-spin"/>{t("universiteSpace.settings.loading")}</div>}{isError&&<div className="rounded-2xl border border-destructive/20 bg-card p-6"><p className="font-semibold">{t("universiteSpace.settings.loadError")}</p><button type="button" onClick={()=>refetch()} className="mt-4 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">{t("universiteSpace.settings.retry")}</button></div>}{profile&&draft&&<>
+<Section id="profile" icon={FiUser} title={t("universiteSpace.settings.profileSection")} description={t("universiteSpace.settings.profileDescription")}><Field label={t("universiteSpace.settings.institutionName")} description={t("universiteSpace.settings.readonlyDescription")}><Readonly>{profile.nomUniversite}</Readonly></Field><Field label={t("universiteSpace.settings.officialEmail")}><Readonly>{profile.emailOfficiel}</Readonly></Field><Field label={t("universiteSpace.settings.institutionType")}><Readonly>{profile.typeEtablissement}</Readonly></Field><Field label={t("universiteSpace.settings.country")}><Readonly>{profile.pays}</Readonly></Field><Field label={t("universiteSpace.settings.verificationStatus")}><Badge status={profile.statutVerification} t={t}/></Field><Field label={t("universiteSpace.settings.logo")} description={t("universiteSpace.settings.logoDescription")}><LogoEditor value={draft.logoUrl} onSaved={saveLogo} disabled={mutation.isPending} t={t}/></Field><Field label={t("universiteSpace.settings.website")} description={t("universiteSpace.settings.websiteDescription")}><Input value={draft.siteWeb} onChange={v=>set("siteWeb",v)} placeholder={t("universiteSpace.settings.websitePlaceholder")} disabled={mutation.isPending}/></Field></Section>
+<Section id="coordination" icon={FiBookOpen} title={t("universiteSpace.settings.coordination")} description={t("universiteSpace.settings.coordinationDescription")}><Field label={t("universiteSpace.settings.coordinator")}><Input value={draft.nomCoordinateurStage} onChange={v=>set("nomCoordinateurStage",v)} disabled={mutation.isPending}/></Field><Field label={t("universiteSpace.settings.careerService")}><Input value={draft.contactServiceCarriere} onChange={v=>set("contactServiceCarriere",v)} disabled={mutation.isPending}/></Field><Field label={t("universiteSpace.settings.usualPeriod")} description={t("universiteSpace.settings.periodExample")}><Input value={draft.periodeStageHabituelle} onChange={v=>set("periodeStageHabituelle",v)} placeholder={t("universiteSpace.settings.periodExample")} disabled={mutation.isPending}/></Field><Field label={t("universiteSpace.settings.studentCount")} description={t("universiteSpace.settings.studentCountDescription")}><Input type="number" value={draft.nombreEtudiants} onChange={v=>set("nombreEtudiants",v)} disabled={mutation.isPending}/></Field><div className="flex flex-col gap-3 border-t border-border bg-muted/20 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"><span className="flex items-center gap-2 text-xs text-muted-foreground"><FiInfo/>{t("universiteSpace.settings.saveHint")}</span><button type="button" onClick={save} disabled={!dirty||mutation.isPending} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:opacity-50">{mutation.isPending?<FiLoader className="animate-spin"/>:<FiSave/>}{t("universiteSpace.settings.save")}</button></div>{message&&<p className="px-5 pb-4 text-sm font-medium text-primary sm:px-6">{message}</p>}</Section>
+<Section id="notifications" icon={FiBell} title={t("universiteSpace.settings.notificationsSection")} description={t("universiteSpace.settings.notificationsDescription")}><div className="p-5 sm:p-6"><QuickLink href="/notifications" icon={FiBell} title={t("universiteSpace.settings.openNotifications")} description={t("universiteSpace.settings.openNotificationsDescription")}/></div></Section>
+<Section id="students" icon={FiUsers} title={t("universiteSpace.settings.studentsSection")} description={t("universiteSpace.settings.studentsDescription")}><div className="grid gap-3 p-5 sm:grid-cols-2 sm:p-6"><QuickLink href="/etudiants-universite" icon={FiUsers} title={t("universiteSpace.settings.studentsLink")} description={t("universiteSpace.settings.studentsLinkDescription")}/><QuickLink href="/notifications" icon={FiBell} title={t("universiteSpace.settings.studentActivityLink")} description={t("universiteSpace.settings.studentActivityDescription")}/></div></Section>
+<Section id="security" icon={FiShield} title={t("universiteSpace.settings.securitySection")} description={t("universiteSpace.settings.securityDescription")}><Field label={t("universiteSpace.settings.accountEmail")}><Readonly>{profile.emailOfficiel}</Readonly></Field><Field label={t("universiteSpace.settings.sessions")} description={t("universiteSpace.settings.sessionsDescription")}><button type="button" onClick={revoke} disabled={securityBusy} className="inline-flex h-11 items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/5 px-4 text-sm font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-60">{securityBusy?<FiLoader className="animate-spin"/>:<FiLogOut/>}{t("universiteSpace.settings.revokeSessions")}</button></Field>{securityError&&<p className="px-5 pb-4 text-sm text-destructive sm:px-6">{securityError}</p>}<div className="border-t border-border bg-muted/20 p-5 sm:p-6"><div className="rounded-xl border border-destructive/20 bg-destructive/[.03] p-4"><div className="flex gap-3"><FiLock className="mt-0.5 shrink-0 text-destructive"/><div><p className="text-sm font-semibold">{t("universiteSpace.settings.securityNoticeTitle")}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{t("universiteSpace.settings.securityNoticeDescription")}</p></div></div></div></div></Section>
+<div className="rounded-2xl border border-border bg-card p-5 text-xs leading-5 text-muted-foreground shadow-sm"><FiInfo className="mr-2 inline"/>{t("universiteSpace.settings.identityHelp")}</div></>}</main></div></div></div></>;
 }

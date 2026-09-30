@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { formatDateHeureLimite } from "@/lib/utils/dateLimiteOffre";
 import {
   FiMapPin,
   FiBriefcase,
@@ -99,13 +100,11 @@ export default function OffreCandidatureSidebar({
           <Ligne
             icon={FiFlag}
             label={t("offersPage.sidebar.deadline")}
-            value={
-              formatDateCourte(offre.dateLimiteCandidature)
-                ? expiree
-                  ? `${formatDateCourte(offre.dateLimiteCandidature)} · Expirée`
-                  : formatDateCourte(offre.dateLimiteCandidature)
-                : null
-            }
+            value={(() => {
+              const deadlineLabel = formatDateHeureLimite(offre.dateLimiteCandidature, locale) || formatDateCourte(offre.dateLimiteCandidature);
+              if (!deadlineLabel) return null;
+              return expiree ? `${deadlineLabel} · ${t("entrepriseSpace.offers.statusExpired")}` : deadlineLabel;
+            })()}
           />
         </div>
       </div>

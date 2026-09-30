@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { formatDateHeureLimite } from "@/lib/utils/dateLimiteOffre";
 import {
   FiMapPin,
   FiBriefcase,
@@ -101,7 +102,7 @@ export default function OffreInfosGrid({ offre, delay = 0 }) {
         <Info
           icon={FiFlag}
           label={t("offersPage.infoGrid.deadline")}
-          value={formatDate(offre.dateLimiteCandidature)}
+          value={formatDateHeureLimite(offre.dateLimiteCandidature, locale) || formatDate(offre.dateLimiteCandidature)}
         />
       </div>
     </motion.div>

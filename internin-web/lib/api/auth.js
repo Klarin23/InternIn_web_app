@@ -130,3 +130,11 @@ export function deleteEntrepriseAccountRequest(confirmation, token) {
     token,
   });
 }
+
+export function revokeAllSessionsRequest(token) {
+  return apiFetch("/auth/logout-all", {
+    method: "POST",
+    body: {},
+    token,
+  });
+}

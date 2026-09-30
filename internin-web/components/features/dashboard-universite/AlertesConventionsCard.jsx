@@ -1,39 +1,54 @@
-import { FiClock } from "react-icons/fi";
+"use client";
 
-function codeConvention(idConvention) {
-  return `CNV-${idConvention.replace(/-/g, "").slice(0, 4).toUpperCase()}`;
-}
+import Link from "next/link";
+import { FiClock } from "react-icons/fi";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export default function AlertesConventionsCard({ alertes }) {
-  const liste = alertes || [];
+  const { t } = useTranslation();
+  const list = Array.isArray(alertes) ? alertes : [];
+
+  if (list.length === 0) {
+    return (
+      <div className="flex h-full items-center rounded-xl border border-border/60 bg-muted/20 px-4 py-3.5">
+        <p className="text-sm text-muted-foreground">
+          {t("universiteSpace.dashboard.alertsEmpty")}
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="rounded-md border border-border bg-card p-5">
-      <h3 className="mb-4 text-sm font-bold text-foreground">
-        Conventions en attente
-      </h3>
-
-      {liste.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          Aucune convention en attente de validation.
-        </p>
-      )}
-
-      {liste.length > 0 && (
-        <ul className="space-y-3">
-          {liste.map((a) => (
-            <li key={a.idConvention} className="flex items-center gap-3">
-              <FiClock className="h-4 w-4 flex-shrink-0 text-amber-600" />
-              <div className="min-w-0 text-sm">
-                <p className="truncate font-medium text-foreground">
-                  Convention {codeConvention(a.idConvention)} en attente depuis{" "}
-                  {a.joursAttente} jour{a.joursAttente > 1 ? "s" : ""}
+    <div className="rounded-xl border border-border/60 bg-background/50">
+      <ul className="divide-y divide-border/60">
+        {list.map((a) => (
+          <li key={a.idConvention}>
+            <Link
+              href="/conventions"
+              className="flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-muted/40"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-foreground">
+                  {t("universiteSpace.dashboard.alertConvention")}
+                </p>
+                <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                  <FiClock className="h-3 w-3 shrink-0" />
+                  {a.joursAttente === 0
+                    ? t("universiteSpace.dashboard.alertToday")
+                    : a.joursAttente === 1
+                      ? t("universiteSpace.dashboard.alertDayOne")
+                      : t("universiteSpace.dashboard.alertDayOther", {
+                          count: a.joursAttente,
+                        })}
                 </p>
               </div>
-            </li>
-          ))}
-        </ul>
-      )}
+              <span className="shrink-0 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                {t("universiteSpace.dashboard.todoReview")}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

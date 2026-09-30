@@ -14,8 +14,14 @@ export default function BrandPanel() {
       {/* Halo violet décoratif en arrière-plan */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(45%_40%_at_85%_10%,rgba(91,61,245,0.35),transparent_60%)]" />
 
-      <div className="relative z-10 text-xl font-extrabold">
-        Intern<span className="text-primary-foreground/80">In</span>
+      <div className="relative z-10">
+        {/* Le panneau est toujours sombre : utiliser la variante claire du logo. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/logo-dark.svg"
+          alt="InternIn"
+          className="h-10 w-auto"
+        />
       </div>
 
       <div className="relative z-10 max-w-105">

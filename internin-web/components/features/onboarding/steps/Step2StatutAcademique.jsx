@@ -5,33 +5,33 @@
 // appel API une fois ce module construit.
 
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { GraduationCap, Briefcase, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { step2Schema } from "@/lib/schemas/onboarding.schema";
 import { useOnboardingStore } from "@/lib/store/useOnboardingStore";
 import { useTranslation } from "@/lib/i18n/useTranslation";
-
-// TODO : remplacer par un appel GET /universites/public une fois le module
-// backend "universites" construit (liste des universités vérifiées).
-const UNIVERSITES_TEMPORAIRES = [
-  { id: "non-rattache", nomKey: "auditUi.onboarding.noPartnerUniversity" },
-];
 
 export default function Step2StatutAcademique() {
   const router = useRouter();
   const { t } = useTranslation();
   const { data, saveStepData } = useOnboardingStore();
+  const [invitationToken, setInvitationToken] = useState(
+    data.rattachementInvitationToken || "",
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const token = window.localStorage.getItem("internin_universite_invitation");
+    if (token && !data.rattachementInvitationToken) {
+      setInvitationToken(token);
+      saveStepData({ rattachementInvitationToken: token });
+    }
+  }, [data.rattachementInvitationToken, saveStepData]);
 
   const {
     handleSubmit,
@@ -41,7 +41,6 @@ export default function Step2StatutAcademique() {
     resolver: zodResolver(step2Schema),
     defaultValues: {
       statutAcademique: data.statutAcademique || undefined,
-      idUniversite: data.idUniversite || "non-rattache",
     },
   });
 
@@ -112,37 +111,28 @@ export default function Step2StatutAcademique() {
         )}
       </div>
 
-      {/* Rattachement à une université partenaire */}
-      <div className="space-y-1.5">
-        <Label htmlFor="idUniversite">
-          {t("auditUi.onboarding.partnerUniversity")}
-        </Label>
-        <Controller
-          name="idUniversite"
-          control={control}
-          render={({ field }) => (
-            <Select value={field.value} onValueChange={field.onChange}>
-              <SelectTrigger
-                id="idUniversite"
-                className="h-12 w-full rounded-sm"
-              >
-                <SelectValue
-                  placeholder={t("auditUi.onboarding.universityPlaceholder")}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {UNIVERSITES_TEMPORAIRES.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {t(u.nomKey)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-        <p className="text-xs text-muted-foreground">
-          {t("auditUi.onboarding.universityHelp")}
-        </p>
+      {/* Rattachement sécurisé : aucune sélection d'université ne devient
+          un rattachement confirmé. Une invitation vérifiée est la preuve. */}
+      <div className="space-y-3 rounded-md border border-border bg-card p-4">
+        <div>
+          <Label>{t("universityLinking.onboarding.title")}</Label>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t("universityLinking.onboarding.description")}
+          </p>
+        </div>
+
+        {invitationToken ? (
+          <div className="flex items-center gap-3 rounded-md border border-primary/20 bg-primary/5 p-3">
+            <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />
+            <p className="text-sm font-medium text-foreground">
+              {t("universityLinking.onboarding.invitationDetected")}
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {t("universityLinking.onboarding.noInvitation")}
+          </p>
+        )}
       </div>
 
       <div className="flex gap-3">

@@ -17,7 +17,8 @@ export const step2Schema = z.object({
   statutAcademique: z.enum(["etudiant", "jeune_diplome"], {
     errorMap: () => ({ message: "auditUi.validation.statusRequired" }),
   }),
-  idUniversite: z.string().optional(), // NULL si non rattaché à une université partenaire
+  idUniversite: z.string().optional(), // conservé pour compatibilité UI, jamais utilisé comme preuve serveur
+  rattachementInvitationToken: z.string().min(32).max(128).optional(),
 });
 
 // Étapes 3 à 11 : seront complétées au fur et à mesure qu'on les construit.

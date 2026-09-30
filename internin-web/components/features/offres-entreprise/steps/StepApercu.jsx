@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { formatDateHeureSaisie } from "@/lib/utils/dateLimiteOffre";
 
 import { useState } from "react";
 import { motion } from "framer-motion";
@@ -28,20 +29,6 @@ import {
   dureeLabelFor,
   REMUNERATION_OPTIONS,
 } from "../offreForm.constants";
-
-function formatDateLisible(value, locale = "fr") {
-  if (!value) return null;
-  try {
-    const tag = String(locale).toLowerCase().startsWith("en") ? "en-GB" : "fr-FR";
-    return new Date(value).toLocaleDateString(tag, {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-  } catch {
-    return value;
-  }
-}
 
 function PreviewSection({ title, content }) {
   if (!content) return null;
@@ -79,7 +66,9 @@ export default function StepApercu({
       ? values.remunerationType.includes(o.value)
       : values.remunerationType === o.value,
   );
-  const dateLimiteLisible = formatDateLisible(values.dateLimiteCandidature, locale);
+  const dateLimiteLisible = formatDateHeureSaisie(
+    values.dateLimiteCandidature, values.heureLimiteCandidature, locale,
+  );
 
   function handlePublishClick() {
     setConfirmOpen(true);

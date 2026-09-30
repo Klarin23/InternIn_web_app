@@ -1,9 +1,11 @@
 // =====================================================================
 // SCHÉMA DE BASE DE DONNÉES — InternIn
-// Transcription complète du Schéma BDD (37 tables, 9 modules) en Drizzle ORM.
+// Schéma principal en Drizzle ORM, organisé par modules fonctionnels.
 // Conventions : tous les id en UUID, date_creation/date_maj en timestamp,
 // noms de colonnes en snake_case (2e argument de chaque champ).
 // =====================================================================
+
+import { sql } from "drizzle-orm";
 
 import {
   pgTable,
@@ -22,6 +24,7 @@ import {
   primaryKey,
   unique,
   uniqueIndex,
+  index,
   jsonb,
 } from "drizzle-orm/pg-core";
 
@@ -173,6 +176,16 @@ export const statutInvitationEnum = pgEnum("statut_invitation", [
   "actif",
   "desactive",
 ]);
+
+export const statutRattachementUniversitaireEnum = pgEnum(
+  "statut_rattachement_universitaire",
+  ["en_attente", "confirme", "refuse", "expire", "annule"],
+);
+
+export const sourceRattachementUniversitaireEnum = pgEnum(
+  "source_rattachement_universitaire",
+  ["invitation", "code", "lien", "admin", "import"],
+);
 
 export const modeTravailEnum = pgEnum("mode_travail", [
   "distance",
@@ -775,6 +788,122 @@ export const personnelUniversite = pgTable("personnel_universite", {
   statutInvitation: statutInvitationEnum("statut_invitation").default("invite"),
 });
 
+// Rattachements universitaires — la relation confirmée reste portée par
+// stagiaires.idUniversite. Cette table conserve le workflow de preuve,
+// invitation/demande et l'historique sans faire confiance au navigateur.
+export const rattachementsUniversitaires = pgTable(
+  "rattachements_universitaires",
+  {
+    idRattachement: uuid("id_rattachement").defaultRandom().primaryKey(),
+    idStagiaire: uuid("id_stagiaire").references(() => stagiaires.idStagiaire, {
+      onDelete: "set null",
+    }),
+    idUniversite: uuid("id_universite")
+      .notNull()
+      .references(() => universites.idUniversite),
+    emailCible: varchar("email_cible", { length: 255 }),
+    statut: statutRattachementUniversitaireEnum("statut")
+      .notNull()
+      .default("en_attente"),
+    source: sourceRattachementUniversitaireEnum("source").notNull(),
+    tokenHash: varchar("token_hash", { length: 64 }).unique(),
+    dateDemande: timestamp("date_demande", { withTimezone: true }).defaultNow(),
+    dateConfirmation: timestamp("date_confirmation", { withTimezone: true }),
+    dateRefus: timestamp("date_refus", { withTimezone: true }),
+    confirmePar: uuid("confirme_par").references(() => utilisateurs.idUtilisateur, {
+      onDelete: "set null",
+    }),
+    dateExpiration: timestamp("date_expiration", { withTimezone: true }),
+    dateCreation: timestamp("date_creation", { withTimezone: true }).defaultNow(),
+    dateMaj: timestamp("date_maj", { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    uqRattachementEnAttenteEmail: uniqueIndex(
+      "uq_rattachement_universitaire_email_attente",
+    )
+      .on(table.idUniversite, table.emailCible)
+      .where(sql`statut = 'en_attente' AND email_cible IS NOT NULL`),
+    uqRattachementActifStagiaire: uniqueIndex(
+      "uq_rattachement_universitaire_actif_stagiaire",
+    )
+      .on(table.idStagiaire)
+      .where(
+        sql`id_stagiaire IS NOT NULL AND statut IN ('en_attente', 'confirme')`,
+      ),
+    ixRattachementUniversiteStatut: index(
+      "ix_rattachement_universitaire_universite_statut",
+    ).on(table.idUniversite, table.statut, table.dateCreation),
+  }),
+);
+
+export const codesRattachementUniversite = pgTable(
+  "codes_rattachement_universite",
+  {
+    idCode: uuid("id_code").defaultRandom().primaryKey(),
+    idUniversite: uuid("id_universite")
+      .notNull()
+      .references(() => universites.idUniversite),
+    codeHash: varchar("code_hash", { length: 64 }).notNull().unique(),
+    actif: boolean("actif").notNull().default(true),
+    dateExpiration: timestamp("date_expiration", { withTimezone: true }),
+    nombreUtilisations: integer("nombre_utilisations").notNull().default(0),
+    nombreUtilisationsMax: integer("nombre_utilisations_max").notNull().default(100),
+    dateCreation: timestamp("date_creation", { withTimezone: true }).defaultNow(),
+    dateRevocation: timestamp("date_revocation", { withTimezone: true }),
+  },
+  (table) => ({
+    uqCodeActifUniversite: uniqueIndex("uq_code_rattachement_actif_universite")
+      .on(table.idUniversite)
+      .where(sql`actif = true`),
+  }),
+);
+
+export const liensRattachementUniversite = pgTable(
+  "liens_rattachement_universite",
+  {
+    idLien: uuid("id_lien").defaultRandom().primaryKey(),
+    idUniversite: uuid("id_universite")
+      .notNull()
+      .references(() => universites.idUniversite),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
+    actif: boolean("actif").notNull().default(true),
+    dateExpiration: timestamp("date_expiration", { withTimezone: true }),
+    nombreUtilisations: integer("nombre_utilisations").notNull().default(0),
+    nombreUtilisationsMax: integer("nombre_utilisations_max").notNull().default(500),
+    dateCreation: timestamp("date_creation", { withTimezone: true }).defaultNow(),
+    dateRevocation: timestamp("date_revocation", { withTimezone: true }),
+  },
+  (table) => ({
+    uqLienActifUniversite: uniqueIndex("uq_lien_rattachement_actif_universite")
+      .on(table.idUniversite)
+      .where(sql`actif = true`),
+  }),
+);
+
+export const journalRattachementsUniversitaire = pgTable(
+  "journal_rattachements_universitaire",
+  {
+    idJournal: uuid("id_journal").defaultRandom().primaryKey(),
+    idUniversite: uuid("id_universite")
+      .notNull()
+      .references(() => universites.idUniversite),
+    idRattachement: uuid("id_rattachement").references(
+      () => rattachementsUniversitaires.idRattachement,
+      { onDelete: "set null" },
+    ),
+    idStagiaire: uuid("id_stagiaire").references(() => stagiaires.idStagiaire, {
+      onDelete: "set null",
+    }),
+    idUtilisateurActeur: uuid("id_utilisateur_acteur").references(
+      () => utilisateurs.idUtilisateur,
+      { onDelete: "set null" },
+    ),
+    action: varchar("action", { length: 100 }).notNull(),
+    metadata: jsonb("metadata"),
+    dateCreation: timestamp("date_creation", { withTimezone: true }).defaultNow(),
+  },
+);
+
 // =====================================================================
 // MODULE 6 — Administration
 // =====================================================================
@@ -970,7 +1099,7 @@ export const offresStage = pgTable("offres_stage", {
   statut: statutOffreStageEnum("statut").notNull().default("brouillon"),
   datePublication: timestamp("date_publication", { withTimezone: true }),
   dureeStage: dureeStageEnum("duree_stage"),
-  dateLimiteCandidature: date("date_limite_candidature"),
+  dateLimiteCandidature: timestamp("date_limite_candidature", { withTimezone: true }),
   dateCreation: timestamp("date_creation", { withTimezone: true }).defaultNow(),
 });
 

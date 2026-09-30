@@ -64,6 +64,14 @@ export function redactSensitiveUrl(rawUrl) {
     /(\/invitations?\/)([^/?#]+)/gi,
     `$1${REDACTED}`,
   );
+  url = url.replace(
+    /(\/rattachement\/lien\/)([^/?#]+)/gi,
+    `$1${REDACTED}`,
+  );
+  url = url.replace(
+    /(\/rejoindre\/universite\/)([^/?#]+)/gi,
+    `$1${REDACTED}`,
+  );
 
   return url;
 }

@@ -129,9 +129,9 @@ export function estNouvelle(datePublication, maintenant) {
   );
 }
 
-/** Offre expirée = date limite de candidature dépassée (jour courant exclus si on compare à minuit local). */
-export function estOffreExpiree(offre) {
+/** Offre expirée dès que l’instant de fin est atteint (source UTC renvoyée par l’API). */
+export function estOffreExpiree(offre, maintenant = Date.now()) {
   if (!offre?.dateLimiteCandidature) return false;
-  // Même logique que le côté entreprise (OffreCardEntreprise / OffreListRow)
-  return new Date(offre.dateLimiteCandidature) < new Date();
+  const deadline = new Date(offre.dateLimiteCandidature).getTime();
+  return Number.isFinite(deadline) && deadline <= (maintenant instanceof Date ? maintenant.getTime() : maintenant);
 }

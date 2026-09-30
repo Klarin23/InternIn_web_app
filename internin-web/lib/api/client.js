@@ -77,14 +77,8 @@ export async function apiFetch(
   path,
   { method = "GET", body, token, _retried = false } = {},
 ) {
-  // Certains appels historiques (notamment les hooks de lecture des états
-  // vus/non-vus) n'envoient pas explicitement le token. Depuis que le token
-  // n'est plus persisté dans localStorage, cela provoquait un 401 alors que
-  // la session était bien active.
-  //
-  // On récupère donc le token courant du store en navigateur lorsqu'aucun
-  // token n'a été fourni explicitement. Cela ne change rien aux routes
-  // publiques : sans session, aucun header Authorization n'est ajouté.
+  // Certains appels historiques n'envoient pas explicitement le token.
+  // On récupère donc le token courant du store lorsqu'il est disponible.
   let accessToken = token;
   if (!accessToken && typeof window !== "undefined") {
     try {
@@ -100,81 +94,102 @@ export async function apiFetch(
   if (!isForm) headers["Content-Type"] = "application/json";
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
-  const response = await fetch(`${API_URL}${path}`, {
-    method,
-    headers,
-    body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
-    credentials: "include", // indispensable pour envoyer le cookie refresh HttpOnly
-  });
+  // Le timeout couvre TOUTE la requête, y compris la lecture du body.
+  // `fetch()` peut résoudre dès réception des headers : il ne faut donc pas
+  // arrêter le timer immédiatement après `await fetch()`, sinon un proxy/API
+  // qui garde le body ouvert peut laisser React Query en `pending` indéfiniment.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-  // Token expiré → tenter un refresh une seule fois (sauf sur la route refresh elle-même)
-  if (
-    response.status === 401 &&
-    accessToken &&
-    !_retried &&
-    !path.includes("/auth/refresh")
-  ) {
-    const refreshResult = await tryRefreshAccessToken();
-    if (refreshResult?.token) {
-      return apiFetch(path, {
-        method,
-        body,
-        token: refreshResult.token,
-        _retried: true,
-      });
-    }
+  try {
+    const response = await fetch(`${API_URL}${path}`, {
+      method,
+      headers,
+      body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
+      credentials: "include",
+      signal: controller.signal,
+    });
 
-    // Un 429 sur le refresh signifie uniquement que le quota est temporairement
-    // atteint. La session reste valide et le store d'authentification ne doit
-    // pas être vidé. Une vraie erreur de refresh (401/403, cookie expiré, etc.)
-    // continue en revanche à fermer proprement la session.
-    if (refreshResult?.retryable) {
-      // On laisse la réponse 401 d'origine remonter à l'appelant sans
-      // détruire la session. Les prochaines requêtes pourront retenter le
-      // refresh une fois le quota revenu à la normale.
-    } else {
-      try {
-        const { useAuthStore } = await import("@/lib/store/useAuthStore");
-        useAuthStore.getState().clearSession();
-      } catch {
-        // ignore
+    // Token expiré → tenter un refresh une seule fois.
+    if (
+      response.status === 401 &&
+      accessToken &&
+      !_retried &&
+      !path.includes("/auth/refresh")
+    ) {
+      const refreshResult = await tryRefreshAccessToken();
+      if (refreshResult?.token) {
+        return await apiFetch(path, {
+          method,
+          body,
+          token: refreshResult.token,
+          _retried: true,
+        });
       }
-    }
-  }
 
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    let message = data.error || "Une erreur est survenue";
-    // Zod fieldErrors → message lisible pour l'utilisateur
-    if (data.details && typeof data.details === "object") {
-      const parts = [];
-      for (const [field, msgs] of Object.entries(data.details)) {
-        if (Array.isArray(msgs) && msgs.length) {
-          parts.push(await traduireMessageValidation(msgs[0]));
-        } else if (typeof msgs === "string") {
-          parts.push(await traduireMessageValidation(msgs));
+      if (!refreshResult?.retryable) {
+        try {
+          const { useAuthStore } = await import("@/lib/store/useAuthStore");
+          useAuthStore.getState().clearSession();
+        } catch {
+          // ignore
         }
       }
-      if (parts.length) message = parts.join(" · ");
     }
-    const err = new Error(message);
-    err.status = response.status;
-    err.code = data.code;
-    err.details = data.details;
-    if (data.code === "MAINTENANCE") {
-      err.maintenance = data.maintenance || true;
-      // Signal global pour l'UI (évite d'importer React ici)
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent("internin:maintenance", {
-            detail: { message, ...data.maintenance },
-          }),
-        );
-      }
-    }
-    throw err;
-  }
 
-  return data;
+    // La lecture du body reste sous le même AbortController/timeout.
+    // Ne jamais avaler AbortError ici : sinon un body bloqué serait transformé
+    // en `{}` et la mutation pourrait rester dans un état incohérent.
+    let data = {};
+    try {
+      data = await response.json();
+    } catch (error) {
+      if (error?.name === "AbortError") throw error;
+      data = {};
+    }
+
+    if (!response.ok) {
+      let message = data.error || "Une erreur est survenue";
+      if (data.details && typeof data.details === "object") {
+        const parts = [];
+        for (const [, msgs] of Object.entries(data.details)) {
+          if (Array.isArray(msgs) && msgs.length) {
+            parts.push(await traduireMessageValidation(msgs[0]));
+          } else if (typeof msgs === "string") {
+            parts.push(await traduireMessageValidation(msgs));
+          }
+        }
+        if (parts.length) message = parts.join(" · ");
+      }
+
+      const err = new Error(message);
+      err.status = response.status;
+      err.code = data.code;
+      err.details = data.details;
+      if (data.code === "MAINTENANCE") {
+        err.maintenance = data.maintenance || true;
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("internin:maintenance", {
+              detail: { message, ...data.maintenance },
+            }),
+          );
+        }
+      }
+      throw err;
+    }
+
+    return data;
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      const timeoutError = new Error(
+        "La requête a dépassé le délai d'attente. Vérifiez votre connexion puis réessayez.",
+      );
+      timeoutError.code = "API_TIMEOUT";
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }

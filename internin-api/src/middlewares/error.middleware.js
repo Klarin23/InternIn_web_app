@@ -7,7 +7,7 @@ export function errorHandler(err, req, res, next) {
   console.error("[ERROR]", {
     message: err.message,
     status: err.status,
-    path: req.path,
+    path: redactSensitiveUrl(req.originalUrl || req.path || ""),
     method: req.method,
     // Stack uniquement en développement
     ...(process.env.NODE_ENV !== "production" && { stack: err.stack }),

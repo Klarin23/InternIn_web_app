@@ -55,6 +55,22 @@ export const NOTIF_META = {
     tone: "success",
     labelKey: "notifications.actions.viewStage",
   },
+  rattachement_universite_invitation: {
+    tone: "info",
+    labelKey: "notifications.actions.open",
+  },
+  rattachement_universite_demande: {
+    tone: "info",
+    labelKey: "notifications.actions.open",
+  },
+  rattachement_universite_confirme: {
+    tone: "success",
+    labelKey: "notifications.actions.mySpace",
+  },
+  rattachement_universite_refuse: {
+    tone: "error",
+    labelKey: "notifications.actions.view",
+  },
   evaluation: {
     tone: "warning",
     labelKey: "notifications.actions.evaluate",

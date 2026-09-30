@@ -19,6 +19,7 @@ import {
   objectifsDeveloppement,
 } from "../../db/schema.js";
 import { peutActiverCompte } from "../../utils/emailVerificationGuard.js";
+import { appliquerInvitationDansTransaction } from "../rattachements-universite/rattachementsUniversite.service.js";
 
 /** Résout la liste compétences : id existant OU création par nom (custom). */
 async function resoudreCompetences(tx, liste = []) {
@@ -244,10 +245,11 @@ export async function completeStagiaireOnboarding(idUtilisateur, payload) {
       dureeStageSouhaitee: payload.dureeStageSouhaitee,
       heuresHebdoSouhaitees: payload.heuresHebdoSouhaitees,
       dateDebutSouhaitee: payload.dateDebutSouhaitee,
-      idUniversite:
-        payload.idUniversite && payload.idUniversite !== "non-rattache"
-          ? payload.idUniversite
-          : null,
+      // Sécurité : idUniversite envoyé par le navigateur n'est jamais une
+      // preuve de rattachement. On conserve uniquement un rattachement déjà
+      // présent en base ; un nouveau rattachement passe par une invitation
+      // vérifiée (token revalidé côté serveur ci-dessous).
+      idUniversite: existant?.idUniversite || null,
     };
 
     if (existant) {
@@ -289,6 +291,20 @@ export async function completeStagiaireOnboarding(idUtilisateur, payload) {
         .returning();
 
       idStagiaire = stagiaire.idStagiaire;
+    }
+
+    // Si l'inscription a commencé depuis une invitation universitaire,
+    // le token est revalidé dans la même transaction que la création/mise à
+    // jour du profil. Le client ne peut donc jamais substituer un UUID
+    // d'université à cette preuve.
+    if (payload.rattachementInvitationToken) {
+      const rattachement = await appliquerInvitationDansTransaction(
+        tx,
+        payload.rattachementInvitationToken,
+        idUtilisateur,
+        { confirmer: true },
+      );
+      stagiaire = rattachement.student;
     }
 
     // Formations

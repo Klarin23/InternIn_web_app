@@ -141,7 +141,13 @@ export default function RoleAppShell({ children }) {
     sidebar = (
       <AppSidebar
         items={superviseurNavItems}
-        roleLabel={t("roles.supervisorSpace")}
+        roleLabel={
+          membreProfile?.roleEquipe === "gestionnaire_recrutement"
+            ? t("roles.recruitmentManagerSpace")
+            : membreProfile?.roleEquipe === "lecture_seule"
+              ? t("roles.readOnlySpace")
+              : t("roles.supervisorSpace")
+        }
         userFooter={{
           initials,
           name: membreProfile?.nom || user.email,

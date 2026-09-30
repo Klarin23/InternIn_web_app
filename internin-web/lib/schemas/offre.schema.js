@@ -31,8 +31,20 @@ export const offreFormSchema = z
     nombrePostes: z.number().min(1, "Au moins 1 poste"),
     dureeStage: z.enum(["1_mois", "2_mois", "3_mois"]).optional(),
     dateLimiteCandidature: z.string().optional(),
+    heureLimiteCandidature: z.string().optional(),
   })
   .superRefine((data, ctx) => {
+    const dateLimite = String(data.dateLimiteCandidature || "").trim();
+    const heureLimite = String(data.heureLimiteCandidature || "").trim();
+    if (dateLimite && !heureLimite) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "L’heure limite est requise lorsqu’une date est renseignée.", path: ["heureLimiteCandidature"] });
+    }
+    if (!dateLimite && heureLimite) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Renseignez d’abord la date limite.", path: ["dateLimiteCandidature"] });
+    }
+    if (heureLimite && !/^([01]\d|2[0-3]):[0-5]\d$/.test(heureLimite)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Heure invalide (HH:mm).", path: ["heureLimiteCandidature"] });
+    }
     const remunerationTypes = Array.isArray(data.remunerationType)
       ? data.remunerationType
       : data.remunerationType
@@ -114,5 +126,6 @@ export const OFFRE_FORM_STEP_FIELDS = {
     "remunerationType",
     "montantRemuneration",
     "dateLimiteCandidature",
+    "heureLimiteCandidature",
   ],
 };

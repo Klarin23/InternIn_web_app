@@ -8,6 +8,7 @@ import { FiMinus, FiPlus, FiCalendar } from "react-icons/fi";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { todayInDouala } from "@/lib/utils/dateLimiteOffre";
 import SelectableCard from "../SelectableCard";
 import {
   MODE_TRAVAIL_OPTIONS,
@@ -15,18 +16,9 @@ import {
   DUREE_OPTIONS,
 } from "../offreForm.constants";
 
-const todayIso = () => new Date().toISOString().split("T")[0];
+const todayIso = todayInDouala;
 
-// Étape 3 — "Conditions du stage" (points 4 à 8 du cahier des charges).
-// Regroupe mode de travail, durée, nombre de postes, rémunération (avec
-// montant conditionnel animé) et date limite de candidature.
-//
-// IMPORTANT : ce composant n'a PAS appelé useForm() lui-même (c'est
-// OffreForm.jsx qui le fait). Pour réagir de façon fiable aux changements
-// de remunerationType / nombrePostes ici, on utilise `useWatch({ control,
-// name })` plutôt que la fonction `watch()` reçue en prop : `watch()` ne
-// garantit un re-render que dans le composant qui a appelé useForm() ;
-// `useWatch` est l'outil prévu par RHF pour un composant enfant.
+
 export default function StepConditionsStage({ control, register, errors }) {
   const { t } = useTranslation();
   const remunerationType = useWatch({ control, name: "remunerationType" }) || [];
@@ -239,7 +231,7 @@ export default function StepConditionsStage({ control, register, errors }) {
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Ce montant correspond à l'ensemble des rémunérations sélectionnées.
+                  Ce montant correspond à l&apos;ensemble des rémunérations sélectionnées.
                 </p>
                 {errors.montantRemuneration && (
                   <p className="text-xs text-destructive">
@@ -252,31 +244,48 @@ export default function StepConditionsStage({ control, register, errors }) {
         </AnimatePresence>
       </div>
 
-      {/* Date limite de candidature (point 8) */}
-      <div className="space-y-1.5">
-        <Label htmlFor="dateLimiteCandidature">
-          {t("entrepriseSpace.offers.applicationDeadline")}{" "}
-          <span className="text-muted-foreground">{t("entrepriseSpace.offers.optional")}</span>
-        </Label>
-        <div className="relative w-full sm:w-64">
-          <FiCalendar className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="dateLimiteCandidature"
-            type="date"
-            min={todayIso()}
-            className="h-12 rounded-sm pl-9"
-            {...register("dateLimiteCandidature")}
-          />
+      {/* Date et heure limites de candidature. L’heure est exprimée en Africa/Douala. */}
+      <div className="space-y-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:max-w-lg">
+          <div className="min-w-0 space-y-1.5">
+            <Label htmlFor="dateLimiteCandidature">{t("entrepriseSpace.offers.applicationDeadline")}</Label>
+            <div className="relative">
+              <FiCalendar className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+              <Input
+                id="dateLimiteCandidature"
+                type="date"
+                min={todayIso()}
+                aria-describedby="deadline-hint deadline-date-error"
+                className="h-12 rounded-sm pl-9"
+                {...register("dateLimiteCandidature")}
+              />
+            </div>
+            {errors.dateLimiteCandidature && (
+              <p id="deadline-date-error" className="text-xs text-destructive">{errors.dateLimiteCandidature.message}</p>
+            )}
+          </div>
+          <div className="min-w-0 space-y-1.5">
+            <Label htmlFor="heureLimiteCandidature">{t("entrepriseSpace.offers.deadlineTimeLabel")}</Label>
+            <div className="relative">
+              <FiCalendar className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+              <Input
+                id="heureLimiteCandidature"
+                type="time"
+                step="60"
+                aria-describedby="deadline-hint deadline-time-error"
+                className="h-12 rounded-sm pl-9"
+                {...register("heureLimiteCandidature")}
+              />
+            </div>
+            {errors.heureLimiteCandidature && (
+              <p id="deadline-time-error" className="text-xs text-destructive">{errors.heureLimiteCandidature.message}</p>
+            )}
+          </div>
         </div>
-        <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+        <p id="deadline-hint" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
           <FiCalendar className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
           {t("entrepriseSpace.offers.deadlineHint")}
         </p>
-        {errors.dateLimiteCandidature && (
-          <p className="text-xs text-destructive">
-            {errors.dateLimiteCandidature.message}
-          </p>
-        )}
       </div>
     </motion.div>
   );

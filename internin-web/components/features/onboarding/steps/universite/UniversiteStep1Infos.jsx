@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FiHome, FiMail } from "react-icons/fi";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,17 +20,22 @@ import { universiteStep1Schema } from "@/lib/schemas/onboardingUniversite.schema
 import { useOnboardingUniversiteStore } from "@/lib/store/useOnboardingUniversiteStore";
 
 const TYPES_ETABLISSEMENT = [
-  "Université publique",
-  "Université privée",
-  "Grande École",
-  "Institut Supérieur",
-  "Centre de formation professionnelle",
-  "Autre",
+  { value: "Université publique", labelKey: "types.publicUniversity" },
+  { value: "Université privée", labelKey: "types.privateUniversity" },
+  { value: "Grande École", labelKey: "types.grandeEcole" },
+  { value: "Institut Supérieur", labelKey: "types.higherInstitute" },
+  { value: "Centre de formation professionnelle", labelKey: "types.vocationalTrainingCenter" },
+  { value: "Autre", labelKey: "types.other" },
+];
+
+const PAYS = [
+  { value: "Cameroun", labelKey: "countries.cameroon" },
 ];
 
 export default function UniversiteStep1Infos() {
   const router = useRouter();
   const { data, saveStepData } = useOnboardingUniversiteStore();
+  const { t } = useTranslation();
 
   const {
     register,
@@ -42,7 +48,7 @@ export default function UniversiteStep1Infos() {
       nomUniversite: data.nomUniversite || "",
       emailOfficiel: data.emailOfficiel || "",
       typeEtablissement: data.typeEtablissement || undefined,
-      pays: data.pays || "",
+      pays: "Cameroun",
       nombreEtudiants: data.nombreEtudiants || "",
     },
   });
@@ -59,15 +65,15 @@ export default function UniversiteStep1Infos() {
           <FiHome className="h-5 w-5" />
         </div>
         <h1 className="mb-1.5 text-2xl font-bold text-foreground">
-          Parlez-nous de votre établissement
+          {t("onboardingUniversite.step1.title")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Ces informations seront visibles par les entreprises partenaires.
+          {t("onboardingUniversite.step1.description")}
         </p>
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="nomUniversite">Nom de l&apos;établissement</Label>
+        <Label htmlFor="nomUniversite">{t("onboardingUniversite.step1.institutionName")}</Label>
         <Input
           id="nomUniversite"
           className="h-12 rounded-sm"
@@ -81,13 +87,13 @@ export default function UniversiteStep1Infos() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="emailOfficiel">E-mail officiel</Label>
+        <Label htmlFor="emailOfficiel">{t("onboardingUniversite.step1.officialEmail")}</Label>
         <div className="relative">
           <FiMail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             id="emailOfficiel"
             type="email"
-            placeholder="contact@universite.edu"
+            placeholder={t("onboardingUniversite.step1.emailPlaceholder")}
             className="h-12 rounded-sm pl-10"
             {...register("emailOfficiel")}
           />
@@ -100,7 +106,7 @@ export default function UniversiteStep1Infos() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="typeEtablissement">Type d&apos;établissement</Label>
+        <Label htmlFor="typeEtablissement">{t("onboardingUniversite.step1.institutionType")}</Label>
         <Controller
           name="typeEtablissement"
           control={control}
@@ -110,12 +116,12 @@ export default function UniversiteStep1Infos() {
                 id="typeEtablissement"
                 className="h-12 w-full rounded-sm"
               >
-                <SelectValue placeholder="Sélectionnez un type" />
+                <SelectValue placeholder={t("onboardingUniversite.step1.typePlaceholder")} />
               </SelectTrigger>
               <SelectContent>
-                {TYPES_ETABLISSEMENT.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {t}
+                {TYPES_ETABLISSEMENT.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {t(`onboardingUniversite.step1.${type.labelKey}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -131,16 +137,35 @@ export default function UniversiteStep1Infos() {
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label htmlFor="pays">Pays</Label>
-          <Input id="pays" className="h-12 rounded-sm" {...register("pays")} />
+          <Label htmlFor="pays">{t("onboardingUniversite.step1.country")}</Label>
+          <Controller
+            name="pays"
+            control={control}
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger id="pays" className="h-12 w-full rounded-sm">
+                  <SelectValue
+                    placeholder={t("onboardingUniversite.step1.countryPlaceholder")}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYS.map((pays) => (
+                    <SelectItem key={pays.value} value={pays.value}>
+                      {t(`onboardingUniversite.step1.${pays.labelKey}`)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
           {errors.pays && (
             <p className="text-xs text-destructive">{errors.pays.message}</p>
           )}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="nombreEtudiants">
-            Nombre d&apos;étudiants{" "}
-            <span className="text-muted-foreground">(facultatif)</span>
+            {t("onboardingUniversite.step1.studentCount")} {" "}
+            <span className="text-muted-foreground">({t("onboardingUniversite.step1.optional")})</span>
           </Label>
           <Input
             id="nombreEtudiants"
@@ -156,7 +181,7 @@ export default function UniversiteStep1Infos() {
         disabled={isSubmitting}
         className="h-12 w-full rounded-sm"
       >
-        Continuer
+        {t("onboardingUniversite.step1.continue")}
       </Button>
     </form>
   );

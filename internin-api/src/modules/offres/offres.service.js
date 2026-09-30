@@ -6,6 +6,7 @@ import { db } from "../../db/index.js";
 import { sql, eq, and, or, ilike } from "drizzle-orm";
 import { offresStage, entreprises, candidatures } from "../../db/schema.js";
 import { resolveEntrepriseContextOrThrow } from "../../utils/entrepriseContext.js";
+import { isOffreDeadlineExpired } from "../../utils/offreDeadline.js";
 
 function normalizeRemunerations(payload) {
   const types = Array.isArray(payload.remunerationType) ? payload.remunerationType : payload.remunerationType ? [payload.remunerationType] : [];
@@ -205,6 +206,12 @@ export async function listOffresByEntreprise(idUtilisateurEntreprise) {
 // Bloque la création si l'entreprise n'est pas vérifiée — règle métier
 // du PRD (une entreprise en attente ne peut pas encore publier).
 export async function createOffre(idUtilisateurEntreprise, payload) {
+  if (payload.statut === "publie" && isOffreDeadlineExpired(payload.dateLimiteCandidature)) {
+    const err = new Error("La date et l’heure limites doivent être dans le futur pour publier l’offre.");
+    err.status = 400;
+    err.code = "OFFRE_DEADLINE_PASSEE";
+    throw err;
+  }
   const { entreprise } = await resolveEntrepriseContextOrThrow(
     idUtilisateurEntreprise,
   );
@@ -285,6 +292,18 @@ export async function updateOffre(idUtilisateurEntreprise, idOffre, payload) {
   }
 
   const updateValues = { ...payload };
+  const dateLimiteEffective = Object.hasOwn(payload, "dateLimiteCandidature")
+    ? payload.dateLimiteCandidature
+    : offreExistante.dateLimiteCandidature;
+  const statutEffectif = payload.statut ?? offreExistante.statut;
+  const demandePublication = payload.statut === "publie";
+  const modificationEcheancePubliee = Object.hasOwn(payload, "dateLimiteCandidature") && statutEffectif === "publie";
+  if ((demandePublication || modificationEcheancePubliee) && isOffreDeadlineExpired(dateLimiteEffective)) {
+    const err = new Error("La date et l’heure limites doivent être dans le futur pour publier l’offre.");
+    err.status = 400;
+    err.code = "OFFRE_DEADLINE_PASSEE";
+    throw err;
+  }
   if (payload.remunerationType !== undefined) {
     updateValues.remunerationOptions = normalizeRemunerations(payload);
     const types = Array.isArray(payload.remunerationType) ? payload.remunerationType : [payload.remunerationType];
@@ -369,7 +388,9 @@ export async function dupliquerOffre(idUtilisateurEntreprise, idOffre) {
       montantRemuneration: offreExistante.montantRemuneration,
       nombrePostes: offreExistante.nombrePostes,
       dureeStage: offreExistante.dureeStage,
-      dateLimiteCandidature: offreExistante.dateLimiteCandidature,
+      // Une copie est un brouillon indépendant : elle ne reprend pas une
+      // échéance potentiellement passée de l’offre source.
+      dateLimiteCandidature: null,
       statut: "brouillon",
       datePublication: null,
     })

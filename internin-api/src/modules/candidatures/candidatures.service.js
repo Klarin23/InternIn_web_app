@@ -29,6 +29,7 @@ import {
   getUtilisateursAvecPermission,
 } from "../../utils/entrepriseContext.js";
 import { publishRealtime } from "../../utils/realtime.js";
+import { isOffreDeadlineExpired } from "../../utils/offreDeadline.js";
 
 export async function createCandidature(
   idUtilisateur,
@@ -75,14 +76,11 @@ export async function createCandidature(
     throw err;
   }
 
-  if (offre.dateLimiteCandidature) {
-    if (new Date(offre.dateLimiteCandidature) < new Date()) {
-      const err = new Error(
-        "Cette offre a expiré : les candidatures sont fermées",
-      );
-      err.status = 400;
-      throw err;
-    }
+  if (isOffreDeadlineExpired(offre.dateLimiteCandidature)) {
+    const err = new Error("Cette offre a expiré : les candidatures sont fermées");
+    err.status = 400;
+    err.code = "OFFRE_EXPIREE";
+    throw err;
   }
 
   // Le quota est consommé dès qu'une candidature active est soumise.
@@ -90,12 +88,23 @@ export async function createCandidature(
   // simultanées de dépasser le nombre de postes disponibles.
   const candidature = await db.transaction(async (tx) => {
     const offreResult = await tx.execute(
-      sql`SELECT nombre_postes FROM offres_stage WHERE id_offre = ${idOffre} FOR UPDATE`,
+      sql`SELECT nombre_postes, statut, date_limite_candidature FROM offres_stage WHERE id_offre = ${idOffre} FOR UPDATE`,
     );
     const offreVerrouillee = offreResult.rows?.[0];
     if (!offreVerrouillee) {
       const err = new Error("Cette offre n'est plus disponible");
       err.status = 404;
+      throw err;
+    }
+    if (offreVerrouillee.statut !== "publie") {
+      const err = new Error("Cette offre n'est plus disponible");
+      err.status = 400;
+      throw err;
+    }
+    if (isOffreDeadlineExpired(offreVerrouillee.date_limite_candidature)) {
+      const err = new Error("Cette offre a expiré : les candidatures sont fermées");
+      err.status = 400;
+      err.code = "OFFRE_EXPIREE";
       throw err;
     }
     const nombrePostes = Number(offreVerrouillee.nombre_postes ?? 1);

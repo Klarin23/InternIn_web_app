@@ -11,7 +11,7 @@ const LANGUES = [
   { code: "en", labelCle: "languageSwitcher.english", short: "EN" },
 ];
 
-export default function LanguageSwitcher({ align = "right" }) {
+export default function LanguageSwitcher({ align = "right", compactOnMobile = false }) {
   const { t, locale, setLocale } = useTranslation();
   const [ouvert, setOuvert] = useState(false);
 
@@ -29,14 +29,16 @@ export default function LanguageSwitcher({ align = "right" }) {
         onClick={() => setOuvert((v) => !v)}
         aria-label={t("languageSwitcher.selectLanguage")}
         aria-expanded={ouvert}
-        className="flex h-9 items-center gap-1.5 rounded-full px-2.5 text-sm font-medium text-muted-foreground transition hover:bg-muted"
+        className={`flex h-9 items-center gap-1.5 rounded-full text-sm font-medium text-muted-foreground transition hover:bg-muted ${
+          compactOnMobile ? "w-9 justify-center px-0 sm:w-auto sm:justify-start sm:px-2.5" : "px-2.5"
+        }`}
       >
         <Globe className="h-3.5 w-3.5" aria-hidden />
-        <span className="uppercase">{langueCourante.code}</span>
+        <span className={compactOnMobile ? "hidden uppercase sm:inline" : "uppercase"}>{langueCourante.code}</span>
         <motion.span
           animate={{ rotate: ouvert ? 180 : 0 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
-          className="flex items-center"
+          className={compactOnMobile ? "hidden items-center sm:flex" : "flex items-center"}
         >
           <FiChevronDown className="h-3.5 w-3.5" />
         </motion.span>

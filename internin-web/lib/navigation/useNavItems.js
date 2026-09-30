@@ -199,6 +199,11 @@ export function useStagiaireNavItems() {
     },
     { href: "/certificats", label: t("sidebar.certificates"), icon: FiAward },
     {
+      href: "/mon-etablissement",
+      label: t("sidebar.myUniversity"),
+      icon: FiHome,
+    },
+    {
       href: "/securite",
       label: t("sidebar.safetyReports"),
       icon: FiShield,

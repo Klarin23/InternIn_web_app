@@ -15,6 +15,7 @@
 //   remplace pas la convention signée entre les parties.
 
 import { useState } from "react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import {
   FiLoader,
   FiFileText,
@@ -31,19 +32,19 @@ import { useValiderConvention } from "@/lib/queries/useValiderConvention";
 import { useGenererPdfConvention } from "@/lib/queries/useGenererPdfConvention";
 
 const ONGLETS = [
-  { value: undefined, label: "Toutes" },
-  { value: "en_attente", label: "En attente" },
-  { value: "active", label: "Actives" },
-  { value: "terminee", label: "Terminées" },
+  { value: undefined, labelKey: "all" },
+  { value: "en_attente", labelKey: "pending" },
+  { value: "active", labelKey: "active" },
+  { value: "terminee", labelKey: "completed" },
 ];
 
 const STATUT_INFO = {
   en_attente: {
-    label: "En attente",
+    labelKey: "pending",
     className: "bg-warning/10 text-amber-700",
   },
-  active: { label: "Active", className: "bg-primary/10 text-primary" },
-  terminee: { label: "Terminée", className: "bg-muted text-muted-foreground" },
+  active: { labelKey: "active", className: "bg-primary/10 text-primary" },
+  terminee: { labelKey: "completed", className: "bg-muted text-muted-foreground" },
 };
 
 function StatCard({ icon: Icon, label, value, color }) {
@@ -84,7 +85,7 @@ function EtapeSignature({ ok, label }) {
   );
 }
 
-function LigneConvention({ convention }) {
+function LigneConvention({ convention, t }) {
   const statut = STATUT_INFO[convention.statut];
   const validerMutation = useValiderConvention();
   const pdfMutation = useGenererPdfConvention();
@@ -99,12 +100,12 @@ function LigneConvention({ convention }) {
           <span
             className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${statut.className}`}
           >
-            {statut.label}
+            {t(`universiteSpace.conventions.status.${statut.labelKey}`)}
           </span>
           {convention.valideeParUniversite && (
             <span className="flex items-center gap-1 rounded-full bg-secondary/10 px-2 py-0.5 text-[11px] font-bold text-secondary">
               <FiShield className="h-3 w-3" />
-              Validée université
+              {t("universiteSpace.conventions.validated")}
             </span>
           )}
         </div>
@@ -123,15 +124,15 @@ function LigneConvention({ convention }) {
         <div className="flex flex-col items-start gap-1 sm:items-end">
           <EtapeSignature
             ok={convention.accepteeParEntreprise}
-            label="Entreprise"
+            label={t("universiteSpace.conventions.signatureCompany")}
           />
           <EtapeSignature
             ok={convention.accepteeParStagiaire}
-            label="Étudiant"
+            label={t("universiteSpace.conventions.signatureStudent")}
           />
           <EtapeSignature
             ok={convention.approuveeParPlateforme}
-            label="Plateforme"
+            label={t("universiteSpace.conventions.signaturePlatform")}
           />
         </div>
 
@@ -148,7 +149,7 @@ function LigneConvention({ convention }) {
             ) : (
               <FiDownload className="h-3.5 w-3.5" />
             )}
-            PDF
+            {t("universiteSpace.conventions.pdf")}
           </Button>
           <Button
             type="button"
@@ -165,12 +166,12 @@ function LigneConvention({ convention }) {
             {convention.valideeParUniversite ? (
               <>
                 <FiX className="h-3.5 w-3.5" />
-                Retirer la validation
+                {t("universiteSpace.conventions.removeValidation")}
               </>
             ) : (
               <>
                 <FiCheck className="h-3.5 w-3.5" />
-                Valider
+                {t("universiteSpace.conventions.validate")}
               </>
             )}
           </Button>
@@ -181,6 +182,7 @@ function LigneConvention({ convention }) {
 }
 
 export default function ConventionsPage() {
+  const { t } = useTranslation();
   const [recherche, setRecherche] = useState("");
   const [onglet, setOnglet] = useState(undefined);
 
@@ -194,8 +196,8 @@ export default function ConventionsPage() {
   return (
     <>
       <AppHeader
-        title="Conventions"
-        subtitle="Suivi des conventions de stage"
+        title={t("universiteSpace.conventions.title")}
+        subtitle={t("universiteSpace.conventions.subtitle")}
         searchValue={recherche}
         onSearchChange={setRecherche}
         refreshKeys={["conventionsUniversite"]}
@@ -207,31 +209,31 @@ export default function ConventionsPage() {
             <StatCard
               icon={FiFileText}
               value={stats.total}
-              label="Total"
+              label={t("universiteSpace.conventions.total")}
               color="bg-primary/10 text-primary"
             />
             <StatCard
               icon={FiClock}
               value={stats.enAttente}
-              label="En attente"
+              label={t("universiteSpace.conventions.status.pending")}
               color="bg-warning/10 text-amber-700"
             />
             <StatCard
               icon={FiCheck}
               value={stats.actives}
-              label="Actives"
+              label={t("universiteSpace.conventions.activePlural")}
               color="bg-success/10 text-green-700"
             />
             <StatCard
               icon={FiX}
               value={stats.terminees}
-              label="Terminées"
+              label={t("universiteSpace.conventions.completedPlural")}
               color="bg-muted text-muted-foreground"
             />
             <StatCard
               icon={FiShield}
               value={stats.valideesUniversite}
-              label="Validées université"
+              label={t("universiteSpace.conventions.validatedCount")}
               color="bg-secondary/10 text-secondary"
             />
           </div>
@@ -240,7 +242,7 @@ export default function ConventionsPage() {
         <div className="flex flex-wrap gap-2">
           {ONGLETS.map((o) => (
             <button
-              key={o.label}
+              key={o.value || "all"}
               type="button"
               onClick={() => setOnglet(o.value)}
               className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
@@ -249,7 +251,7 @@ export default function ConventionsPage() {
                   : "border-border bg-white text-muted-foreground hover:bg-muted"
               }`}
             >
-              {o.label}
+              {t(`universiteSpace.conventions.tabs.${o.labelKey}`)}
             </button>
           ))}
         </div>
@@ -257,7 +259,7 @@ export default function ConventionsPage() {
         {isLoading && (
           <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
             <FiLoader className="h-5 w-5 animate-spin" />
-            Chargement...
+            {t("universiteSpace.conventions.loading")}
           </div>
         )}
 
@@ -265,7 +267,7 @@ export default function ConventionsPage() {
           <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
             <FiFileText className="h-8 w-8 text-muted-foreground" />
             <p className="text-sm font-medium text-foreground">
-              Aucune convention trouvée
+              {t("universiteSpace.conventions.empty")}
             </p>
           </div>
         )}
@@ -273,7 +275,7 @@ export default function ConventionsPage() {
         {conventions.length > 0 && (
           <div className="space-y-3">
             {conventions.map((c) => (
-              <LigneConvention key={c.idConvention} convention={c} />
+              <LigneConvention key={c.idConvention} convention={c} t={t} />
             ))}
           </div>
         )}
