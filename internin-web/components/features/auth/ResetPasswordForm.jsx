@@ -20,42 +20,38 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 export default function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const urlToken = searchParams.get("token");
+  // Le token est figé dans le state dès le premier rendu. Next.js synchronise
+  // window.history.replaceState avec useSearchParams() : si on lisait
+  // directement searchParams.get("token") à chaque rendu, le nettoyage de
+  // l'URL ci-dessous ferait passer le token à null et afficher à tort
+  // « lien invalide ».
+  const [token, setToken] = useState(() => searchParams.get("token"));
 
-  // Le token est capturé au premier rendu client. L'URL reste prioritaire ;
-  // sessionStorage sert uniquement de secours après le nettoyage de l'URL.
-  const [sessionToken] = useState(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      return window.sessionStorage.getItem("internin_reset_token");
-    } catch {
-      return null;
-    }
-  });
-
-  const resetToken = urlToken || sessionToken;
-
+  // Accepte un nouveau lien (autre token dans l'URL) mais ignore la
+  // disparition du token provoquée par le nettoyage de l'URL.
   useEffect(() => {
-    if (typeof window === "undefined" || !urlToken) return;
+    const fromUrl = searchParams.get("token");
+    if (fromUrl) setToken(fromUrl);
+  }, [searchParams]);
 
+  // Retire le token de l'URL après capture (historique navigateur / referrers)
+  useEffect(() => {
+    if (!token || typeof window === "undefined") return;
     try {
-      window.sessionStorage.setItem("internin_reset_token", urlToken);
-
-      // Retire le token de l'URL après capture afin de réduire son exposition
-      // dans l'historique et les éventuels referrers.
       const url = new URL(window.location.href);
-      url.searchParams.delete("token");
-
-      const clean =
-        url.pathname +
-        (url.searchParams.toString() ? `?${url.searchParams}` : "") +
-        url.hash;
-
-      window.history.replaceState({}, "", clean);
+      if (url.searchParams.has("token")) {
+        url.searchParams.delete("token");
+        const clean =
+          url.pathname +
+          (url.searchParams.toString() ? `?${url.searchParams}` : "") +
+          url.hash;
+        window.history.replaceState({}, "", clean);
+      }
     } catch {
-      // Le token reste disponible via urlToken pendant le rendu courant.
+      /* ignore */
     }
-  }, [urlToken]);
+  }, [token]);
+
   const { t } = useTranslation();
   const [serverError, setServerError] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -76,12 +72,7 @@ export default function ResetPasswordForm() {
   const onSubmit = async (data) => {
     setServerError(null);
     try {
-      await resetPasswordRequest({ token: resetToken, password: data.password });
-      try {
-        window.sessionStorage.removeItem("internin_reset_token");
-      } catch {
-        /* ignore */
-      }
+      await resetPasswordRequest({ token, password: data.password });
       setSuccess(true);
     } catch (err) {
       setServerError(err.message);
@@ -89,7 +80,7 @@ export default function ResetPasswordForm() {
   };
 
   // ---------- LIEN ABSENT/INVALIDE DÈS LE DÉPART ----------
-  if (!resetToken) {
+  if (!token) {
     return (
       <div className="text-center">
         <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive">
