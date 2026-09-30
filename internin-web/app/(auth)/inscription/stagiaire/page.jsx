@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import SignupForm from "@/components/features/auth/SignupForm";
 
 export const metadata = {
@@ -5,5 +6,9 @@ export const metadata = {
 };
 
 export default function InscriptionStagiairePage() {
-  return <SignupForm role="stagiaire" />;
+  return (
+    <Suspense fallback={null}>
+      <SignupForm role="stagiaire" />
+    </Suspense>
+  );
 }
