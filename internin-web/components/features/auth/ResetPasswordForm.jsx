@@ -20,40 +20,40 @@ import { useTranslation } from "@/lib/i18n/useTranslation";
 export default function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get("token");
+  const urlToken = searchParams.get("token");
 
-  // Capture le token AVANT de nettoyer l'URL.
-  // Le token est conservé en mémoire pendant toute la durée de la page et,
-  // en secours, dans sessionStorage pour éviter de le perdre lors d'un
-  // remount/navigation interne du composant. Une nouvelle URL avec un token
-  // remplace toujours l'ancienne valeur.
+  // Le token est capturé au premier rendu client. L'URL reste prioritaire ;
+  // sessionStorage sert uniquement de secours après le nettoyage de l'URL.
+  const [sessionToken] = useState(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      return window.sessionStorage.getItem("internin_reset_token");
+    } catch {
+      return null;
+    }
+  });
+
+  const resetToken = urlToken || sessionToken;
+
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !urlToken) return;
 
     try {
-      if (urlToken) {
-        setResetToken(urlToken);
-        window.sessionStorage.setItem("internin_reset_token", urlToken);
+      window.sessionStorage.setItem("internin_reset_token", urlToken);
 
-        // Retire le token de l'URL après capture afin de réduire son exposition
-        // dans l'historique et les éventuels referrers.
-        const url = new URL(window.location.href);
-        if (url.searchParams.has("token")) {
-          url.searchParams.delete("token");
-          const clean =
-            url.pathname +
-            (url.searchParams.toString() ? `?${url.searchParams}` : "") +
-            url.hash;
-          window.history.replaceState({}, "", clean);
-        }
-        return;
-      }
+      // Retire le token de l'URL après capture afin de réduire son exposition
+      // dans l'historique et les éventuels referrers.
+      const url = new URL(window.location.href);
+      url.searchParams.delete("token");
 
-      const storedToken = window.sessionStorage.getItem("internin_reset_token");
-      if (storedToken) setResetToken(storedToken);
+      const clean =
+        url.pathname +
+        (url.searchParams.toString() ? `?${url.searchParams}` : "") +
+        url.hash;
+
+      window.history.replaceState({}, "", clean);
     } catch {
-      // sessionStorage peut être indisponible ; la valeur URL reste prioritaire.
-      if (urlToken) setResetToken(urlToken);
+      // Le token reste disponible via urlToken pendant le rendu courant.
     }
   }, [urlToken]);
   const { t } = useTranslation();
