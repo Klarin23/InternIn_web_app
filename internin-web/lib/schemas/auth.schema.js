@@ -4,22 +4,22 @@ import { z } from "zod";
 
 const passwordSchema = z
   .string()
-  .min(8, "Le mot de passe doit contenir au moins 8 caractères")
-  .regex(/[A-Z]/, "Le mot de passe doit contenir au moins une majuscule")
-  .regex(/[a-z]/, "Le mot de passe doit contenir au moins une minuscule")
-  .regex(/[0-9]/, "Le mot de passe doit contenir au moins un chiffre")
+  .min(8, "auth.validation.passwordMin8")
+  .regex(/[A-Z]/, "auth.validation.passwordUppercase")
+  .regex(/[a-z]/, "auth.validation.passwordLowercase")
+  .regex(/[0-9]/, "auth.validation.passwordNumber")
   .regex(
     /[^A-Za-z0-9]/,
-    "Le mot de passe doit contenir au moins un caractère spécial",
+    "auth.validation.passwordSpecial",
   );
 
 export const loginSchema = z.object({
   email: z
     .string()
-    .min(1, "L'adresse e-mail est requise")
-    .email("Adresse e-mail invalide"),
+    .min(1, "auth.validation.emailRequired")
+    .email("auth.validation.emailInvalid"),
 
-  password: z.string().min(1, "Le mot de passe est requis"),
+  password: z.string().min(1, "auth.validation.passwordRequired"),
 
   remember: z.boolean().optional(),
 });
@@ -28,38 +28,38 @@ export const signupSchema = z
   .object({
     email: z
       .string()
-      .min(1, "L'adresse e-mail est requise")
-      .email("Adresse e-mail invalide"),
+      .min(1, "auth.validation.emailRequired")
+      .email("auth.validation.emailInvalid"),
 
     password: passwordSchema,
 
-    confirmPassword: z.string().min(1, "Merci de confirmer votre mot de passe"),
+    confirmPassword: z.string().min(1, "auth.validation.confirmPasswordRequired"),
 
     acceptTerms: z.literal(true, {
       errorMap: () => ({
-        message: "Vous devez accepter les conditions pour continuer",
+        message: "auth.validation.acceptTerms",
       }),
     }),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Les mots de passe ne correspondent pas",
+    message: "auth.validation.passwordsMismatch",
     path: ["confirmPassword"],
   });
 
 export const forgotPasswordSchema = z.object({
   email: z
     .string()
-    .min(1, "L'adresse e-mail est requise")
-    .email("Adresse e-mail invalide"),
+    .min(1, "auth.validation.emailRequired")
+    .email("auth.validation.emailInvalid"),
 });
 
 export const resetPasswordSchema = z
   .object({
     password: passwordSchema,
-    confirmPassword: z.string().min(1, "Merci de confirmer votre mot de passe"),
+    confirmPassword: z.string().min(1, "auth.validation.confirmPasswordRequired"),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Les mots de passe ne correspondent pas",
+    message: "auth.validation.passwordsMismatch",
     path: ["confirmPassword"],
   });
 
@@ -69,10 +69,10 @@ export const accepterInvitationSchema = z
 
     confirmMotDePasse: z
       .string()
-      .min(1, "Merci de confirmer votre mot de passe"),
+      .min(1, "auth.validation.confirmPasswordRequired"),
   })
   .refine((data) => data.motDePasse === data.confirmMotDePasse, {
-    message: "Les mots de passe ne correspondent pas",
+    message: "auth.validation.passwordsMismatch",
     path: ["confirmMotDePasse"],
   });
 

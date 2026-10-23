@@ -93,12 +93,12 @@ function getStaticNavForRole(type, t) {
         },
         {
           href: "/supervision/mes-stagiaires",
-          label: t("sidebar.myInterns") || "Mes stagiaires",
+          label: t("sidebar.myInterns"),
           icon: FiUsers,
         },
         {
           href: "/supervision/evaluations",
-          label: t("sidebar.evaluations") || "Évaluations",
+          label: t("sidebar.evaluations"),
           icon: FiClipboard,
         },
         {
@@ -509,7 +509,7 @@ export default function GlobalSearch({ className, placeholder }) {
               inputRef.current?.focus();
             }}
             className="rounded p-0.5 text-muted-foreground hover:text-foreground"
-            aria-label={t("header.clearSearch") || "Effacer"}
+            aria-label={t("header.clearSearch")}
           >
             <FiX className="h-3.5 w-3.5" />
           </button>
@@ -528,7 +528,7 @@ export default function GlobalSearch({ className, placeholder }) {
         >
           {results.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-muted-foreground">
-              {t("header.noSearchResults") || "Aucun résultat"}
+              {t("header.noSearchResults")}
             </p>
           ) : (
             <ul className="space-y-0.5">

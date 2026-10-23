@@ -886,14 +886,14 @@ export default function VueComparative({ stagiaires = [], isLoading }) {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="px-4 py-3 font-semibold">Stagiaire</th>
-                    <th className="px-4 py-3 font-semibold">Progression</th>
-                    <th className="px-4 py-3 font-semibold">Évaluation</th>
-                    <th className="px-4 py-3 font-semibold">Objectifs</th>
-                    <th className="px-4 py-3 font-semibold">Restant</th>
-                    <th className="px-4 py-3 font-semibold">Situation</th>
+                    <th className="px-4 py-3 font-semibold">{t("mesStagiaires.comparative.colIntern")}</th>
+                    <th className="px-4 py-3 font-semibold">{t("mesStagiaires.comparative.colProgress")}</th>
+                    <th className="px-4 py-3 font-semibold">{t("mesStagiaires.comparative.colEvaluation")}</th>
+                    <th className="px-4 py-3 font-semibold">{t("mesStagiaires.comparative.colObjectives")}</th>
+                    <th className="px-4 py-3 font-semibold">{t("mesStagiaires.comparative.colRemaining")}</th>
+                    <th className="px-4 py-3 font-semibold">{t("mesStagiaires.comparative.colSituation")}</th>
                     <th className="px-4 py-3 font-semibold text-right">
-                      Action
+                      {t("mesStagiaires.comparative.colAction")}
                     </th>
                   </tr>
                 </thead>

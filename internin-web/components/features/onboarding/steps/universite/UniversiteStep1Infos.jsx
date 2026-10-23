@@ -81,7 +81,7 @@ export default function UniversiteStep1Infos() {
         />
         {errors.nomUniversite && (
           <p className="text-xs text-destructive">
-            {errors.nomUniversite.message}
+            {t(errors.nomUniversite.message)}
           </p>
         )}
       </div>
@@ -100,7 +100,7 @@ export default function UniversiteStep1Infos() {
         </div>
         {errors.emailOfficiel && (
           <p className="text-xs text-destructive">
-            {errors.emailOfficiel.message}
+            {t(errors.emailOfficiel.message)}
           </p>
         )}
       </div>
@@ -130,7 +130,7 @@ export default function UniversiteStep1Infos() {
         />
         {errors.typeEtablissement && (
           <p className="text-xs text-destructive">
-            {errors.typeEtablissement.message}
+            {t(errors.typeEtablissement.message)}
           </p>
         )}
       </div>
@@ -159,7 +159,7 @@ export default function UniversiteStep1Infos() {
             )}
           />
           {errors.pays && (
-            <p className="text-xs text-destructive">{errors.pays.message}</p>
+            <p className="text-xs text-destructive">{t(errors.pays.message)}</p>
           )}
         </div>
         <div className="space-y-1.5">

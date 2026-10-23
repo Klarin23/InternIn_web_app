@@ -24,6 +24,7 @@ import {
   FiClock,
   FiDownload,
   FiShield,
+  FiAlertTriangle,
 } from "react-icons/fi";
 import AppHeader from "@/components/layout/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ const ONGLETS = [
   { value: "en_attente", labelKey: "pending" },
   { value: "active", labelKey: "active" },
   { value: "terminee", labelKey: "completed" },
+  { value: "interrompue", labelKey: "interrupted" },
 ];
 
 const STATUT_INFO = {
@@ -45,6 +47,10 @@ const STATUT_INFO = {
   },
   active: { labelKey: "active", className: "bg-primary/10 text-primary" },
   terminee: { labelKey: "completed", className: "bg-muted text-muted-foreground" },
+  interrompue: {
+    labelKey: "interrupted",
+    className: "bg-destructive/10 text-destructive",
+  },
 };
 
 function StatCard({ icon: Icon, label, value, color }) {
@@ -61,9 +67,9 @@ function StatCard({ icon: Icon, label, value, color }) {
   );
 }
 
-function formatDate(date) {
+function formatDate(date, locale) {
   if (!date) return "—";
-  return new Date(date).toLocaleDateString("fr-FR", {
+  return new Date(date).toLocaleDateString(locale === "en" ? "en-GB" : "fr-FR", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -85,7 +91,7 @@ function EtapeSignature({ ok, label }) {
   );
 }
 
-function LigneConvention({ convention, t }) {
+function LigneConvention({ convention, t, locale }) {
   const statut = STATUT_INFO[convention.statut];
   const validerMutation = useValiderConvention();
   const pdfMutation = useGenererPdfConvention();
@@ -113,7 +119,7 @@ function LigneConvention({ convention, t }) {
           {convention.nomEtudiant} — {convention.nomEntreprise}
         </p>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Début : {formatDate(convention.dateDebut)}
+          {t("universiteSpace.conventions.start")} {formatDate(convention.dateDebut, locale)}
           {convention.dureeStage
             ? ` · ${convention.dureeStage.replace(/_/g, " ")}`
             : ""}
@@ -182,11 +188,11 @@ function LigneConvention({ convention, t }) {
 }
 
 export default function ConventionsPage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [recherche, setRecherche] = useState("");
   const [onglet, setOnglet] = useState(undefined);
 
-  const { data, isLoading } = useConventionsUniversite({
+  const { data, isLoading, isError, isFetching, refetch } = useConventionsUniversite({
     recherche,
     statut: onglet,
   });
@@ -204,8 +210,8 @@ export default function ConventionsPage() {
       />
 
       <div className="space-y-6 px-6 py-6">
-        {stats && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {!isError && stats && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <StatCard
               icon={FiFileText}
               value={stats.total}
@@ -225,10 +231,16 @@ export default function ConventionsPage() {
               color="bg-success/10 text-green-700"
             />
             <StatCard
-              icon={FiX}
+              icon={FiCheck}
               value={stats.terminees}
               label={t("universiteSpace.conventions.completedPlural")}
               color="bg-muted text-muted-foreground"
+            />
+            <StatCard
+              icon={FiAlertTriangle}
+              value={stats.interrompues ?? 0}
+              label={t("universiteSpace.conventions.interruptedPlural")}
+              color="bg-destructive/10 text-destructive"
             />
             <StatCard
               icon={FiShield}
@@ -256,26 +268,47 @@ export default function ConventionsPage() {
           ))}
         </div>
 
-        {isLoading && (
-          <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
-            <FiLoader className="h-5 w-5 animate-spin" />
+        {isLoading ? (
+          <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground" role="status" aria-live="polite">
+            <FiLoader className="h-5 w-5 animate-spin" aria-hidden />
             {t("universiteSpace.conventions.loading")}
           </div>
-        )}
-
-        {!isLoading && conventions.length === 0 && (
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center rounded-md border border-destructive/20 bg-card px-6 py-16 text-center">
+            <FiAlertCircle className="h-8 w-8 text-destructive" aria-hidden />
+            <p className="mt-3 text-sm font-semibold text-foreground">
+              {t("universiteSpace.conventions.loadError")}
+            </p>
+            <p className="mt-1 max-w-md text-sm text-muted-foreground">
+              {t("universiteSpace.conventions.loadErrorHint")}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-4"
+              disabled={isFetching}
+              onClick={() => refetch()}
+            >
+              {isFetching ? (
+                <FiLoader className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <FiRefreshCw className="h-4 w-4" aria-hidden />
+              )}
+              {t("universiteSpace.conventions.retry")}
+            </Button>
+          </div>
+        ) : conventions.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-            <FiFileText className="h-8 w-8 text-muted-foreground" />
+            <FiFileText className="h-8 w-8 text-muted-foreground" aria-hidden />
             <p className="text-sm font-medium text-foreground">
               {t("universiteSpace.conventions.empty")}
             </p>
           </div>
-        )}
-
-        {conventions.length > 0 && (
+        ) : (
           <div className="space-y-3">
             {conventions.map((c) => (
-              <LigneConvention key={c.idConvention} convention={c} t={t} />
+              <LigneConvention key={c.idConvention} convention={c} t={t} locale={locale} />
             ))}
           </div>
         )}

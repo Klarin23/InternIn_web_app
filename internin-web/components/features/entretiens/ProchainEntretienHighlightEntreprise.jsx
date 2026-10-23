@@ -25,12 +25,16 @@ import {
   formatHeure,
   formatCompteARebours,
 } from "@/lib/entretiens/statut";
-import { MODE_LABELS } from "@/lib/entretiens/planification";
 import { useUpdateEntretienEntreprise } from "@/lib/queries/useEntretiens";
 import { toast } from "@/lib/store/useToastStore";
 import { cn } from "@/lib/utils";
 
 const MODE_ICONS = { video: Video, telephone: Phone, presentiel: MapPin };
+const MODE_LABEL_KEYS = {
+  video: "interviews.entreprise.modeVideo",
+  telephone: "interviews.entreprise.modePhone",
+  presentiel: "interviews.entreprise.modeOnsite",
+};
 
 function getInitials(prenom, nom) {
   return `${(prenom || "").charAt(0)}${(nom || "").charAt(0)}`.toUpperCase() || "?";
@@ -40,7 +44,7 @@ export default function ProchainEntretienHighlightEntreprise({
   entretien,
   maintenant,
 }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const reduceMotion = useReducedMotion();
   const [confirmAnnulation, setConfirmAnnulation] = useState(false);
   const updateMutation = useUpdateEntretienEntreprise();
@@ -50,8 +54,13 @@ export default function ProchainEntretienHighlightEntreprise({
   const date = new Date(entretien.dateHeure);
   const ModeIcon = MODE_ICONS[entretien.modeEntretien] || Calendar;
   const compteARebours = formatCompteARebours(date, maintenant);
-  const jour = formatJourRelatif(date, maintenant, "fr-FR");
-  const heure = formatHeure(date, "fr-FR");
+  const jour = formatJourRelatif(
+    date,
+    maintenant,
+    locale === "en" ? "en-US" : "fr-FR",
+    t,
+  );
+  const heure = formatHeure(date, locale === "en" ? "en-US" : "fr-FR");
   const imminent = compteARebours != null;
 
   const peutRejoindre =
@@ -156,7 +165,7 @@ export default function ProchainEntretienHighlightEntreprise({
           </span>
           <span className="inline-flex items-center gap-1.5 text-muted-foreground">
             <ModeIcon className="size-4" />
-            {MODE_LABELS[entretien.modeEntretien]}
+            {t(MODE_LABEL_KEYS[entretien.modeEntretien])}
           </span>
         </div>
 
@@ -170,7 +179,7 @@ export default function ProchainEntretienHighlightEntreprise({
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               <Video className="size-4" />
-              Rejoindre la réunion
+              {t("interviews.entreprise.joinVideo")}
             </a>
           )}
           {peutAppeler && (
@@ -192,7 +201,7 @@ export default function ProchainEntretienHighlightEntreprise({
                 className="rounded-lg gap-1.5"
                 disabled={updateMutation.isPending}
                 onClick={() =>
-                  marquerStatut("termine", "Entretien marqué comme terminé")
+                  marquerStatut("termine", t("interviews.entreprise.markedCompleted"))
                 }
               >
                 {updateMutation.isPending ? (
@@ -200,7 +209,7 @@ export default function ProchainEntretienHighlightEntreprise({
                 ) : (
                   <FiCheckCircle className="h-3.5 w-3.5" />
                 )}
-                Marquer comme terminé
+                {t("interviews.entreprise.markCompleted")}
               </Button>
               <Button
                 type="button"
@@ -209,11 +218,11 @@ export default function ProchainEntretienHighlightEntreprise({
                 className="rounded-lg gap-1.5"
                 disabled={updateMutation.isPending}
                 onClick={() =>
-                  marquerStatut("absent", "Absence du candidat enregistrée")
+                  marquerStatut("absent", t("interviews.entreprise.absenceNoted"))
                 }
               >
                 <FiUserX className="h-3.5 w-3.5" />
-                Marquer absence
+                {t("interviews.entreprise.markAbsence")}
               </Button>
             </>
           )}
@@ -227,14 +236,14 @@ export default function ProchainEntretienHighlightEntreprise({
               onClick={() => setConfirmAnnulation(true)}
             >
               <FiXCircle className="h-3.5 w-3.5" />
-              Annuler l&apos;entretien
+              {t("interviews.entreprise.cancelAction")}
             </Button>
           )}
 
           {!peutRejoindre && !peutAppeler && !aDesActions && (
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
               <User className="size-3.5" />
-              Détails disponibles dans la carte ci-dessous
+              {t("interviews.entreprise.detailsAvailable")}
             </span>
           )}
         </div>
@@ -243,10 +252,9 @@ export default function ProchainEntretienHighlightEntreprise({
       <Dialog open={confirmAnnulation} onOpenChange={setConfirmAnnulation}>
         <DialogContent className="rounded-2xl sm:max-w-[420px]">
           <DialogHeader>
-            <DialogTitle>Annuler cet entretien ?</DialogTitle>
+            <DialogTitle>{t("interviews.entreprise.cancelConfirm")}</DialogTitle>
             <DialogDescription>
-              Le candidat pourra être informé. Vous pourrez replanifier un
-              nouvel entretien pour cette candidature ensuite.
+              {t("interviews.entreprise.cancelHighlightDescription")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-2">
@@ -257,7 +265,7 @@ export default function ProchainEntretienHighlightEntreprise({
               onClick={() => setConfirmAnnulation(false)}
               disabled={updateMutation.isPending}
             >
-              Retour
+              {t("interviews.card.back")}
             </Button>
             <Button
               type="button"

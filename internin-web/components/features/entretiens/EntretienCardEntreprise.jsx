@@ -265,12 +265,12 @@ export default function EntretienCardEntreprise({
       label: t("interviews.entreprise.markAbsence"),
       Icon: FiUserX,
       onClick: () =>
-        marquerStatut("absent", "Absence du candidat enregistrée"),
+        marquerStatut("absent", t("interviews.entreprise.absenceNoted")),
     });
   }
   if (peutAnnuler) {
     actionsSecondaires.push({
-      label: "Annuler l'entretien",
+      label: t("interviews.entreprise.cancelAction"),
       Icon: FiXCircle,
       destructif: true,
       onClick: () => setConfirmAnnulation(true),
@@ -412,7 +412,7 @@ export default function EntretienCardEntreprise({
               className="mb-3 inline-flex w-fit items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               <FiVideo className="h-4 w-4" />
-              Rejoindre la réunion
+              {t("interviews.entreprise.joinVideo")}
             </a>
           ) : (
             <div className="mb-3">
@@ -560,7 +560,7 @@ export default function EntretienCardEntreprise({
                   ) : (
                     <FiCheckCircle className="h-3.5 w-3.5" />
                   )}
-                  Marquer comme terminé
+                  {t("interviews.entreprise.markCompleted")}
                 </Button>
                 <Button
                   type="button"
@@ -569,11 +569,11 @@ export default function EntretienCardEntreprise({
                   className="rounded-lg gap-1.5"
                   disabled={updateMutation.isPending}
                   onClick={() =>
-                    marquerStatut("absent", "Absence du candidat enregistrée")
+                    marquerStatut("absent", t("interviews.entreprise.absenceNoted"))
                   }
                 >
                   <FiUserX className="h-3.5 w-3.5" />
-                  Marquer absence
+                  {t("interviews.entreprise.markAbsence")}
                 </Button>
               </>
             )}
@@ -587,7 +587,7 @@ export default function EntretienCardEntreprise({
                 onClick={() => setConfirmAnnulation(true)}
               >
                 <FiXCircle className="h-3.5 w-3.5" />
-                Annuler l&apos;entretien
+                {t("interviews.entreprise.cancelAction")}
               </Button>
             )}
           </div>
@@ -706,10 +706,9 @@ export default function EntretienCardEntreprise({
       <Dialog open={confirmAnnulation} onOpenChange={setConfirmAnnulation}>
         <DialogContent className="rounded-2xl sm:max-w-[420px]">
           <DialogHeader>
-            <DialogTitle>Annuler cet entretien ?</DialogTitle>
+            <DialogTitle>{t("interviews.entreprise.cancelConfirm")}</DialogTitle>
             <DialogDescription>
-              Cette action modifiera le statut de l&apos;entretien et pourra être
-              visible par le candidat.
+              {t("interviews.entreprise.cancelDialogDescription")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-2">
@@ -720,7 +719,7 @@ export default function EntretienCardEntreprise({
               onClick={() => setConfirmAnnulation(false)}
               disabled={updateMutation.isPending}
             >
-              Retour
+              {t("interviews.card.back")}
             </Button>
             <Button
               type="button"
@@ -735,7 +734,7 @@ export default function EntretienCardEntreprise({
                   Annulation...
                 </>
               ) : (
-                "Annuler l'entretien"
+                t("interviews.entreprise.cancelAction")
               )}
             </Button>
           </DialogFooter>

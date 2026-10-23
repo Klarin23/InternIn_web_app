@@ -22,58 +22,35 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateEvaluation } from "@/lib/queries/useEvaluations";
 import { toast } from "@/lib/store/useToastStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import { cn } from "@/lib/utils";
 
 const CRITERES = [
-  {
-    key: "noteAssiduite",
-    label: "Assiduité",
-    description: "Ponctualité, présence et respect des horaires",
-  },
-  {
-    key: "noteCommunication",
-    label: "Communication",
-    description: "Clarté, écoute et qualité des échanges",
-  },
-  {
-    key: "noteInitiative",
-    label: "Initiative",
-    description: "Proactivité et capacité à proposer des solutions",
-  },
-  {
-    key: "noteProfessionnalisme",
-    label: "Professionnalisme",
-    description: "Attitude, responsabilité et respect des règles",
-  },
-  {
-    key: "noteTravailEquipe",
-    label: "Travail d'équipe",
-    description: "Collaboration et contribution au collectif",
-  },
-  {
-    key: "notePerformanceTechnique",
-    label: "Performance technique",
-    description: "Maîtrise des compétences et qualité du travail",
-  },
+  { key: "noteAssiduite", translationKey: "attendance" },
+  { key: "noteCommunication", translationKey: "communication" },
+  { key: "noteInitiative", translationKey: "initiative" },
+  { key: "noteProfessionnalisme", translationKey: "professionalism" },
+  { key: "noteTravailEquipe", translationKey: "teamwork" },
+  { key: "notePerformanceTechnique", translationKey: "technicalPerformance" },
 ];
 
-const NOTE_LABELS = {
-  1: "Insuffisant",
-  2: "À améliorer",
-  3: "Satisfaisant",
-  4: "Très satisfaisant",
-  5: "Excellent",
-};
+const NOTE_LABEL_KEYS = [
+  "insufficient",
+  "improve",
+  "satisfactory",
+  "verySatisfactory",
+  "excellent",
+];
 
 const MAX_COMMENT = 500;
 
-function getAppreciation(moyenne) {
+function getAppreciation(moyenne, t) {
   if (moyenne == null || Number.isNaN(moyenne)) return null;
-  if (moyenne < 1.5) return "Insuffisant";
-  if (moyenne < 2.5) return "À améliorer";
-  if (moyenne < 3.5) return "Satisfaisant";
-  if (moyenne < 4.5) return "Très satisfaisant";
-  return "Excellent";
+  if (moyenne < 1.5) return t("evaluationDialog.ratings.insufficient");
+  if (moyenne < 2.5) return t("evaluationDialog.ratings.improve");
+  if (moyenne < 3.5) return t("evaluationDialog.ratings.satisfactory");
+  if (moyenne < 4.5) return t("evaluationDialog.ratings.verySatisfactory");
+  return t("evaluationDialog.ratings.excellent");
 }
 
 function getInitials(nom) {
@@ -93,10 +70,11 @@ export default function SoumettreEvaluationDialog({
   stagiaireNom,
   stagiairePoste,
   numeroSemaine,
-  triggerLabel = "Soumettre l'évaluation",
+  triggerLabel,
   triggerIcon = null,
   triggerClassName,
 }) {
+  const { t, locale } = useTranslation();
   const reduceMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState(emptyNotes);
@@ -117,7 +95,12 @@ export default function SoumettreEvaluationDialog({
     return Math.round((sum / CRITERES.length) * 10) / 10;
   }, [notes, allEvaluated]);
 
-  const appreciation = getAppreciation(moyenne);
+  const appreciation = getAppreciation(moyenne, t);
+  const formatMoyenne = (value) =>
+    value.toLocaleString(locale === "en" ? "en-GB" : "fr-FR", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
 
   useEffect(() => {
     if (!open) {
@@ -157,14 +140,14 @@ export default function SoumettreEvaluationDialog({
       {
         onSuccess: () => {
           setStep("success");
-          toast.success("Évaluation envoyée avec succès");
+          toast.success(t("evaluationDialog.sentToast"));
           setTimeout(() => {
             setOpen(false);
           }, reduceMotion ? 800 : 1600);
         },
         onError: (err) => {
           setStep("form");
-          toast.error(err?.message || "Impossible d'envoyer l'évaluation");
+          toast.error(err?.message || t("evaluationDialog.sendError"));
         },
       },
     );
@@ -184,7 +167,7 @@ export default function SoumettreEvaluationDialog({
           )}
         >
           {triggerIcon}
-          {triggerLabel}
+          {triggerLabel || t("evaluationDialog.trigger")}
         </Button>
       </DialogTrigger>
 
@@ -201,7 +184,7 @@ export default function SoumettreEvaluationDialog({
       >
         <AnimatePresence mode="wait">
           {step === "success" ? (
-            <SuccessState key="success" reduceMotion={reduceMotion} />
+              <SuccessState key="success" reduceMotion={reduceMotion} t={t} />
           ) : step === "confirm" ? (
             <ConfirmState
               key="confirm"
@@ -212,6 +195,8 @@ export default function SoumettreEvaluationDialog({
               onCancel={() => setStep("form")}
               onConfirm={handleSubmit}
               reduceMotion={reduceMotion}
+              t={t}
+              formatMoyenne={formatMoyenne}
             />
           ) : (
             <motion.div
@@ -228,7 +213,7 @@ export default function SoumettreEvaluationDialog({
                   type="button"
                   onClick={() => handleOpenChange(false)}
                   className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label="Fermer"
+                  aria-label={t("evaluationDialog.close")}
                 >
                   <X className="size-4" />
                 </button>
@@ -240,11 +225,10 @@ export default function SoumettreEvaluationDialog({
                     </div>
                     <div className="min-w-0 flex-1 space-y-1">
                       <DialogTitle className="text-base font-semibold tracking-tight text-foreground sm:text-lg">
-                        Évaluation hebdomadaire
+                        {t("evaluationDialog.title")}
                       </DialogTitle>
                       <DialogDescription className="text-sm text-muted-foreground">
-                        Évaluez les compétences du stagiaire sur la période en
-                        cours.
+                        {t("evaluationDialog.description")}
                       </DialogDescription>
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-0.5 text-xs text-muted-foreground">
                         <span className="inline-flex items-center gap-1 font-medium text-foreground">
@@ -260,7 +244,7 @@ export default function SoumettreEvaluationDialog({
                         {numeroSemaine != null && (
                           <>
                             <span className="text-border">·</span>
-                            <span>Semaine {numeroSemaine}</span>
+                            <span>{t("evaluationDialog.week", { week: numeroSemaine })}</span>
                           </>
                         )}
                       </div>
@@ -269,7 +253,7 @@ export default function SoumettreEvaluationDialog({
 
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <ClipboardList className="size-3.5 text-primary" />
-                    <span>6 critères à évaluer</span>
+                    <span>{t("evaluationDialog.criteriaCount")}</span>
                   </div>
                 </DialogHeader>
 
@@ -277,11 +261,11 @@ export default function SoumettreEvaluationDialog({
                 <div className="mt-4 space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-medium text-foreground">
-                      {evaluatedCount} / 6 critères évalués
+                      {t("evaluationDialog.criteriaCompleted", { done: evaluatedCount })}
                     </span>
                     {allEvaluated && moyenne != null && (
                       <span className="font-semibold text-primary">
-                        Moyenne {moyenne.toFixed(1).replace(".", ",")} / 5
+                        {t("evaluationDialog.average")} {formatMoyenne(moyenne)} / 5
                       </span>
                     )}
                   </div>
@@ -308,6 +292,7 @@ export default function SoumettreEvaluationDialog({
                       key={critere.key}
                       index={index + 1}
                       critere={critere}
+                      t={t}
                       value={notes[critere.key]}
                       onChange={(v) => handleNoteChange(critere.key, v)}
                       reduceMotion={reduceMotion}
@@ -335,12 +320,12 @@ export default function SoumettreEvaluationDialog({
                     >
                       <div className="mt-4 rounded-xl border border-primary/20 bg-primary/[0.06] p-4">
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Résumé de l&apos;évaluation
+                          {t("evaluationDialog.summary")}
                         </p>
                         <div className="mt-2 flex items-end justify-between gap-3">
                           <div>
                             <p className="text-2xl font-semibold tabular-nums text-foreground">
-                              {moyenne.toFixed(1).replace(".", ",")}
+                              {formatMoyenne(moyenne)}
                               <span className="ml-1 text-base font-normal text-muted-foreground">
                                 / 5
                               </span>
@@ -375,7 +360,7 @@ export default function SoumettreEvaluationDialog({
                     htmlFor="eval-commentaires"
                     className="text-sm font-medium text-foreground"
                   >
-                    Observations du superviseur
+                    {t("evaluationDialog.commentsLabel")}
                   </label>
                   <Textarea
                     id="eval-commentaires"
@@ -385,11 +370,11 @@ export default function SoumettreEvaluationDialog({
                     onChange={(e) =>
                       setCommentaires(e.target.value.slice(0, MAX_COMMENT))
                     }
-                    placeholder="Partagez les points forts du stagiaire, les difficultés rencontrées et les axes de progression..."
+                    placeholder={t("evaluationDialog.commentsPlaceholder")}
                     className="min-h-[100px] resize-y rounded-xl border-border/80 bg-background px-3.5 py-3 text-sm transition-colors focus-visible:border-primary focus-visible:ring-primary/20"
                   />
                   <div className="flex justify-end text-xs text-muted-foreground tabular-nums">
-                    {commentaires.length} / {MAX_COMMENT} caractères
+                    {commentaires.length} / {MAX_COMMENT} {t("evaluationDialog.characters")}
                   </div>
                 </div>
 
@@ -398,7 +383,7 @@ export default function SoumettreEvaluationDialog({
                     <AlertCircle className="mt-0.5 size-4 shrink-0" />
                     <span>
                       {mutation.error?.message ||
-                        "Une erreur est survenue. Veuillez réessayer."}
+                        t("evaluationDialog.genericError")}
                     </span>
                   </div>
                 )}
@@ -414,7 +399,7 @@ export default function SoumettreEvaluationDialog({
                     onClick={() => handleOpenChange(false)}
                     disabled={mutation.isPending}
                   >
-                    Annuler
+                    {t("evaluationDialog.cancel")}
                   </Button>
                   <Button
                     type="button"
@@ -422,7 +407,7 @@ export default function SoumettreEvaluationDialog({
                     disabled={!allEvaluated || mutation.isPending}
                     onClick={() => setStep("confirm")}
                   >
-                    Envoyer l&apos;évaluation
+                    {t("evaluationDialog.send")}
                   </Button>
                 </div>
               </div>
@@ -434,7 +419,10 @@ export default function SoumettreEvaluationDialog({
   );
 }
 
-function CritereCard({ index, critere, value, onChange, reduceMotion }) {
+function CritereCard({ index, critere, value, onChange, reduceMotion, t }) {
+  const label = t(`evaluationDialog.criteria.${critere.translationKey}.label`);
+  const noteLabel = (note) =>
+    t(`evaluationDialog.ratings.${NOTE_LABEL_KEYS[note - 1]}`);
   return (
     <motion.div
       layout={!reduceMotion}
@@ -452,11 +440,11 @@ function CritereCard({ index, critere, value, onChange, reduceMotion }) {
               {index}
             </span>
             <h3 className="text-sm font-semibold text-foreground">
-              {critere.label}
+              {label}
             </h3>
           </div>
           <p className="mt-1 pl-8 text-xs leading-relaxed text-muted-foreground">
-            {critere.description}
+            {t(`evaluationDialog.criteria.${critere.translationKey}.description`)}
           </p>
         </div>
         <div className="shrink-0 text-right">
@@ -470,13 +458,13 @@ function CritereCard({ index, critere, value, onChange, reduceMotion }) {
           </span>
           {value != null && (
             <p className="mt-0.5 text-[11px] font-medium text-primary">
-              {NOTE_LABELS[value]}
+              {noteLabel(value)}
             </p>
           )}
         </div>
       </div>
 
-      <div className="flex gap-1.5 pl-0 sm:pl-8" role="group" aria-label={critere.label}>
+      <div className="flex gap-1.5 pl-0 sm:pl-8" role="group" aria-label={label}>
         {[1, 2, 3, 4, 5].map((n) => {
           const selected = value === n;
           return (
@@ -485,7 +473,7 @@ function CritereCard({ index, critere, value, onChange, reduceMotion }) {
               type="button"
               onClick={() => onChange(n)}
               aria-pressed={selected}
-              aria-label={`${n} sur 5 — ${NOTE_LABELS[n]}`}
+              aria-label={`${n} / 5 — ${noteLabel(n)}`}
               className={cn(
                 "relative flex h-9 flex-1 items-center justify-center rounded-lg text-sm font-medium transition-all",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1",
@@ -511,6 +499,8 @@ function ConfirmState({
   onCancel,
   onConfirm,
   reduceMotion,
+  t,
+  formatMoyenne,
 }) {
   return (
     <motion.div
@@ -524,18 +514,16 @@ function ConfirmState({
         <ClipboardList className="size-6" />
       </div>
       <h2 className="mt-4 text-center text-lg font-semibold text-foreground">
-        Confirmer l&apos;envoi ?
+        {t("evaluationDialog.confirmTitle")}
       </h2>
       <p className="mt-2 text-center text-sm leading-relaxed text-muted-foreground">
-        Cette évaluation sera enregistrée pour{" "}
-        <span className="font-medium text-foreground">{stagiaireNom}</span> et
-        pourra être consultée dans son historique de suivi.
+        {t("evaluationDialog.confirmDescription", { name: stagiaireNom })}
       </p>
 
       {moyenne != null && (
         <div className="mx-auto mt-4 rounded-xl border border-border/60 bg-muted/40 px-5 py-3 text-center">
           <p className="text-2xl font-semibold tabular-nums text-foreground">
-            {moyenne.toFixed(1).replace(".", ",")}
+            {formatMoyenne(moyenne)}
             <span className="ml-1 text-base font-normal text-muted-foreground">
               / 5
             </span>
@@ -552,7 +540,7 @@ function ConfirmState({
           onClick={onCancel}
           disabled={isPending}
         >
-          Annuler
+          {t("evaluationDialog.cancel")}
         </Button>
         <Button
           type="button"
@@ -563,10 +551,10 @@ function ConfirmState({
           {isPending ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              Enregistrement...
+              {t("evaluationDialog.saving")}
             </>
           ) : (
-            "Confirmer l'envoi"
+            t("evaluationDialog.confirmSend")
           )}
         </Button>
       </div>
@@ -574,7 +562,7 @@ function ConfirmState({
   );
 }
 
-function SuccessState({ reduceMotion }) {
+function SuccessState({ reduceMotion, t }) {
   return (
     <motion.div
       initial={reduceMotion ? false : { opacity: 0, scale: 0.92 }}
@@ -599,10 +587,10 @@ function SuccessState({ reduceMotion }) {
         <CheckCircle2 className="size-8" strokeWidth={1.75} />
       </motion.div>
       <h2 className="mt-5 text-lg font-semibold text-foreground">
-        Évaluation envoyée
+        {t("evaluationDialog.successTitle")}
       </h2>
       <p className="mt-1.5 max-w-xs text-center text-sm text-muted-foreground">
-        L&apos;évaluation du stagiaire a été enregistrée avec succès.
+        {t("evaluationDialog.successDescription")}
       </p>
     </motion.div>
   );

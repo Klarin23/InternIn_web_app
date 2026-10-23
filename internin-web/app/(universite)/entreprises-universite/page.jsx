@@ -340,15 +340,11 @@ export default function EntreprisesUniversitePage() {
           {[
             {
               id: "reseau",
-              label:
-                t("universiteSpace.companies.tabs.partners") ||
-                t("universiteSpace.companies.tabNetwork"),
+              label: t("universiteSpace.companies.tabs.partners"),
             },
             {
               id: "decouvrir",
-              label:
-                t("universiteSpace.companies.tabs.discover") ||
-                t("universiteSpace.companies.tabDiscover"),
+              label: t("universiteSpace.companies.tabs.discover"),
             },
           ].map((tab) => {
             const active = ongletActif === tab.id;

@@ -92,7 +92,7 @@ export default function StepInformationsGenerales({
             />
             {errors.secteurActivite?.message && (
               <p className="text-xs text-destructive">
-                {errors.secteurActivite.message}
+                {t(errors.secteurActivite.message)}
               </p>
             )}
           </div>
@@ -151,7 +151,7 @@ export default function StepInformationsGenerales({
             />
             {errors.departement?.message && (
               <p className="text-xs text-destructive">
-                {errors.departement.message}
+                {t(errors.departement.message)}
               </p>
             )}
           </div>

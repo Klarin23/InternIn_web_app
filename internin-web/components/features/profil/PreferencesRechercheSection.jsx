@@ -27,18 +27,18 @@ import TagInput from "./TagInput";
 import { useUpdateStagiaireProfile } from "@/lib/queries/useStagiaireProfile";
 
 const MODALITES = [
-  { value: "presentiel", label: "Présentiel" },
-  { value: "hybride", label: "Hybride" },
-  { value: "distance", label: "Distance" },
+  { value: "presentiel" },
+  { value: "hybride" },
+  { value: "distance" },
 ];
 
-const REMUNERATION_LABELS = {
-  aucune: "Aucune",
-  indemnite_transport: "Indemnité de transport",
-  indemnite_repas: "Indemnité de repas",
-  allocation_mensuelle: "Allocation mensuelle",
-  indemnite_internet_appel: "Indemnité internet / appel",
-};
+const REMUNERATION_VALUES = [
+  "aucune",
+  "indemnite_transport",
+  "indemnite_repas",
+  "allocation_mensuelle",
+  "indemnite_internet_appel",
+];
 
 function Badge({ children }) {
   return (
@@ -129,7 +129,11 @@ export default function PreferencesRechercheSection({ profil }) {
               {t("stagiaireSpace.profile.remunerationType")}
             </dt>
             <dd className="text-sm text-foreground">
-              {(profil.remunerationSouhaitee === "aucune" ? t("stagiaireSpace.profile.remunerationNone") : t(`stagiaireSpace.profile.advantages.${profil.remunerationSouhaitee}`)) || REMUNERATION_LABELS[profil.remunerationSouhaitee] || "—"}
+              {profil.remunerationSouhaitee === "aucune"
+                ? t("stagiaireSpace.profile.remunerationNone")
+                : profil.remunerationSouhaitee
+                  ? t(`stagiaireSpace.profile.advantages.${profil.remunerationSouhaitee}`)
+                  : "—"}
             </dd>
           </div>
         </div>
@@ -178,7 +182,7 @@ export default function PreferencesRechercheSection({ profil }) {
                 control={control}
                 render={({ field }) => (
                   <div className="flex gap-4">
-                    {MODALITES.map((m) => (
+                      {MODALITES.map((m) => (
                       <label
                         key={m.value}
                         className="flex items-center gap-2 text-sm text-foreground"
@@ -212,7 +216,7 @@ export default function PreferencesRechercheSection({ profil }) {
                       <SelectValue placeholder={t("stagiaireSpace.profile.select")} />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.keys(REMUNERATION_LABELS).map((value) => (
+                      {REMUNERATION_VALUES.map((value) => (
                           <SelectItem key={value} value={value}>
                             {value === "aucune" ? t("stagiaireSpace.profile.remunerationNone") : t(`stagiaireSpace.profile.advantages.${value}`)}
                           </SelectItem>

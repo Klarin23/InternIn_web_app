@@ -91,6 +91,76 @@ function getBackendAuthUrl(request) {
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// Cache court du contrôle d'autorité (/auth/me).
+// Évite un aller-retour Vercel -> API -> base de données à CHAQUE navigation.
+// - Seuls les succès sont mis en cache : un échec (401/403/erreur réseau) est
+//   toujours revérifié à la requête suivante.
+// - La durée de vie est plafonnée par l'expiration du JWT.
+// - Les appels simultanés pour un même token (prefetch de plusieurs liens)
+//   partagent une seule requête.
+// - Délai maximal de prise en compte d'une suspension/révocation = TTL.
+//   Réglable via AUTH_PROXY_CACHE_TTL_MS (0 = cache désactivé).
+// ---------------------------------------------------------------------------
+const rawTtl = Number(process.env.AUTH_PROXY_CACHE_TTL_MS);
+const AUTH_CACHE_TTL_MS = Number.isFinite(rawTtl) && rawTtl >= 0 ? rawTtl : 30_000;
+const AUTH_CACHE_MAX_ENTRIES = 500;
+
+const authCache = new Map(); // token -> { user, expiresAt }
+const authInflight = new Map(); // token -> Promise<résultat>
+
+function readAuthCache(token) {
+  const entry = authCache.get(token);
+  if (!entry) return null;
+  if (entry.expiresAt <= Date.now()) {
+    authCache.delete(token);
+    return null;
+  }
+  return entry.user;
+}
+
+function writeAuthCache(token, user, jwtExpSeconds) {
+  if (AUTH_CACHE_TTL_MS <= 0) return;
+
+  const now = Date.now();
+  let expiresAt = now + AUTH_CACHE_TTL_MS;
+  if (typeof jwtExpSeconds === "number") {
+    expiresAt = Math.min(expiresAt, jwtExpSeconds * 1000);
+  }
+  if (expiresAt <= now) return;
+
+  if (authCache.size >= AUTH_CACHE_MAX_ENTRIES) {
+    for (const [key, entry] of authCache) {
+      if (entry.expiresAt <= now) authCache.delete(key);
+    }
+    if (authCache.size >= AUTH_CACHE_MAX_ENTRIES) {
+      authCache.delete(authCache.keys().next().value);
+    }
+  }
+  authCache.set(token, { user, expiresAt });
+}
+
+async function getAuthoritativeUserCached(request, token, jwtExpSeconds) {
+  if (AUTH_CACHE_TTL_MS <= 0) return getAuthoritativeUser(request, token);
+
+  const cachedUser = readAuthCache(token);
+  if (cachedUser) return { ok: true, user: cachedUser };
+
+  const pending = authInflight.get(token);
+  if (pending) return pending;
+
+  const promise = (async () => {
+    const result = await getAuthoritativeUser(request, token);
+    if (result.ok) writeAuthCache(token, result.user, jwtExpSeconds);
+    return result;
+  })().finally(() => {
+    authInflight.delete(token);
+  });
+
+  authInflight.set(token, promise);
+  return promise;
+}
+
 async function getAuthoritativeUser(request, token) {
   const url = getBackendAuthUrl(request);
   if (!url) return { ok: false, reason: "backend_not_configured" };
@@ -150,7 +220,11 @@ export async function proxy(request) {
 
   // Autorité réelle : API backend -> requireAuth -> PostgreSQL.
   // Cela vérifie notamment statutCompte et versionJeton à CHAQUE requête.
-  const authority = await getAuthoritativeUser(request, token);
+  const authority = await getAuthoritativeUserCached(
+    request,
+    token,
+    typeof payload.exp === "number" ? payload.exp : undefined,
+  );
   if (!authority.ok) {
     return redirectConnexion(request, authority.reason);
   }

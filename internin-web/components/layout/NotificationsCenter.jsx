@@ -198,7 +198,7 @@ export default function NotificationsCenter() {
                       {t("notifications.empty")}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Vous serez informé ici des événements importants.
+                      {t("notifications.emptyHint")}
                     </p>
                   </div>
                 ) : (

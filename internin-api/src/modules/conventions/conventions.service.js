@@ -666,20 +666,36 @@ export function buildConventionPdfData(data, statutOverride = null) {
   };
 }
 
-function waitForPdfFile(filepath) {
-  return new Promise(async (resolve, reject) => {
-    for (let i = 0; i < 20; i++) {
-      if (fs.existsSync(filepath)) {
-        // fichier non vide
-        try {
-          const st = fs.statSync(filepath);
-          if (st.size > 100) return resolve(true);
-        } catch { /* retry */ }
-      }
-      await new Promise((r) => setTimeout(r, 100));
-    }
-    reject(Object.assign(new Error("Impossible de générer le document"), { status: 500 }));
-  });
+/**
+ * Résout un chemin relatif "conventions/<fichier>.pdf" vers un chemin absolu
+ * sous uploads/conventions, en refusant toute traversée de répertoire.
+ */
+function resolveConventionPdfPath(relative) {
+  const root = path.resolve("uploads", "conventions");
+  const cleaned = String(relative || "").replace(/^conventions[/\\]/, "");
+  const base = path.basename(cleaned);
+  if (!base || base !== cleaned.replace(/\\/g, "/").split("/").pop()) {
+    const err = new Error("Chemin de document invalide");
+    err.status = 400;
+    throw err;
+  }
+  if (!base.toLowerCase().endsWith(".pdf")) {
+    const err = new Error("Type de document non autorisé");
+    err.status = 400;
+    throw err;
+  }
+  const filepath = path.resolve(root, base);
+  if (filepath !== root && !filepath.startsWith(root + path.sep)) {
+    const err = new Error("Chemin de document invalide");
+    err.status = 400;
+    throw err;
+  }
+  if (!fs.existsSync(filepath)) {
+    const err = new Error("Document introuvable");
+    err.status = 404;
+    throw err;
+  }
+  return filepath;
 }
 
 /**
@@ -718,9 +734,8 @@ export async function signerMaConvention(idUtilisateur) {
 export async function getMaConventionPdfPath(idUtilisateur, lang = "fr") {
   const data = await getMaConvention(idUtilisateur);
   const pdfData = buildConventionPdfData(data);
-  const relative = genererConventionPdf(pdfData, lang === "en" ? "en" : "fr");
-  const filepath = path.resolve("uploads", relative);
-  await waitForPdfFile(filepath);
+  const relative = await genererConventionPdf(pdfData, lang === "en" ? "en" : "fr");
+  const filepath = resolveConventionPdfPath(relative);
   const suffix = lang === "en" ? "en" : "fr";
   const base = pdfData.numeroAffiche || data.convention.idConvention.slice(0, 8);
   return {
@@ -1318,9 +1333,8 @@ export async function getConventionEntreprisePdfPath(idEntreprise, idConvention,
   const data = await getConventionEntrepriseById(idEntreprise, idConvention);
   // Anti-IDOR déjà appliqué dans getConventionEntrepriseById
   const pdfData = buildConventionPdfData(data);
-  const relative = genererConventionPdf(pdfData, lang === "en" ? "en" : "fr");
-  const filepath = path.resolve("uploads", relative);
-  await waitForPdfFile(filepath);
+  const relative = await genererConventionPdf(pdfData, lang === "en" ? "en" : "fr");
+  const filepath = resolveConventionPdfPath(relative);
   const suffix = lang === "en" ? "en" : "fr";
   const base = pdfData.numeroAffiche || data.convention.idConvention.slice(0, 8);
   return {

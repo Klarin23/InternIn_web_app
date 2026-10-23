@@ -274,7 +274,7 @@ async function getParametresOuDefaut(idEntreprise) {
   if (params) return params;
   return {
     idEntreprise,
-    roleParDefautInvitation: "lecture_seule",
+    roleParDefautInvitation: "gestionnaire_recrutement",
     expirationInvitationJours: EXPIRATION_INVITATION_JOURS_DEFAUT,
     approbationRequisePourInvitation: false,
     notifierAdminNouvelleActivite: true,
@@ -1164,6 +1164,7 @@ export async function getMonProfil(idUtilisateur) {
       roleEquipe: "administrateur_principal",
       estAdminPrincipal: true,
       nomEntreprise: entrepriseProprio.nomEntreprise,
+      statutVerification: entrepriseProprio.statutVerification,
       permissions: [...CLES_PERMISSIONS],
       isProprietaire: true,
     };
@@ -1179,6 +1180,7 @@ export async function getMonProfil(idUtilisateur) {
       permissionsPersonnalisees: membresEquipe.permissionsPersonnalisees,
       nomEntreprise: entreprises.nomEntreprise,
       logoUrl: entreprises.logoUrl,
+      statutVerification: entreprises.statutVerification,
       statutMembre: membresEquipe.statutMembre,
     })
     .from(membresEquipe)
@@ -1208,6 +1210,7 @@ export async function getMonProfil(idUtilisateur) {
     estAdminPrincipal: membre.estAdminPrincipal,
     nomEntreprise: membre.nomEntreprise,
     logoUrl: membre.logoUrl,
+    statutVerification: membre.statutVerification,
     statutMembre: membre.statutMembre,
     permissions,
     isProprietaire: false,

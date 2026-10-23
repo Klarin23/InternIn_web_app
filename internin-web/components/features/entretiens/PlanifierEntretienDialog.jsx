@@ -221,12 +221,6 @@ export default function PlanifierEntretienDialog({
   const [heure, setHeure] = useState("");
   const [modeEntretien, setModeEntretien] = useState("video");
 
-  // Mode téléphone temporairement gelé : ne jamais le laisser sélectionné
-  useEffect(() => {
-    if (!MODE_TELEPHONE_DISPONIBLE && modeEntretien === "telephone") {
-      setModeEntretien("video");
-    }
-  }, [modeEntretien]);
   const [lienGoogleMeet, setLienGoogleMeet] = useState("");
   const [erreurLien, setErreurLien] = useState("");
   const [erreurDate, setErreurDate] = useState("");

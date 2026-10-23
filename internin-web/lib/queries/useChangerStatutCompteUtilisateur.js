@@ -2,8 +2,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { changerStatutCompteUtilisateurRequest } from "@/lib/api/admin";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { toast } from "@/lib/store/useToastStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export function useChangerStatutCompteUtilisateur() {
+  const { t } = useTranslation();
   const token = useAuthStore((state) => state.token);
   const queryClient = useQueryClient();
   return useMutation({
@@ -16,12 +18,12 @@ export function useChangerStatutCompteUtilisateur() {
       queryClient.invalidateQueries({ queryKey: ["adminStats"] });
       toast.success(
         variables?.statutCompte === "suspendu"
-          ? "Compte suspendu"
-          : "Compte réactivé",
+          ? t("actionFeedback.userSuspended")
+          : t("actionFeedback.userReactivated"),
       );
     },
     onError: (err) => {
-      toast.error(err?.message || "Action impossible");
+      toast.error(err?.message || t("actionFeedback.actionImpossible"));
     },
   });
 }

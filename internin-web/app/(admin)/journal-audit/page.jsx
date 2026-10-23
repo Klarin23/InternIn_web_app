@@ -26,10 +26,10 @@ import {
 
 /* ─── Helpers ─────────────────────────────────────────────────────────── */
 
-function formatDateTime(v) {
+function formatDateTime(v, locale) {
   if (!v) return "—";
   try {
-    return new Date(v).toLocaleString("fr-FR", {
+    return new Date(v).toLocaleString(locale === "en" ? "en-GB" : "fr-FR", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -43,10 +43,10 @@ function formatDateTime(v) {
   }
 }
 
-function formatTime(v) {
+function formatTime(v, locale) {
   if (!v) return "—";
   try {
-    return new Date(v).toLocaleTimeString("fr-FR", {
+    return new Date(v).toLocaleTimeString(locale === "en" ? "en-GB" : "fr-FR", {
       hour: "2-digit",
       minute: "2-digit",
       timeZone: "Africa/Douala",
@@ -83,13 +83,13 @@ function translateStatusValue(status, t) {
   return String(status);
 }
 
-function formatDepuis(iso, t) {
+function formatDepuis(iso, t, locale) {
   if (!iso) return "—";
   const sec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
   if (sec < 60) return t("auditLog.secsAgo", { n: sec });
   const min = Math.floor(sec / 60);
   if (min < 60) return t("auditLog.minsAgo", { n: min });
-  return formatDateTime(iso);
+  return formatDateTime(iso, locale);
 }
 
 function shortId(id) {
@@ -143,7 +143,7 @@ function catLabel(key, t) {
 
 export default function JournalAuditPage() {
   const reduce = useReducedMotion();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [recherche, setRecherche] = useState("");
   const [periode, setPeriode] = useState("30d");
   const [typeEntite, setTypeEntite] = useState("tous");
@@ -462,7 +462,7 @@ export default function JournalAuditPage() {
                       >
                         <div className="w-12 shrink-0 pt-0.5 text-right">
                           <p className="text-xs font-medium tabular-nums text-[#111827] dark:text-foreground">
-                            {formatTime(e.dateCreation)}
+                            {formatTime(e.dateCreation, locale)}
                           </p>
                         </div>
                         <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#14B8A6]" />
@@ -506,7 +506,7 @@ export default function JournalAuditPage() {
                   {events.map((e) => (
                     <li key={e.idJournal} className="px-5 py-4">
                       <p className="text-[11px] tabular-nums text-[#9CA3AF]">
-                        {formatDateTime(e.dateCreation)}
+                        {formatDateTime(e.dateCreation, locale)}
                       </p>
                       <p className="mt-1 text-sm font-medium text-[#111827] dark:text-foreground">
                         {translateAuditAction(e.action, t)}
@@ -642,7 +642,7 @@ export default function JournalAuditPage() {
                     {t("auditLog.date")}
                   </p>
                   <p className="mt-1 text-[#111827] dark:text-foreground">
-                    {formatDateTime(selected.dateCreation)}
+                    {formatDateTime(selected.dateCreation, locale)}
                   </p>
                 </div>
                 <div>

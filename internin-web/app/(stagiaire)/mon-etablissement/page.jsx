@@ -19,26 +19,55 @@ export default function MonEtablissementPage() {
   const [code, setCode] = useState("");
   const [linkToken, setLinkToken] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadedToken, setLoadedToken] = useState(null);
   const [action, setAction] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
 
   async function load() {
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
+    setError(null);
     try {
       setData(await getRattachementEtudiantRequest(token));
     } catch (err) {
-      setError(err.message);
+      setError(err.message || t("universityLinking.student.loadError"));
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+    if (!token) return;
+
+    let active = true;
+    getRattachementEtudiantRequest(token)
+      .then((result) => {
+        if (active) {
+          setData(result);
+          setError(null);
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          setError(err.message || t("universityLinking.student.loadError"));
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoadedToken(token);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [token, t]);
 
   async function joinCode() {
     setAction(true);
@@ -74,15 +103,6 @@ export default function MonEtablissementPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center text-sm text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        {t("universityLinking.student.loading")}
-      </div>
-    );
-  }
-
   const universite = data?.universite;
 
   return (
@@ -99,8 +119,22 @@ export default function MonEtablissementPage() {
         </p>
       </div>
 
+      {token && (loading || loadedToken !== token) ? (
+        <div
+          className="flex min-h-[30vh] items-center justify-center rounded-xl border border-border bg-card text-sm text-muted-foreground"
+          role="status"
+          aria-live="polite"
+        >
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
+          {t("universityLinking.student.loading")}
+        </div>
+      ) : (
+        <>
       {error && (
-        <div className="rounded-md border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div
+          className="rounded-md border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+          role="alert"
+        >
           {error}
         </div>
       )}
@@ -181,10 +215,18 @@ export default function MonEtablissementPage() {
                   {t("universityLinking.student.codeTitle")}
                 </h3>
               </div>
+              <label
+                htmlFor="institution-code"
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                {t("universityLinking.student.codeLabel")}
+              </label>
               <input
+                id="institution-code"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 placeholder={t("universityLinking.student.codePlaceholder")}
+                autoComplete="off"
                 className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
               />
               <Button className="mt-3 w-full" disabled={action || !code.trim()} onClick={joinCode}>
@@ -199,10 +241,18 @@ export default function MonEtablissementPage() {
                   {t("universityLinking.student.linkTitle")}
                 </h3>
               </div>
+              <label
+                htmlFor="institution-link"
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                {t("universityLinking.student.linkLabel")}
+              </label>
               <input
+                id="institution-link"
                 value={linkToken}
                 onChange={(e) => setLinkToken(e.target.value)}
                 placeholder={t("universityLinking.student.linkPlaceholder")}
+                autoComplete="url"
                 className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
               />
               <Button className="mt-3 w-full" variant="outline" disabled={action || !linkToken.trim()} onClick={joinLink}>
@@ -220,6 +270,8 @@ export default function MonEtablissementPage() {
       <Link href="/tableau-de-bord" className="text-sm font-semibold text-primary hover:underline">
         {t("universityLinking.student.backDashboard")}
       </Link>
+        </>
+      )}
     </div>
   );
 }

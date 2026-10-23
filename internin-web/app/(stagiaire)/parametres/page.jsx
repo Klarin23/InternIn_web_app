@@ -574,7 +574,7 @@ function ApparenceSection() {
   return (
     <SectionCard
       title={t("stagiaireSpace.settings.appearance")}
-      description="Personnalisez l'apparence de l'interface."
+      description={t("stagiaireSpace.settings.appearanceDescription")}
     >
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {options.map((opt) => {
@@ -587,7 +587,11 @@ function ApparenceSection() {
               onClick={() => {
                 setTheme(opt.id);
                 toast.success(
-                  opt.id === "dark" ? "Thème sombre activé." : "Thème clair activé.",
+                  t(
+                    opt.id === "dark"
+                      ? "stagiaireSpace.settings.themeDarkActivated"
+                      : "stagiaireSpace.settings.themeLightActivated",
+                  ),
                 );
               }}
               className={cn(
@@ -637,7 +641,7 @@ function LangueSection() {
   return (
     <SectionCard
       title={t("stagiaireSpace.settings.language")}
-      description="Choisissez la langue de l'interface."
+      description={t("stagiaireSpace.settings.languageDescription")}
     >
       <div className="space-y-2">
         {langues.map((l) => {
@@ -650,9 +654,11 @@ function LangueSection() {
                 if (locale !== l.code) {
                   setLocale(l.code);
                   toast.success(
-                    l.code === "fr"
-                      ? "Langue définie sur Français."
-                      : "Language set to English.",
+                    t(
+                      l.code === "fr"
+                        ? "stagiaireSpace.settings.languageChangedFrench"
+                        : "stagiaireSpace.settings.languageChangedEnglish",
+                    ),
                   );
                 }
               }}

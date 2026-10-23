@@ -48,11 +48,6 @@ export const ROLES_EQUIPE = [
     label: "Superviseur",
     description: "Encadre des stagiaires affectés et suit leurs entretiens.",
   },
-  {
-    valeur: "lecture_seule",
-    label: "Lecture seule",
-    description: "Consultation uniquement, aucune action.",
-  },
 ];
 
 // Permissions accordées par défaut à un rôle tant qu'aucune permission

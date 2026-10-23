@@ -94,6 +94,10 @@ export function getMonProfilRequest(token) {
   return apiFetch("/equipe/moi", { token });
 }
 
+export function getRecrutementDashboardSectionRequest(section, token) {
+  return apiFetch(`/equipe/recrutement/dashboard/${section}`, { token });
+}
+
 export function getInvitationRequest(token) {
   return apiFetch(`/equipe/invitations/${token}`);
 }
@@ -104,5 +108,4 @@ export function accepterInvitationRequest(token, motDePasse) {
     body: { motDePasse },
   });
 }
-
 

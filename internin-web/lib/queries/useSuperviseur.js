@@ -45,12 +45,12 @@ export function useCalendrierSupervision({ annee, mois } = {}) {
 }
 
 
-export function useMesStagiaires() {
+export function useMesStagiaires({ enabled = true } = {}) {
   const token = useAuthStore((state) => state.token);
   return useQuery({
     queryKey: ["mesStagiaires"],
     queryFn: () => listMesStagiairesRequest(token),
-    enabled: !!token,
+    enabled: !!token && enabled,
   });
 }
 
@@ -232,12 +232,12 @@ export function useModererEntreeJournal(idStage) {
 // Évaluations hebdomadaires
 // -----------------------------------------------------------------------
 
-export function useEvaluationsSuperviseur() {
+export function useEvaluationsSuperviseur({ enabled = true } = {}) {
   const token = useAuthStore((state) => state.token);
   return useQuery({
     queryKey: ["evaluationsSuperviseur"],
     queryFn: () => listEvaluationsSuperviseurRequest(token),
-    enabled: !!token,
+    enabled: !!token && enabled,
   });
 }
 

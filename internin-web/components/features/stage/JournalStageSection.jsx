@@ -37,8 +37,8 @@ const STATUT_COLORS = {
 
 const MODIFIABLE = new Set(["en_attente", "correction_demandee"]);
 
-function formatDate(dateStr) {
-  return new Date(dateStr).toLocaleDateString("fr-FR", {
+function formatDate(dateStr, locale) {
+  return new Date(dateStr).toLocaleDateString(locale === "en" ? "en-GB" : "fr-FR", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -124,7 +124,7 @@ function FormulaireEntree({ idStage, entree, onTerminer }) {
 }
 
 export default function JournalStageSection({ idStage }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { data: entrees, isLoading } = useMonJournal(idStage);
   const supprimer = useSupprimerEntreeJournal(idStage);
   const [ajoutOuvert, setAjoutOuvert] = useState(false);
@@ -199,7 +199,7 @@ export default function JournalStageSection({ idStage }) {
                 </div>
                 <p className="text-sm text-muted-foreground">{e.description}</p>
                 <p className="mt-1.5 text-xs text-muted-foreground">
-                  {formatDate(e.dateActivite)}
+                  {formatDate(e.dateActivite, locale)}
                 </p>
 
                 {e.commentaireSuperviseur && (

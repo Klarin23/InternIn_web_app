@@ -34,10 +34,10 @@ import { useRecommandation } from "@/lib/queries/useRecommandations";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
-function formatDateShort(dateStr) {
+function formatDateShort(dateStr, locale) {
   if (!dateStr) return "—";
   try {
-    return new Date(dateStr).toLocaleDateString("fr-FR", {
+    return new Date(dateStr).toLocaleDateString(locale === "en" ? "en-GB" : "fr-FR", {
       day: "numeric",
       month: "short",
       year: "numeric",
@@ -47,10 +47,10 @@ function formatDateShort(dateStr) {
   }
 }
 
-function formatDate(dateStr) {
+function formatDate(dateStr, locale) {
   if (!dateStr) return "—";
   try {
-    return new Date(dateStr).toLocaleDateString("fr-FR", {
+    return new Date(dateStr).toLocaleDateString(locale === "en" ? "en-GB" : "fr-FR", {
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -122,7 +122,7 @@ function StatusBadge({ status }) {
 }
 
 function StageSummaryCard({ stage, status }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const progression = resolveStageProgressPercent(stage);
   const entreprise = stage.entreprise || { nomEntreprise: stage.nomEntreprise };
 
@@ -153,7 +153,7 @@ function StageSummaryCard({ stage, status }) {
               <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
                   <Calendar className="h-3.5 w-3.5" />
-                  {formatDateShort(stage.dateDebut)} → {formatDateShort(stage.dateFinPrevue)}
+                  {formatDateShort(stage.dateDebut, locale)} → {formatDateShort(stage.dateFinPrevue, locale)}
                 </span>
                 {(entreprise.ville || entreprise.pays) && (
                   <span className="inline-flex items-center gap-1.5">
@@ -164,7 +164,7 @@ function StageSummaryCard({ stage, status }) {
                 {stage.modeTravail && (
                   <span className="inline-flex items-center gap-1.5 capitalize">
                     <Briefcase className="h-3.5 w-3.5" />
-                    {String(stage.modeTravail).replace("_", " ")}
+                    {t(`stagiaireSpace.profile.modes.${stage.modeTravail}`)}
                   </span>
                 )}
               </div>
@@ -189,7 +189,7 @@ function StageSummaryCard({ stage, status }) {
 }
 
 function NextStepCard({ stage, status, evaluations }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   let title = t("stagiaireSpace.stage.nextNone");
   let description = t("stagiaireSpace.stage.nextDescUpToDate");
   let tone = "neutral";
@@ -206,7 +206,7 @@ function NextStepCard({ stage, status, evaluations }) {
             ? t("stagiaireSpace.stage.startsTomorrow")
             : t("stagiaireSpace.stage.startsInDays", { n: j });
     description = t("stagiaireSpace.stage.nextDescUpcoming", {
-      date: formatDate(stage.dateDebut),
+      date: formatDate(stage.dateDebut, locale),
       countdown,
     });
     tone = "warning";
@@ -256,7 +256,7 @@ function NextStepCard({ stage, status, evaluations }) {
 }
 
 function TimelineStage({ stage, status, evaluations }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const steps = useMemo(() => {
     const items = [
       {
@@ -332,7 +332,7 @@ function TimelineStage({ stage, status, evaluations }) {
               <p className={cn("text-sm font-medium", step.current ? "text-primary" : step.done ? "text-foreground" : "text-muted-foreground")}>
                 {step.title}
               </p>
-              {step.date && <p className="text-xs text-muted-foreground">{formatDateShort(step.date)}</p>}
+              {step.date && <p className="text-xs text-muted-foreground">{formatDateShort(step.date, locale)}</p>}
               <p className="mt-0.5 text-xs text-muted-foreground">{step.description}</p>
             </div>
           </motion.li>
@@ -588,7 +588,7 @@ function CompetencesSection({ competences }) {
 }
 
 function InfoCards({ stage }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const entreprise = stage.entreprise || { nomEntreprise: stage.nomEntreprise };
   const superviseur = stage.superviseur;
 
@@ -637,10 +637,12 @@ function InfoCards({ stage }) {
         <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("stagiaireSpace.stage.period")}</p>
         <div className="space-y-1 text-sm">
           <p className="font-medium text-foreground">
-            {formatDateShort(stage.dateDebut)} → {formatDateShort(stage.dateFinPrevue)}
+            {formatDateShort(stage.dateDebut, locale)} → {formatDateShort(stage.dateFinPrevue, locale)}
           </p>
           <p className="text-xs text-muted-foreground">
-            {stage.dureeTotaleJours ? `${stage.dureeTotaleJours} jours` : "—"}
+            {stage.dureeTotaleJours
+              ? `${stage.dureeTotaleJours} ${t("stagiaireSpace.stage.days")}`
+              : "—"}
           </p>
         </div>
       </div>
@@ -695,7 +697,7 @@ function EmptyState() {
 }
 
 export default function StagePage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { data: stage, isLoading: stageLoading } = useMonStage();
   const { data: evaluations } = useEvaluations(stage?.idStage);
   const { data: coaching } = useCoaching(stage?.idStage);
@@ -770,7 +772,7 @@ export default function StagePage() {
                 <p className="mt-1">
                   {t("stagiaireSpace.stage.journalSoon")}
                   {stage.dateDebut
-                    ? ` (${formatDateShort(stage.dateDebut)})`
+                    ? ` (${formatDateShort(stage.dateDebut, locale)})`
                     : ""}
                   {stage.joursAvantDebut > 0
                     ? t(

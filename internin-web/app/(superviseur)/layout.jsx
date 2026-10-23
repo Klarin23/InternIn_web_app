@@ -7,6 +7,8 @@ import PullToRefresh from "@/components/layout/PullToRefresh";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { useAuthReady } from "@/lib/auth/useAuthReady";
 import { useMonProfilEquipe } from "@/lib/queries/useEquipe";
+import { useMembrePermissions } from "@/lib/queries/useMembrePermissions";
+import { canAccessSupervision } from "@/lib/navigation/memberPermissions";
 import { useSuperviseurNavItems } from "@/lib/navigation/useNavItems";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import MaintenanceGate from "@/components/features/system/MaintenanceGate";
@@ -16,8 +18,18 @@ export default function SuperviseurLayout({ children }) {
   const { user, token } = useAuthStore();
   const navItems = useSuperviseurNavItems();
   const { data: profil } = useMonProfilEquipe();
+  const membrePerms = useMembrePermissions();
   const { t } = useTranslation();
   const hydrated = useAuthReady();
+
+  // Toutes les pages de ce groupe appellent /superviseur/*, qui exige la
+  // permission "stagiaires.suivre". Sans elle (ex. gestionnaire de
+  // recrutement), on renvoie vers le tableau de bord plutôt que d'afficher
+  // une erreur de chargement trompeuse. Si les permissions sont inconnues
+  // (profil injoignable), l'API reste l'arbitre final.
+  const permissionsConnues = !membrePerms.isPending && !membrePerms.isUnresolved;
+  const accesRefuse =
+    permissionsConnues && !canAccessSupervision(membrePerms.permissions);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -27,6 +39,11 @@ export default function SuperviseurLayout({ children }) {
       router.replace("/connexion");
     }
   }, [hydrated, user, token, router]);
+
+  useEffect(() => {
+    if (!hydrated || !user || user.typeUtilisateur !== "membre_entreprise") return;
+    if (accesRefuse) router.replace("/tableau-de-bord");
+  }, [hydrated, user, accesRefuse, router]);
 
   if (!hydrated) return null;
   if (!user || user.typeUtilisateur !== "membre_entreprise") return null;
@@ -59,7 +76,9 @@ export default function SuperviseurLayout({ children }) {
         }}
       />
       <PullToRefresh className="h-screen flex-1 overflow-y-auto">
-        <MaintenanceGate>{children}</MaintenanceGate>
+        <MaintenanceGate>
+          {membrePerms.isPending || accesRefuse ? null : children}
+        </MaintenanceGate>
       </PullToRefresh>
     </div>
   );

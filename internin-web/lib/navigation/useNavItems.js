@@ -61,6 +61,7 @@ import {
 } from "@/lib/queries/usePropositionsStagiaire";
 import { useFavorisCount } from "@/lib/queries/useFavoris";
 import { useMonProfilEquipe } from "@/lib/queries/useEquipe";
+import { canAccessSupervision } from "@/lib/navigation/memberPermissions";
 import { useEtatVue, useMarkEtatVue } from "@/lib/queries/useEtatsVue";
 
 // Table des libellés de rôle admin. Reste un objet simple (clé métier ->
@@ -384,13 +385,6 @@ export function useUniversiteNavItems() {
 export function useSuperviseurNavItems() {
   const { t } = useTranslation();
   const { data: profil } = useMonProfilEquipe();
-  const { data: stagiaires } = useMesStagiaires();
-  const { data: evaluations } = useEvaluationsSuperviseur();
-  const { data: offres } = useMesOffres();
-  const { data: candidatures } = useCandidaturesEntreprise();
-  const { data: entretiens } = useEntretiensEntreprise();
-  const { data: enAttente } = useEntretiensEnAttente();
-  const { data: invitationsPartenariat } = useInvitationsRecues();
 
   // Permissions strictes du membre. Si le profil API est indisponible
   // (ex. maintenance), on réutilise le dernier snapshot en session —
@@ -408,6 +402,21 @@ export function useSuperviseurNavItems() {
     }
   })();
   const has = (cle) => permissions.includes(cle);
+
+  // Toutes les routes /superviseur/* exigent "stagiaires.suivre" (cf.
+  // requireSupervisionAccess côté API). Sans cette permission, on n'appelle
+  // pas ces routes (sinon 403 systématique) et on n'affiche pas ces entrées.
+  const peutSuperviser = canAccessSupervision(permissions);
+
+  const { data: stagiaires } = useMesStagiaires({ enabled: peutSuperviser });
+  const { data: evaluations } = useEvaluationsSuperviseur({
+    enabled: peutSuperviser,
+  });
+  const { data: offres } = useMesOffres();
+  const { data: candidatures } = useCandidaturesEntreprise();
+  const { data: entretiens } = useEntretiensEntreprise();
+  const { data: enAttente } = useEntretiensEnAttente();
+  const { data: invitationsPartenariat } = useInvitationsRecues();
 
   const aTraiter = evaluations?.filter(
     (e) =>
@@ -480,11 +489,8 @@ export function useSuperviseurNavItems() {
   }
 
   // —— Supervision ——
-  if (
-    has("stagiaires.suivre") ||
-    has("stagiaires.evaluer") ||
-    has("stagiaires.terminer")
-  ) {
+  // Toutes ces entrées appellent /superviseur/* → "stagiaires.suivre" requis.
+  if (peutSuperviser) {
     items.push({
       href: "/mes-stagiaires",
       label: t("sidebar.myInterns"),
@@ -493,7 +499,7 @@ export function useSuperviseurNavItems() {
       section: "supervision",
     });
   }
-  if (has("stagiaires.evaluer")) {
+  if (peutSuperviser && has("stagiaires.evaluer")) {
     items.push({
       href: "/mes-stagiaires/evaluations",
       label: t("sidebar.evaluations"),
@@ -502,12 +508,11 @@ export function useSuperviseurNavItems() {
       section: "supervision",
     });
   }
-  // Calendrier utile dès qu'il y a du suivi ou des entretiens
-  if (
-    has("stagiaires.suivre") ||
-    has("stagiaires.evaluer") ||
-    has("entretiens.gerer")
-  ) {
+  // Le calendrier de supervision (début/fin de stage, évaluations, journal)
+  // est servi par /superviseur/calendrier : il n'est donc proposé qu'aux
+  // membres qui y ont accès. Les entretiens se consultent dans
+  // /entretiens-entreprise (permission "entretiens.gerer").
+  if (peutSuperviser) {
     items.push({
       href: "/calendrier-supervision",
       label: "Calendrier",

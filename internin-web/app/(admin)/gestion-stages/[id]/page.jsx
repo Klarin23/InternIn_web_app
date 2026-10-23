@@ -272,7 +272,7 @@ export default function Stage360Page({ params }) {
                   <p className="text-2xl font-semibold tabular-nums text-primary">
                     {progression?.percent ?? 0}%
                   </p>
-                  <p className="text-[11px] text-muted-foreground">Progression</p>
+                  <p className="text-[11px] text-muted-foreground">{t("adminStages.progressLabel")}</p>
                 </div>
               )}
             </div>

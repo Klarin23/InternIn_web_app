@@ -65,6 +65,7 @@ function StatCard({ icon: Icon, label, value, color }) {
 }
 
 function LigneEtudiant({ etudiant }) {
+  const { t } = useTranslation()
   const statut = STATUT_INFO[etudiant.statut];
   const annee = etudiant.anneeObtention || etudiant.anneeEtude || "—";
 

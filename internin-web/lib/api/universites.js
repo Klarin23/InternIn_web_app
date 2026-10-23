@@ -55,6 +55,11 @@ export function validerConventionRequest(idConvention, valider, token) {
   });
 }
 
+/**
+ * Téléchargement protégé du PDF convention (réponse binaire application/pdf).
+ * Préférer fetch + Authorization + blob (voir useGenererPdfConvention).
+ * Ne pas s'attendre à un JSON { url }.
+ */
 export function genererPdfConventionRequest(idConvention, token) {
   return apiFetch(`/universites/conventions/${idConvention}/pdf`, { token });
 }

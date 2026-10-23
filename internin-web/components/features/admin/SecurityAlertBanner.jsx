@@ -56,7 +56,10 @@ export default function SecurityAlertBanner() {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
-  const [pulse, setPulse] = useState(true);
+  const [pulseState, setPulseState] = useState({
+    fingerprint: null,
+    active: true,
+  });
   const ackRev = useAckRevision();
 
   const etat = overview?.etat;
@@ -68,6 +71,7 @@ export default function SecurityAlertBanner() {
     () => securityAlertFingerprint(overview),
     [overview],
   );
+  const pulse = pulseState.fingerprint !== fingerprint || pulseState.active;
 
   const acknowledged = useMemo(() => {
     void ackRev;
@@ -77,8 +81,10 @@ export default function SecurityAlertBanner() {
   // Pulsation courte à l'apparition d'une nouvelle alerte
   useEffect(() => {
     if (!hasAlert || acknowledged) return;
-    setPulse(true);
-    const id = setTimeout(() => setPulse(false), 2400);
+    const id = setTimeout(
+      () => setPulseState({ fingerprint, active: false }),
+      2400,
+    );
     return () => clearTimeout(id);
   }, [fingerprint, hasAlert, acknowledged]);
 

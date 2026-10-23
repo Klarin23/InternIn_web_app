@@ -9,8 +9,8 @@ import {
   useAjouterNote,
 } from "@/lib/queries/useCandidaturesEntreprise";
 
-function formatDate(date) {
-  return new Date(date).toLocaleString("fr-FR", {
+function formatDate(date, locale) {
+  return new Date(date).toLocaleString(locale === "en" ? "en-GB" : "fr-FR", {
     day: "2-digit",
     month: "short",
     hour: "2-digit",
@@ -19,7 +19,7 @@ function formatDate(date) {
 }
 
 export default function NotesPrivees({ idCandidature }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { data: notes, isLoading } = useNotesCandidature(idCandidature);
   const ajouterNote = useAjouterNote(idCandidature);
   const [contenu, setContenu] = useState("");
@@ -79,7 +79,7 @@ export default function NotesPrivees({ idCandidature }) {
               </p>
               <p className="mt-1.5 text-[11px] text-muted-foreground">
                 {n.nomMembre || t("entrepriseSpace.candidatures.teamMember")} ·{" "}
-                {formatDate(n.dateCreation)}
+                {formatDate(n.dateCreation, locale)}
               </p>
             </div>
           ))}

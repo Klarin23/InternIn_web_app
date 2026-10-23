@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { calculerCompletionProfil } from "@/lib/utils/profilCompletion";
+import { calculerCompletionEvaluationProfil } from "@/lib/utils/profilEvaluationCompletion";
 
 // Traduit le libellé d'un élément manquant à partir de son `id` stable
 // (plutôt que d'afficher `el.label`, qui vient de profilCompletion.js et
@@ -36,7 +37,23 @@ export default function ProfileCompletionCard({ profile, derniereFormation }) {
   const { t } = useTranslation();
   const completion = calculerCompletionProfil(profile);
   const score = completion.pourcentage;
-  const manquants = completion.manquants || [];
+  // Le profil est "complété" seulement si TOUS les éléments demandés sont
+  // renseignés : critères généraux (photo, CV, centres d'intérêt, préférences…)
+  // ET critères professionnels (expérience, qualités, langues…).
+  const evaluation = calculerCompletionEvaluationProfil(profile);
+  const manquantsGeneraux = completion.manquants || [];
+  const idsGeneraux = new Set(manquantsGeneraux.map((el) => el.id));
+  const manquantsProfessionnels = (evaluation.manquants || []).filter(
+    (el) => !idsGeneraux.has(el.id),
+  );
+  const manquants = [
+    ...manquantsGeneraux,
+    ...manquantsProfessionnels.map((el) => ({
+      id: el.id,
+      label: t(el.labelKey),
+    })),
+  ];
+  const profilComplet = score === 100 && evaluation.complet;
   const elements = completion.elements || [];
   const initiale = (profile?.prenom?.charAt(0) || "?").toUpperCase();
   const competences = profile?.competences || [];
@@ -160,22 +177,30 @@ export default function ProfileCompletionCard({ profile, derniereFormation }) {
           ))}
         </ul>
       )}
-      {score === 100 && (
+      {profilComplet && (
         <p className="mt-4 flex items-center gap-1.5 text-xs font-medium text-emerald-600">
           <CheckCircle2 className="h-3.5 w-3.5" />
           {t("dashboard.profileCard.complete")}
         </p>
       )}
 
-      <Link
-        href={score < 100 ? "/activation" : "/profil"}
-        className="mt-5 flex items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-      >
-        {score < 100
-          ? t("dashboard.profileCard.completeProfile")
-          : t("dashboard.profileCard.completeProfile")}
-        <ArrowRight className="h-4 w-4" />
-      </Link>
+      {profilComplet ? (
+        <Link
+          href="/profil"
+          className="mt-5 flex items-center justify-center gap-1.5 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-600/90"
+        >
+          <CheckCircle2 className="h-4 w-4" />
+          {t("dashboard.profileCard.profileCompleted")}
+        </Link>
+      ) : (
+        <Link
+          href="/activation"
+          className="mt-5 flex items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+        >
+          {t("dashboard.profileCard.completeProfile")}
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      )}
     </motion.div>
   );
 }

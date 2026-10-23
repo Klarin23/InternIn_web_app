@@ -44,7 +44,7 @@ export default function RefreshButton({
         type="button"
         onClick={refresh}
         disabled={isLoading}
-        aria-label="Actualiser les données"
+        aria-label={t("auditUi.refresh.buttonAria")}
         aria-busy={isLoading}
         className={cn(
           "inline-flex items-center gap-1.5 rounded-full border border-border bg-transparent px-2.5 py-1 text-xs font-medium text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground active:scale-[0.97] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-70",

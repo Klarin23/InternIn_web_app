@@ -23,6 +23,7 @@ export default function RattachementUniversitePanel({ onChanged }) {
   const [secret, setSecret] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingDemandes, setLoadingDemandes] = useState(true);
+  const [loadedToken, setLoadedToken] = useState(null);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
@@ -39,9 +40,26 @@ export default function RattachementUniversitePanel({ onChanged }) {
   }
 
   useEffect(() => {
-    loadDemandes();
-    // Le token est la seule dépendance utile ici.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!token) return;
+
+    let active = true;
+    getDemandesRattachementUniversiteRequest(token)
+      .then((result) => {
+        if (active) setDemandes(result);
+      })
+      .catch((err) => {
+        if (active) setError(err.message);
+      })
+      .finally(() => {
+        if (active) {
+          setLoadedToken(token);
+          setLoadingDemandes(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
   }, [token]);
 
   async function invite() {
@@ -227,7 +245,7 @@ export default function RattachementUniversitePanel({ onChanged }) {
           </span>
         </div>
 
-        {loadingDemandes ? (
+        {Boolean(token) && (loadingDemandes || loadedToken !== token) ? (
           <p className="text-sm text-muted-foreground">
             {t("universityLinking.university.loading")}
           </p>

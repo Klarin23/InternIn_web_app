@@ -61,7 +61,11 @@ function ParametresEquipeForm({ parametres }) {
   const [section, setSection] = useState("invitations");
 
   const [roleParDefautInvitation, setRoleParDefautInvitation] = useState(
-    parametres.roleParDefautInvitation,
+    ROLES_INVITABLES.some(
+      (role) => role.value === parametres.roleParDefautInvitation,
+    )
+      ? parametres.roleParDefautInvitation
+      : "gestionnaire_recrutement",
   );
   const [expirationInvitationJours, setExpirationInvitationJours] = useState(
     parametres.expirationInvitationJours,

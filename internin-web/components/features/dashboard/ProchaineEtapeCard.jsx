@@ -15,7 +15,7 @@ function Etape({ label, fait, href }) {
       className="flex items-center gap-3 rounded-sm px-1 py-2 transition hover:bg-muted/40"
     >
       <span
-        className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 ${
+        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${
           fait
             ? "border-[#14b8a6] bg-[#14b8a6]"
             : "border-muted-foreground/30 bg-transparent"

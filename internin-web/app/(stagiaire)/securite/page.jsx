@@ -401,7 +401,7 @@ function StudentReportMessages({ idLitige, closed, attendInfo }) {
                   <button
                     type="button"
                     className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-destructive"
-                    aria-label="Remove"
+                    aria-label={t("stagiaireSpace.securite.removeFile")}
                     onClick={() =>
                       setFiles((prev) => prev.filter((_, idx) => idx !== i))
                     }

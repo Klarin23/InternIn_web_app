@@ -19,6 +19,7 @@ import CreerOffreCard from "@/components/features/offres-entreprise/CreerOffreCa
 import OffreFormDialog from "@/components/features/offres-entreprise/OffreFormDialog";
 import { useMesOffres } from "@/lib/queries/useMesOffres";
 import { useEntrepriseProfile } from "@/lib/queries/useEntrepriseProfile";
+import { useMonProfilEquipe } from "@/lib/queries/useEquipe";
 import { Stagger, StaggerItem } from "@/components/motion/Stagger";
 import { useEntretiensEntreprise } from "@/lib/queries/useEntretiens";
 import { useCandidaturesEntreprise } from "@/lib/queries/useCandidaturesEntreprise";
@@ -63,7 +64,10 @@ export default function OffresEntreprisePage() {
 
   const { data: offres, isLoading } = useMesOffres();
   const { data: profile } = useEntrepriseProfile();
-  const peutGererStages = profile?.statutVerification === "verifiee";
+  const { data: profilEquipe } = useMonProfilEquipe();
+  const peutGererStages =
+    (profile?.statutVerification ?? profilEquipe?.statutVerification) ===
+    "verifiee";
   const { data: entretiens } = useEntretiensEntreprise();
   const { data: candidatures } = useCandidaturesEntreprise();
 

@@ -16,6 +16,7 @@ import {
 import { SidePanel } from "@/components/ui/side-panel";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import Image from "next/image";
 import { apiFetch } from "@/lib/api/client";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { getInitials, localization, DISPONIBILITE_LABELS, formatFormation } from "./talentUtils";
@@ -93,7 +94,7 @@ export default function TalentPreviewPanel({ talent, open, onClose, onPropose, c
           <div className="rounded-2xl border border-border/70 bg-gradient-to-br from-primary/10 via-card to-card p-4">
             <div className="flex items-start gap-3">
               <div className="size-16 shrink-0 overflow-hidden rounded-2xl bg-muted ring-1 ring-border/60">
-                {profile.photoProfilUrl ? <img src={profile.photoProfilUrl} alt="" className="size-full object-cover" /> : <div className="flex size-full items-center justify-center text-lg font-bold text-muted-foreground">{getInitials(profile.prenom, profile.nom)}</div>}
+                {profile.photoProfilUrl ? <Image src={profile.photoProfilUrl} alt="" width={64} height={64} unoptimized className="size-full object-cover" /> : <div className="flex size-full items-center justify-center text-lg font-bold text-muted-foreground">{getInitials(profile.prenom, profile.nom)}</div>}
               </div>
               <div className="min-w-0 flex-1">
                 <h2 className="text-lg font-semibold text-foreground">{profile.prenom} {profile.nom}</h2>

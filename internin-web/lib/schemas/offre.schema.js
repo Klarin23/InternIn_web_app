@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const offreFormSchema = z
   .object({
-    titre: z.string().min(1, "Le titre est requis"),
+    titre: z.string().min(1, "validation.offer.titleRequired"),
     /** Valeur sélectionnée dans la liste (peut être vide si custom renseigné). */
     departement: z.string().optional(),
     departementCustom: z.string().optional(),
@@ -10,12 +10,12 @@ export const offreFormSchema = z
     secteurActiviteCustom: z.string().optional(),
     description: z
       .string()
-      .min(20, "Décrivez le stage en quelques phrases (20 caractères minimum)"),
+      .min(20, "validation.offer.descriptionMinimum"),
     responsabilites: z.string().optional(),
     competencesRequises: z.string().optional(),
     opportunitesApprentissage: z.string().optional(),
     modeTravail: z.enum(["distance", "hybride", "presentiel"], {
-      errorMap: () => ({ message: "Sélectionnez un mode de travail" }),
+      errorMap: () => ({ message: "validation.offer.workModeRequired" }),
     }),
     remunerationType: z
       .array(z.enum([
@@ -25,10 +25,10 @@ export const offreFormSchema = z
         "indemnite_internet_appel",
         "allocation_mensuelle",
       ]))
-      .min(1, "Sélectionnez au moins un type de rémunération"),
+      .min(1, "validation.offer.remunerationRequired"),
     remunerationMontants: z.record(z.string(), z.string()).optional(),
     montantRemuneration: z.string().optional(),
-    nombrePostes: z.number().min(1, "Au moins 1 poste"),
+    nombrePostes: z.number().min(1, "validation.offer.positionsMinimum"),
     dureeStage: z.enum(["1_mois", "2_mois", "3_mois"]).optional(),
     dateLimiteCandidature: z.string().optional(),
     heureLimiteCandidature: z.string().optional(),
@@ -37,13 +37,13 @@ export const offreFormSchema = z
     const dateLimite = String(data.dateLimiteCandidature || "").trim();
     const heureLimite = String(data.heureLimiteCandidature || "").trim();
     if (dateLimite && !heureLimite) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "L’heure limite est requise lorsqu’une date est renseignée.", path: ["heureLimiteCandidature"] });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "validation.offer.deadlineTimeRequired", path: ["heureLimiteCandidature"] });
     }
     if (!dateLimite && heureLimite) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Renseignez d’abord la date limite.", path: ["dateLimiteCandidature"] });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "validation.offer.deadlineDateRequiredFirst", path: ["dateLimiteCandidature"] });
     }
     if (heureLimite && !/^([01]\d|2[0-3]):[0-5]\d$/.test(heureLimite)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Heure invalide (HH:mm).", path: ["heureLimiteCandidature"] });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "validation.offer.deadlineTimeInvalid", path: ["heureLimiteCandidature"] });
     }
     const remunerationTypes = Array.isArray(data.remunerationType)
       ? data.remunerationType
@@ -53,7 +53,7 @@ export const offreFormSchema = z
     if (remunerationTypes.includes("aucune") && remunerationTypes.length > 1) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Non rémunéré ne peut pas être combiné avec une autre rémunération",
+        message: "validation.offer.unpaidExclusive",
         path: ["remunerationType"],
       });
     }
@@ -63,7 +63,7 @@ export const offreFormSchema = z
       if (!amount || Number(amount) <= 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Saisissez un montant supérieur à 0 FCFA",
+          message: "validation.offer.amountPositive",
           path: ["montantRemuneration"],
         });
       }
@@ -84,7 +84,7 @@ export const offreFormSchema = z
     if (!finalSecteur) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Le secteur d'activité est requis",
+        message: "validation.offer.sectorRequired",
         path: ["secteurActivite"],
       });
     }
@@ -100,7 +100,7 @@ export const offreFormSchema = z
     if (!finalDep) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Le département est requis",
+        message: "validation.offer.departmentRequired",
         path: ["departement"],
       });
     }

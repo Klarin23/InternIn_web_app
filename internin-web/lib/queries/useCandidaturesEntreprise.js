@@ -13,12 +13,12 @@ import {
 } from "@/lib/api/candidatures";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 
-export function useCandidaturesEntreprise(idOffre) {
+export function useCandidaturesEntreprise(idOffre, { enabled = true } = {}) {
   const token = useAuthStore((state) => state.token);
   return useQuery({
     queryKey: ["candidaturesEntreprise", idOffre],
     queryFn: () => listCandidaturesEntrepriseRequest(token, idOffre),
-    enabled: !!token,
+    enabled: !!token && enabled,
   });
 }
 

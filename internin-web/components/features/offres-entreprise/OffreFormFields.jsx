@@ -44,7 +44,7 @@ export function FormTextField({
       )}
       {error && (
         <p id={`${id}-error`} className="text-xs text-destructive">
-          {error}
+          {t(error)}
         </p>
       )}
     </div>
@@ -84,7 +84,7 @@ export function FormTextareaField({
       )}
       {error && (
         <p id={`${id}-error`} className="text-xs text-destructive">
-          {error}
+          {t(error)}
         </p>
       )}
     </div>

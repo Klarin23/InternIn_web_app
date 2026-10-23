@@ -2,8 +2,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { verifierEntrepriseRequest } from "@/lib/api/admin";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { toast } from "@/lib/store/useToastStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export function useVerifierEntreprise() {
+  const { t } = useTranslation();
   const token = useAuthStore((state) => state.token);
   const queryClient = useQueryClient();
   return useMutation({
@@ -18,13 +20,13 @@ export function useVerifierEntreprise() {
       queryClient.invalidateQueries({ queryKey: ["adminStats"] });
       queryClient.invalidateQueries({ queryKey: ["entrepriseAdminJournal"] });
       if (variables?.statutVerification === "verifiee") {
-        toast.success("Entreprise vérifiée");
+        toast.success(t("actionFeedback.companyVerified"));
       } else {
-        toast.success("Vérification rejetée");
+        toast.success(t("actionFeedback.verificationRejected"));
       }
     },
     onError: (err) => {
-      toast.error(err?.message || "Action impossible");
+      toast.error(err?.message || t("actionFeedback.actionImpossible"));
     },
   });
 }

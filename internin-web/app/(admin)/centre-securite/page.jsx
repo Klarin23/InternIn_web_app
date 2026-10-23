@@ -214,7 +214,10 @@ export default function CentreSecuritePage() {
   const ov = overview.data || {};
   const suspect = ov.activiteSuspecte || ov.suspectStats || {};
   const statsUnavailable = suspect.status === "unavailable";
-  const comptes = Array.isArray(comptesQ.data) ? comptesQ.data : [];
+  const comptes = useMemo(
+    () => (Array.isArray(comptesQ.data) ? comptesQ.data : []),
+    [comptesQ.data],
+  );
 
   // KPI globaux — strictement issus de /overview (jamais de la liste paginée)
   const nNormal = Number(suspect.normal ?? 0);

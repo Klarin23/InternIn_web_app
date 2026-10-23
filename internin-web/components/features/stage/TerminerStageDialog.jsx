@@ -177,7 +177,10 @@ export default function TerminerStageDialog({
     open ? idStage : null,
   );
 
-  const stage = stageProp || { idStage };
+  const stage = useMemo(
+    () => stageProp || { idStage },
+    [stageProp, idStage],
+  );
 
   const { items, avancement } = useMemo(
     () => buildValidationItems(stage, evaluations, t),

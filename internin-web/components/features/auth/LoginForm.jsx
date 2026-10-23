@@ -95,7 +95,7 @@ export default function LoginForm() {
             />
           </div>
           {errors.email && (
-            <p className="text-xs text-destructive">{errors.email.message}</p>
+            <p className="text-xs text-destructive">{t(errors.email.message)}</p>
           )}
         </div>
 

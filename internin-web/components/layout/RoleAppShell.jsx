@@ -143,9 +143,9 @@ export default function RoleAppShell({ children }) {
         items={superviseurNavItems}
         roleLabel={
           membreProfile?.roleEquipe === "gestionnaire_recrutement"
-            ? t("roles.recruitmentManagerSpace")
+            ? t("roles.recruitmentSpace")
             : membreProfile?.roleEquipe === "lecture_seule"
-              ? t("roles.readOnlySpace")
+              ? t("roles.companySpace")
               : t("roles.supervisorSpace")
         }
         userFooter={{
@@ -153,6 +153,15 @@ export default function RoleAppShell({ children }) {
           name: membreProfile?.nom || user.email,
           subtitle:
             membreProfile?.nomEntreprise || t("roles.supervisorFallback"),
+        }}
+        orgCard={{
+          name:
+            membreProfile?.nomEntreprise ||
+            t("roles.supervisorFallback") ||
+            "Entreprise",
+          subtitle:
+            membreProfile?.roleEquipe || t("roles.supervisorSpace"),
+          logoUrl: membreProfile?.logoUrl,
         }}
       />
     );

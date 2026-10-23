@@ -3,6 +3,7 @@
  * Réutilise conventions_stage + deriveConventionStatus (pas de système parallèle).
  * Pas de table de versions : 1 convention / offre finale (contrainte unique).
  */
+import fs from "node:fs";
 import path from "node:path";
 import {
   eq,
@@ -518,31 +519,28 @@ function waitForPdfFile(filepath, attempts = 40) {
   });
 }
 
-async function waitUntilPdfReady(filepath, maxMs = 15000) {
-  const fsSync = await import("node:fs");
-  const started = Date.now();
-  let lastSize = -1;
-  let stable = 0;
-  while (Date.now() - started < maxMs) {
-    if (fsSync.existsSync(filepath)) {
-      try {
-        const size = fsSync.statSync(filepath).size;
-        if (size > 0 && size === lastSize) {
-          stable += 1;
-          if (stable >= 2) return; // taille stable 2 ticks
-        } else {
-          stable = 0;
-          lastSize = size;
-        }
-      } catch {
-        /* fichier en cours d'écriture */
-      }
-    }
-    await new Promise((r) => setTimeout(r, 100));
+ 
+function resolveAdminConventionPdfPath(relative) {
+  const root = path.resolve(process.cwd(), "uploads", "conventions");
+  const cleaned = String(relative || "").replace(/^conventions[/\\]/, "");
+  const base = path.basename(cleaned);
+  if (!base || !base.toLowerCase().endsWith(".pdf")) {
+    const err = new Error("Chemin de document invalide");
+    err.status = 400;
+    throw err;
   }
-  const err = new Error("Génération PDF échouée ou trop lente");
-  err.status = 500;
-  throw err;
+  const filepath = path.resolve(root, base);
+  if (filepath !== root && !filepath.startsWith(root + path.sep)) {
+    const err = new Error("Chemin de document invalide");
+    err.status = 400;
+    throw err;
+  }
+  if (!fs.existsSync(filepath)) {
+    const err = new Error("Document introuvable");
+    err.status = 404;
+    throw err;
+  }
+  return filepath;
 }
 
 export async function getAdminConventionPdfPath(
@@ -552,11 +550,9 @@ export async function getAdminConventionPdfPath(
 ) {
   const data = await buildAdminPdfPayload(idConvention);
   const pdfData = buildConventionPdfData(data);
-  const relative = genererConventionPdf(pdfData, lang === "en" ? "en" : "fr");
+  const relative = await genererConventionPdf(pdfData, lang === "en" ? "en" : "fr");
   // relative = "conventions/<id>-fr.pdf" → uploads/conventions/...
-  const filepath = path.resolve(process.cwd(), "uploads", relative);
-
-  await waitUntilPdfReady(filepath);
+  const filepath = resolveAdminConventionPdfPath(relative);
 
   // Audit best-effort (ne doit jamais bloquer le téléchargement)
   if (idAdministrateur) {

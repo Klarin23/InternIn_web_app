@@ -19,6 +19,9 @@ import StagiaireDashboardContent from "../StagiaireDashboardContent";
 import EntrepriseDashboardContent from "../../dashboard-entreprise/EntrepriseDashboardContent";
 import AdminDashboardContent from "../../dashboard-admin/AdminDashboardContent";
 import SuperviseurDashboardContent from "../../dashboard-superviseur/SuperviseurDashboardContent";
+import RecrutementDashboardContent from "../../dashboard-recrutement/RecrutementDashboardContent";
+import { useMembrePermissions } from "@/lib/queries/useMembrePermissions";
+import { getMemberDashboardKind } from "@/lib/navigation/memberPermissions";
 import { useUniversiteProfile } from "@/lib/queries/useUniversiteProfile";
 import { useUniversiteNavItems } from "@/lib/navigation/useNavItems"; // (à fusionner avec l'import existant de useNavItems)
 import UniversiteDashboardContent from "../../dashboard-universite/UniversiteDashboardContent";
@@ -42,6 +45,7 @@ export default function DashboardRouter() {
   const { data: universiteProfile } = useUniversiteProfile();
   const superviseurNavItems = useSuperviseurNavItems();
   const { data: membreProfile } = useMonProfilEquipe();
+  const membrePerms = useMembrePermissions();
 
   useEffect(() => {
     if (!token || !user) {
@@ -189,6 +193,9 @@ export default function DashboardRouter() {
   }
 
   if (user.typeUtilisateur === "membre_entreprise") {
+    // Le tableau de bord dépend des PERMISSIONS (pas du nom du rôle) :
+    // /superviseur/* exige "stagiaires.suivre" côté API.
+    const membreDashboard = getMemberDashboardKind(membrePerms.permissions);
     const initials = membreProfile?.nom
       ? membreProfile.nom
           .split(" ")
@@ -209,10 +216,15 @@ export default function DashboardRouter() {
       <div className="role-entreprise flex h-screen overflow-hidden bg-muted/30">
         <AppSidebar
           items={superviseurNavItems}
-          roleLabel={t("roles.supervisorSpace")}
+          roleLabel={
+            membreDashboard === "supervision"
+              ? t("roles.supervisorSpace")
+              : t("roles.recruitmentSpace")
+          }
           orgCard={{
             name: nomEntreprise,
             subtitle: membreProfile?.roleEquipe || t("roles.supervisorSpace"),
+            logoUrl: membreProfile?.logoUrl,
           }}
           userFooter={{
             initials,
@@ -222,7 +234,38 @@ export default function DashboardRouter() {
         />
         <PullToRefresh className="h-screen flex-1 overflow-y-auto">
           <MaintenanceGate>
-            <SuperviseurDashboardContent />
+            {membrePerms.isPending ? (
+              <div
+                className="space-y-4 px-4 py-6 sm:px-6 lg:px-8 animate-pulse"
+                role="status"
+                aria-busy="true"
+              >
+                <div className="h-7 w-48 rounded-md bg-muted" />
+                <div className="h-32 rounded-md border border-border bg-card" />
+              </div>
+            ) : membrePerms.isUnresolved ? (
+              <div className="px-4 py-6 sm:px-6 lg:px-8">
+                <div className="rounded-2xl border border-destructive/25 bg-destructive/5 px-5 py-8 text-center">
+                  <p className="text-sm font-semibold text-foreground">
+                    {t("superviseurDashboard.error.title")}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t("superviseurDashboard.error.hint")}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => membrePerms.refetch()}
+                    className="mt-4 text-sm font-semibold text-primary hover:underline"
+                  >
+                    {t("superviseurDashboard.error.retry")}
+                  </button>
+                </div>
+              </div>
+            ) : membreDashboard === "supervision" ? (
+              <SuperviseurDashboardContent />
+            ) : (
+              <RecrutementDashboardContent />
+            )}
           </MaintenanceGate>
         </PullToRefresh>
       </div>

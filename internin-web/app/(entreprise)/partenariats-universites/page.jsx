@@ -15,6 +15,7 @@ import {
 } from "react-icons/fi";
 import AppHeader from "@/components/layout/AppHeader";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 import {
   useInvitationsRecues,
   useUniversitesPartenaires,
@@ -27,6 +28,7 @@ function initiales(nom) {
 }
 
 function CarteInvitation({ invitation }) {
+  const { t } = useTranslation();
   const mutation = useRepondreInvitation();
 
   return (
@@ -40,7 +42,7 @@ function CarteInvitation({ invitation }) {
             {invitation.nomUniversite}
           </h5>
           <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
-            {invitation.typeEtablissement || "Établissement"}
+            {invitation.typeEtablissement || t("entrepriseSpace.partnerships.establishment")}
             {invitation.pays && (
               <>
                 <span>·</span>
@@ -82,7 +84,7 @@ function CarteInvitation({ invitation }) {
           ) : (
             <FiCheck className="h-4 w-4" />
           )}
-          Accepter
+          {t("entrepriseSpace.partnerships.accept")}
         </Button>
         <Button
           type="button"
@@ -102,7 +104,7 @@ function CarteInvitation({ invitation }) {
           ) : (
             <FiX className="h-4 w-4" />
           )}
-          Décliner
+          {t("entrepriseSpace.partnerships.decline")}
         </Button>
       </div>
     </div>
@@ -110,6 +112,7 @@ function CarteInvitation({ invitation }) {
 }
 
 function LigneUniversitePartenaire({ universite }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-between gap-4 border-b border-border/60 px-4 py-3.5 last:border-0">
       <div className="flex min-w-0 items-center gap-3">
@@ -121,7 +124,7 @@ function LigneUniversitePartenaire({ universite }) {
             {universite.nomUniversite}
           </p>
           <p className="truncate text-xs text-muted-foreground">
-            {universite.typeEtablissement || "Établissement"}
+            {universite.typeEtablissement || t("entrepriseSpace.partnerships.establishment")}
             {universite.pays ? ` · ${universite.pays}` : ""}
           </p>
         </div>
@@ -129,14 +132,20 @@ function LigneUniversitePartenaire({ universite }) {
       <div className="flex flex-shrink-0 items-center gap-2 text-xs text-muted-foreground">
         <FiUsers className="h-3.5 w-3.5" />
         {universite.nbEtudiants > 0
-          ? `${universite.nbEtudiants} étudiant${universite.nbEtudiants > 1 ? "s" : ""} placé${universite.nbEtudiants > 1 ? "s" : ""}`
-          : "Aucun stage démarré"}
+          ? t(
+              universite.nbEtudiants === 1
+                ? "entrepriseSpace.partnerships.studentOne"
+                : "entrepriseSpace.partnerships.studentOther",
+              { count: universite.nbEtudiants },
+            )
+          : t("entrepriseSpace.partnerships.noInternships")}
       </div>
     </div>
   );
 }
 
 export default function PartenariatsUniversitesPage() {
+  const { t } = useTranslation();
   const [onglet, setOnglet] = useState("invitations");
   const { data: invitations, isLoading: loadingInvitations } =
     useInvitationsRecues();
@@ -146,8 +155,8 @@ export default function PartenariatsUniversitesPage() {
   return (
     <>
       <AppHeader
-        title="Partenariats universités"
-        subtitle="Invitations reçues et universités partenaires"
+        title={t("entrepriseSpace.partnerships.title")}
+        subtitle={t("entrepriseSpace.partnerships.subtitle")}
         refreshKeys={["entreprises-decouvrir", "invitations-envoyees", "invitations-recues", "universites-partenaires"]}
       />
 
@@ -162,7 +171,7 @@ export default function PartenariatsUniversitesPage() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Invitations reçues
+            {t("entrepriseSpace.partnerships.receivedInvitations")}
             {invitations && invitations.length > 0 && (
               <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">
                 {invitations.length}
@@ -178,7 +187,7 @@ export default function PartenariatsUniversitesPage() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Universités partenaires
+            {t("entrepriseSpace.partnerships.partners")}
           </button>
         </div>
 
@@ -187,18 +196,17 @@ export default function PartenariatsUniversitesPage() {
             {loadingInvitations && (
               <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
                 <FiLoader className="h-5 w-5 animate-spin" />
-                Chargement...
+                {t("entrepriseSpace.partnerships.loading")}
               </div>
             )}
             {invitations && invitations.length === 0 && !loadingInvitations && (
               <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
                 <FiInbox className="h-8 w-8 text-muted-foreground" />
                 <p className="text-sm font-medium text-foreground">
-                  Aucune invitation en attente
+                  {t("entrepriseSpace.partnerships.noInvitations")}
                 </p>
                 <p className="max-w-[360px] text-xs text-muted-foreground">
-                  Les universités intéressées par vos offres peuvent vous
-                  envoyer une invitation de partenariat — elle apparaîtra ici.
+                  {t("entrepriseSpace.partnerships.noInvitationsHint")}
                 </p>
               </div>
             )}
@@ -217,14 +225,14 @@ export default function PartenariatsUniversitesPage() {
             {loadingUniversites && (
               <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
                 <FiLoader className="h-5 w-5 animate-spin" />
-                Chargement...
+                {t("entrepriseSpace.partnerships.loading")}
               </div>
             )}
             {universites && universites.length === 0 && !loadingUniversites && (
               <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
                 <FiUsers className="h-8 w-8 text-muted-foreground" />
                 <p className="text-sm font-medium text-foreground">
-                  Aucune université partenaire pour l&apos;instant
+                  {t("entrepriseSpace.partnerships.noPartners")}
                 </p>
               </div>
             )}

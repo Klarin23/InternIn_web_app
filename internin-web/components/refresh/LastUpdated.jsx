@@ -4,22 +4,24 @@
 // (5s) plutôt qu'à chaque milliseconde — léger et peu coûteux.
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
-function formatRelative(timestamp, now) {
+function formatRelative(timestamp, now, t) {
   if (!timestamp) return null;
   const diffSec = Math.max(0, Math.round((now - timestamp) / 1000));
 
-  if (diffSec < 5) return "à l'instant";
-  if (diffSec < 60) return `il y a ${diffSec} s`;
+  if (diffSec < 5) return t("auditUi.refresh.justNow");
+  if (diffSec < 60) return t("auditUi.refresh.secondsAgo", { n: diffSec });
 
   const diffMin = Math.round(diffSec / 60);
-  if (diffMin < 60) return `il y a ${diffMin} min`;
+  if (diffMin < 60) return t("auditUi.refresh.minutesAgo", { n: diffMin });
 
   const diffH = Math.round(diffMin / 60);
-  return `il y a ${diffH} h`;
+  return t("auditUi.refresh.hoursAgo", { n: diffH });
 }
 
-export default function LastUpdated({ timestamp, prefix = "Mis à jour", className }) {
+export default function LastUpdated({ timestamp, prefix, className }) {
+  const { t } = useTranslation();
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -28,12 +30,12 @@ export default function LastUpdated({ timestamp, prefix = "Mis à jour", classNa
     return () => clearInterval(interval);
   }, [timestamp]);
 
-  const label = formatRelative(timestamp, now);
+  const label = formatRelative(timestamp, now, t);
   if (!label) return null;
 
   return (
     <span className={className ?? "text-[11px] text-muted-foreground"}>
-      {prefix} {label}
+      {prefix || t("auditUi.refresh.lastUpdated")} {label}
     </span>
   );
 }

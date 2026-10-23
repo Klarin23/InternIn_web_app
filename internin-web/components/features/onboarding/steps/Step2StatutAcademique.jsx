@@ -5,7 +5,7 @@
 // appel API une fois ce module construit.
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { GraduationCap, Briefcase, ArrowLeft } from "lucide-react";
@@ -16,22 +16,26 @@ import { step2Schema } from "@/lib/schemas/onboarding.schema";
 import { useOnboardingStore } from "@/lib/store/useOnboardingStore";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
+const INVITATION_STORAGE_KEY = "internin_universite_invitation";
+const subscribeInvitation = (callback) => {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+};
+const getInvitationSnapshot = () =>
+  window.localStorage.getItem(INVITATION_STORAGE_KEY);
+const getInvitationServerSnapshot = () => null;
+
 export default function Step2StatutAcademique() {
   const router = useRouter();
   const { t } = useTranslation();
   const { data, saveStepData } = useOnboardingStore();
-  const [invitationToken, setInvitationToken] = useState(
-    data.rattachementInvitationToken || "",
+  const storedInvitationToken = useSyncExternalStore(
+    subscribeInvitation,
+    getInvitationSnapshot,
+    getInvitationServerSnapshot,
   );
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const token = window.localStorage.getItem("internin_universite_invitation");
-    if (token && !data.rattachementInvitationToken) {
-      setInvitationToken(token);
-      saveStepData({ rattachementInvitationToken: token });
-    }
-  }, [data.rattachementInvitationToken, saveStepData]);
+  const invitationToken =
+    data.rattachementInvitationToken || storedInvitationToken || "";
 
   const {
     handleSubmit,
@@ -45,7 +49,12 @@ export default function Step2StatutAcademique() {
   });
 
   const onSubmit = (values) => {
-    saveStepData(values);
+    saveStepData({
+      ...values,
+      ...(invitationToken
+        ? { rattachementInvitationToken: invitationToken }
+        : {}),
+    });
     router.push("/onboarding/3");
   };
 

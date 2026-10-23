@@ -1,9 +1,16 @@
 "use client";
 import { formatDateHeureLocale } from "@/lib/entretiens/planification";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 import { FiVideo, FiPhone, FiMapPin, FiUser } from "react-icons/fi";
 
-const STATUT_LABELS = { planifie: "Planifié", termine: "Terminé", annule: "Annulé", reprogramme: "À reprogrammer", absent: "Absence" };
+const STATUT_KEYS = {
+  planifie: "statusPlanifie",
+  termine: "statusTermine",
+  annule: "statusAnnule",
+  reprogramme: "statusReprogramme",
+  absent: "statusAbsent",
+};
 const STATUT_COLORS = {
   planifie: "bg-primary/10 text-primary",
   termine: "bg-success/10 text-green-700",
@@ -12,11 +19,17 @@ const STATUT_COLORS = {
   absent: "bg-destructive/10 text-destructive",
 };
 const MODE_ICONS = { video: FiVideo, telephone: FiPhone, presentiel: FiMapPin };
-const MODE_LABELS = { video: "Vidéo", telephone: "Téléphone", presentiel: "Présentiel" };
+const MODE_KEYS = {
+  video: "modeVideo",
+  telephone: "modePhone",
+  presentiel: "modeOnsite",
+};
 
 export default function EntretienTodayCard({ entretien, nomAffiche, sousTitre }) {
+  const { t, locale } = useTranslation();
   const ModeIcon = MODE_ICONS[entretien.modeEntretien];
-  const heure = formatDateHeureLocale(entretien.dateHeure, "fr", { withTime: true }).split(" à ").pop() || "—";
+  const dateHeure = formatDateHeureLocale(entretien.dateHeure, locale, { withTime: true });
+  const heure = dateHeure.split(locale === "en" ? " at " : " à ").pop() || "—";
 
   return (
     <div className="rounded-md border-l-4 border-primary bg-card p-5 shadow-sm">
@@ -31,7 +44,7 @@ export default function EntretienTodayCard({ entretien, nomAffiche, sousTitre })
           </div>
         </div>
         <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUT_COLORS[entretien.statut]}`}>
-          {STATUT_LABELS[entretien.statut]}
+          {t(`interviews.entreprise.${STATUT_KEYS[entretien.statut]}`)}
         </span>
       </div>
 
@@ -39,7 +52,7 @@ export default function EntretienTodayCard({ entretien, nomAffiche, sousTitre })
         <span className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">{heure}</span>
         <span className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
           <ModeIcon className="h-3 w-3" />
-          {MODE_LABELS[entretien.modeEntretien]}
+          {t(`interviews.entreprise.${MODE_KEYS[entretien.modeEntretien]}`)}
         </span>
         {entretien.nomInterviewer && (
           <span className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
@@ -58,11 +71,11 @@ export default function EntretienTodayCard({ entretien, nomAffiche, sousTitre })
             className="flex flex-1 items-center justify-center gap-1.5 rounded-sm bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
           >
             <FiVideo className="h-4 w-4" />
-            Rejoindre
+            {t("interviews.entreprise.joinVideo")}
           </a>
         ) : (
           <div className="flex flex-1 items-center justify-center rounded-sm bg-muted px-4 py-2 text-sm text-muted-foreground">
-            {entretien.lienGoogleMeet || "Détails à venir"}
+            {entretien.lienGoogleMeet || t("interviews.entreprise.details")}
           </div>
         )}
       </div>

@@ -383,12 +383,29 @@ export async function resetPassword(rawToken, newPassword) {
   // reste le point critique contre les courses.
   const motDePasseHash = await hashPassword(newPassword);
 
-  // Consommation atomique du token (anti race / TOCTOU) :
-  // UPDATE ... WHERE statut = 'en_attente' AND non expiré RETURNING
-  // Une seule requête concurrente peut obtenir rowsAffected = 1.
-  let idUtilisateur = null;
-
   await db.transaction(async (tx) => {
+    const [candidate] = await tx
+      .select({ idUtilisateur: verificationsEmail.idUtilisateur })
+      .from(verificationsEmail)
+      .where(
+        and(
+          eq(verificationsEmail.codeJeton, hashedToken),
+          eq(verificationsEmail.type, "reinitialisation_mdp"),
+        ),
+      )
+      .limit(1);
+
+    if (candidate) {
+      await tx.execute(sql`
+        SELECT id_utilisateur
+        FROM utilisateurs
+        WHERE id_utilisateur = ${candidate.idUtilisateur}
+        FOR UPDATE
+      `);
+    }
+
+    // Consommation atomique du token : une seule requête concurrente peut
+    // obtenir la ligne, après avoir acquis le verrou utilisateur.
     const now = new Date();
     const [consumed] = await tx
       .update(verificationsEmail)
@@ -455,8 +472,6 @@ export async function resetPassword(rawToken, newPassword) {
       throw err;
     }
 
-    idUtilisateur = consumed.idUtilisateur;
-
     await tx
       .update(utilisateurs)
       .set({
@@ -466,6 +481,10 @@ export async function resetPassword(rawToken, newPassword) {
 
     // Révoque immédiatement tous les access JWT en cours
     await incrementerVersionJeton(consumed.idUtilisateur, tx);
+
+    // La révocation sous le même verrou empêche une rotation concurrente de
+    // recréer une session après la réinitialisation du mot de passe.
+    await revokeAllSessions(consumed.idUtilisateur, tx);
 
     // Invalider les autres demandes de réinitialisation encore en attente
     // pour cet utilisateur (un ancien lien ne doit plus fonctionner).
@@ -482,11 +501,6 @@ export async function resetPassword(rawToken, newPassword) {
         ),
       );
   });
-
-  // Révoquer toutes les sessions refresh existantes (sécurité)
-  if (idUtilisateur) {
-    await revokeAllSessions(idUtilisateur);
-  }
 
   return {
     message: "Votre mot de passe a été réinitialisé avec succès",
@@ -650,7 +664,39 @@ export async function refreshAccessToken(rawRefreshToken, req) {
 
   try {
     await db.transaction(async (tx) => {
-      // 1) Consommation atomique de l'ancien refresh token
+      // Lire l'utilisateur avant de consommer le refresh token afin que les
+      // rotations et les révocations se sérialisent sur la même ligne.
+      const [candidate] = await tx
+        .select({ idUtilisateur: sessionsUtilisateur.idUtilisateur })
+        .from(sessionsUtilisateur)
+        .where(
+          and(
+            eq(sessionsUtilisateur.jeton, hashed),
+            sql`${sessionsUtilisateur.dateExpiration} > NOW()`,
+          ),
+        )
+        .limit(1);
+
+      if (!candidate) {
+        await tx
+          .delete(sessionsUtilisateur)
+          .where(eq(sessionsUtilisateur.jeton, hashed));
+
+        const err = new Error("Session expirée, veuillez vous reconnecter");
+        err.status = 401;
+        err.code = "REFRESH_INVALID";
+        throw err;
+      }
+
+      await tx.execute(sql`
+        SELECT id_utilisateur
+        FROM utilisateurs
+        WHERE id_utilisateur = ${candidate.idUtilisateur}
+        FOR UPDATE
+      `);
+
+      // Claim atomique après le verrou utilisateur : une révocation ayant eu
+      // lieu pendant l'attente rend le refresh inutilisable.
       const [session] = await tx
         .delete(sessionsUtilisateur)
         .where(
@@ -726,8 +772,8 @@ export async function logoutUser(rawRefreshToken) {
  * Déconnexion de TOUTES les sessions d'un utilisateur
  * (utile après reset password ou suspension).
  */
-export async function revokeAllSessions(idUtilisateur) {
-  await db
+export async function revokeAllSessions(idUtilisateur, executor = db) {
+  await executor
     .delete(sessionsUtilisateur)
     .where(eq(sessionsUtilisateur.idUtilisateur, idUtilisateur));
 }

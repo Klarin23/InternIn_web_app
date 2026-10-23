@@ -103,26 +103,34 @@ export default function StagiaireDashboardContent() {
 
             <QuickActionsStagiaire />
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr]">
-              <div className="space-y-6">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <DernieresCandidaturesCard
                   candidatures={candidatures}
                   entretiens={entretiens}
                 />
-                <OffresRecommandeesCard profil={profile} />
-                <ActiviteTimeline />
-              </div>
-              <div className="space-y-6">
                 <ProfileCompletionCard
                   profile={profile}
                   derniereFormation={derniereFormation}
                 />
-                <ProchaineEtapeCard profil={profile} />
-                <ProchainEntretienCard entretien={entretiensAVenir[0]} />
-                <CalendrierCard />
-                <EvolutionCandidaturesCard />
-                <CoachIACard />
               </div>
+
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.25fr_1fr]">
+                <OffresRecommandeesCard profil={profile} />
+                {/* <ProchaineEtapeCard profil={profile} /> */}
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.15fr_1fr]">
+                <EvolutionCandidaturesCard />
+                <ProchainEntretienCard entretien={entretiensAVenir[0]} />
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.25fr_1fr]">
+                <ActiviteTimeline />
+                <CalendrierCard />
+              </div>
+
+              <CoachIACard />
             </div>
           </>
         )}

@@ -119,8 +119,11 @@ export default function TachesTab({ stage }) {
   const [newObjectif, setNewObjectif] = useState("");
   const [formError, setFormError] = useState("");
 
-  const taches = progression?.taches || [];
-  const objectifs = progression?.objectifs || [];
+  const taches = useMemo(() => progression?.taches || [], [progression?.taches]);
+  const objectifs = useMemo(
+    () => progression?.objectifs || [],
+    [progression?.objectifs],
+  );
 
   const stats = useMemo(() => {
     const total = taches.length;

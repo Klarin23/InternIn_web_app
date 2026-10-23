@@ -1,11 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Mail, Calendar } from "lucide-react";
 
-function estAujourdhui(date) {
-  return new Date(date).toDateString() === new Date().toDateString();
+function estAujourdhui(date, now) {
+  return new Date(date).toDateString() === new Date(now).toDateString();
 }
 
 const ICONES = {
@@ -22,10 +23,21 @@ const ICON_COLORS = {
 
 export default function ActionsRapidesBanner({ offres, candidatures, entretiens }) {
   const { t } = useTranslation();
+  const [now, setNow] = useState(null);
+
+  useEffect(() => {
+    const updateNow = () => setNow(Date.now());
+    const timeout = window.setTimeout(updateNow, 0);
+    const interval = window.setInterval(updateNow, 60_000);
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(interval);
+    };
+  }, []);
 
   const offresExpirentBientot = (offres || []).filter((o) => {
-    if (o.statut !== "publie" || !o.dateLimiteCandidature) return false;
-    const millisecondesRestantes = new Date(o.dateLimiteCandidature).getTime() - Date.now();
+    if (now === null || o.statut !== "publie" || !o.dateLimiteCandidature) return false;
+    const millisecondesRestantes = new Date(o.dateLimiteCandidature).getTime() - now;
     const jours = Math.ceil(millisecondesRestantes / 86400000);
     return Number.isFinite(millisecondesRestantes) && millisecondesRestantes >= 0 && jours <= 7;
   }).length;
@@ -35,7 +47,7 @@ export default function ActionsRapidesBanner({ offres, candidatures, entretiens 
   ).length;
 
   const entretiensAujourdhui = (entretiens || []).filter(
-    (e) => e.statut === "planifie" && estAujourdhui(e.dateHeure),
+    (e) => now !== null && e.statut === "planifie" && estAujourdhui(e.dateHeure, now),
   ).length;
 
   const alertes = [

@@ -46,6 +46,16 @@ export default function AppHeader({
   const hasRefresh = Array.isArray(refreshKeys) && refreshKeys.length > 0;
   useAutoRefresh(hasRefresh ? refreshKeys : [], autoRefreshInterval);
 
+  // La déconnexion est déjà disponible dans la barre latérale des espaces
+  // stagiaire, entreprise, université et superviseur. On conserve le menu
+  // de compte dans l'espace administrateur.
+  const showHeaderLogout = ![
+    "stagiaire",
+    "entreprise",
+    "universite",
+    "membre_entreprise",
+  ].includes(user?.typeUtilisateur);
+
   const crumbs = breadcrumb || (title ? [{ label: title }] : []);
   const initials = avatarLabel || user?.email?.slice(0, 2).toUpperCase() || "?";
 
@@ -137,37 +147,41 @@ export default function AppHeader({
         <SecurityHeaderIndicator />
         <NotificationsCenter />
 
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setMenuOpen((v) => !v)}
-            className="flex items-center gap-1.5 rounded-full p-1 hover:bg-muted"
-          >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground shadow-sm ring-2 ring-primary/20">
-              {initials}
-            </div>
-            <FiChevronDown className="hidden h-4 w-4 text-muted-foreground sm:block" />
-          </button>
-
-          {menuOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setMenuOpen(false)}
-              />
-              <div className="absolute right-0 z-20 mt-2 w-48 rounded-md border border-border bg-card py-1.5 shadow-md transition-colors duration-300">
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-destructive hover:bg-destructive/5"
-                >
-                  <FiLogOut className="h-4 w-4" />
-                  {t("header.logout")}
-                </button>
+        {showHeaderLogout && (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((v) => !v)}
+              className="flex items-center gap-1.5 rounded-full p-1 hover:bg-muted"
+              aria-label={t("header.logout")}
+              aria-expanded={menuOpen}
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground shadow-sm ring-2 ring-primary/20">
+                {initials}
               </div>
-            </>
-          )}
-        </div>
+              <FiChevronDown className="hidden h-4 w-4 text-muted-foreground sm:block" />
+            </button>
+
+            {menuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setMenuOpen(false)}
+                />
+                <div className="absolute right-0 z-20 mt-2 w-48 rounded-md border border-border bg-card py-1.5 shadow-md transition-colors duration-300">
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-destructive hover:bg-destructive/5"
+                  >
+                    <FiLogOut className="h-4 w-4" />
+                    {t("header.logout")}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );

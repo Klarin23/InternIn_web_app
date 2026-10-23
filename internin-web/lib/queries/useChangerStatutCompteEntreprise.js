@@ -2,8 +2,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { changerStatutCompteEntrepriseRequest } from "@/lib/api/admin";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { toast } from "@/lib/store/useToastStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export function useChangerStatutCompteEntreprise() {
+  const { t } = useTranslation();
   const token = useAuthStore((state) => state.token);
   const queryClient = useQueryClient();
   return useMutation({
@@ -18,12 +20,12 @@ export function useChangerStatutCompteEntreprise() {
       queryClient.invalidateQueries({ queryKey: ["entrepriseAdminJournal"] });
       toast.success(
         variables?.statutCompte === "suspendu"
-          ? "Entreprise suspendue"
-          : "Entreprise réactivée",
+          ? t("actionFeedback.companySuspended")
+          : t("actionFeedback.companyReactivated"),
       );
     },
     onError: (err) => {
-      toast.error(err?.message || "Action impossible");
+      toast.error(err?.message || t("actionFeedback.actionImpossible"));
     },
   });
 }

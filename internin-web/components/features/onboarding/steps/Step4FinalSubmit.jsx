@@ -26,12 +26,12 @@ const JOURS = [
 ];
 
 const schema = z.object({
-  joursDisponibles: z.array(z.string()).min(1, "Sélectionnez au moins un jour"),
+  joursDisponibles: z.array(z.string()).min(1, "auditUi.validation.availabilityDayRequired"),
   heureDebutDisponible: z.string().min(1),
   heureFinDisponible: z.string().min(1),
   dureeStageSouhaitee: z.enum(["1_mois", "2_mois", "3_mois"]),
   heuresHebdoSouhaitees: z.number().min(15).max(40),
-  dateDebutSouhaitee: z.string().min(1, "Date requise"),
+  dateDebutSouhaitee: z.string().min(1, "auditUi.validation.startDateRequired"),
 });
 
 export default function Step4FinalSubmit() {
@@ -151,7 +151,7 @@ export default function Step4FinalSubmit() {
       />
       {errors.joursDisponibles && (
         <p className="text-xs text-destructive">
-          {errors.joursDisponibles.message}
+          {t(errors.joursDisponibles.message)}
         </p>
       )}
 
@@ -244,7 +244,7 @@ export default function Step4FinalSubmit() {
         />
         {errors.dateDebutSouhaitee && (
           <p className="text-xs text-destructive">
-            {errors.dateDebutSouhaitee.message}
+            {t(errors.dateDebutSouhaitee.message)}
           </p>
         )}
       </div>

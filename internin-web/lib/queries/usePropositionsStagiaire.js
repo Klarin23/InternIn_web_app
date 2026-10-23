@@ -7,6 +7,7 @@ import {
 } from "@/lib/api/propositions";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { toast } from "@/lib/store/useToastStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export function usePropositionsStagiaire() {
   const token = useAuthStore((s) => s.token);
@@ -18,6 +19,7 @@ export function usePropositionsStagiaire() {
 }
 
 export function useUpdatePropositionStatut() {
+  const { t } = useTranslation();
   const token = useAuthStore((s) => s.token);
   const qc = useQueryClient();
   return useMutation({
@@ -34,18 +36,18 @@ export function useUpdatePropositionStatut() {
       qc.invalidateQueries({ queryKey: ["candidatures"] });
       qc.invalidateQueries({ queryKey: ["mes-candidatures"] });
       if (vars?.statut === "acceptee") {
-        if (!vars?.silentToast) toast.success("Proposition acceptée");
+        if (!vars?.silentToast) toast.success(t("actionFeedback.proposalAccepted"));
       } else if (vars?.statut === "refusee") {
         toast.success(
           vars?.commentaireReponse
-            ? "Proposition refusée — votre réponse a été transmise"
-            : "Proposition refusée",
+            ? t("actionFeedback.proposalDeclinedWithMessage")
+            : t("actionFeedback.proposalDeclined"),
         );
       }
     },
     onError: (err, vars) => {
       if (!vars?.silentToast) {
-        toast.error(err?.message || "Impossible de traiter votre demande.");
+        toast.error(err?.message || t("actionFeedback.proposalUpdateFailed"));
       }
     },
   });

@@ -97,7 +97,9 @@ export default function PasswordField({
           disabled={disabled}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
           aria-label={
-            showPassword ? t("auth.password.hide") : t("auth.password.show")
+            showPassword
+              ? t("auth.shared.hidePassword")
+              : t("auth.shared.showPassword")
           }
         >
           {showPassword ? (
@@ -108,7 +110,7 @@ export default function PasswordField({
         </button>
       </div>
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p className="text-xs text-destructive">{t(error)}</p>}
 
       <AnimatePresence initial={false}>
         {showRequirements && currentValue.length > 0 && (

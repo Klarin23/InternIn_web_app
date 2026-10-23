@@ -19,6 +19,7 @@ import {
   getInvitation,
   postAccepterInvitation,
   getMoi,
+  getRecrutementDashboard,
 } from "./equipe.controller.js";
 import {
   inviterMembreSchema,
@@ -41,6 +42,11 @@ router.post(
 );
 
 router.get("/moi", requireAuth, getMoi);
+router.get(
+  "/recrutement/dashboard/:section",
+  requireAuth,
+  getRecrutementDashboard,
+);
 
 // L'accès est résolu via req.user.idUtilisateur -> entreprise (propriétaire
 // OU membre d'équipe actif, cf. getEntrepriseOrThrow dans equipe.service.js).

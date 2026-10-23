@@ -335,7 +335,14 @@ export default function UtilisateursPage() {
   const [role, setRole] = useState("");
   const [statut, setStatut] = useState("");
   const [selectedId, setSelectedId] = useState(null);
-  const [drawerOpen, setDrawerOpen] = useState(!!idFromUrl);
+  const [drawerState, setDrawerState] = useState(() => ({
+    deepLinkId: idFromUrl,
+    open: Boolean(idFromUrl),
+  }));
+  if (drawerState.deepLinkId !== idFromUrl) {
+    setDrawerState({ deepLinkId: idFromUrl, open: Boolean(idFromUrl) });
+  }
+  const drawerOpen = drawerState.open;
   const [menuId, setMenuId] = useState(null);
 
   // Deep-link ?id= : ne pas appliquer les filtres (évite setState dans un effect)
@@ -369,11 +376,6 @@ export default function UtilisateursPage() {
     (utilisateurs || []).find((u) => u.idUtilisateur === selectedIdEffectif) ||
     null;
 
-  // Ouvrir le drawer si deep-link
-  useEffect(() => {
-    if (idFromUrl) setDrawerOpen(true);
-  }, [idFromUrl]);
-
   const ROLE_TABS = [
     { value: "", label: t("peopleCenter.filterAll") },
     { value: "stagiaire", label: t("peopleCenter.filterInterns") },
@@ -391,12 +393,12 @@ export default function UtilisateursPage() {
 
   function openUser(id) {
     setSelectedId(id);
-    setDrawerOpen(true);
+    setDrawerState((current) => ({ ...current, open: true }));
     setMenuId(null);
   }
 
   function closeDrawer() {
-    setDrawerOpen(false);
+    setDrawerState((current) => ({ ...current, open: false }));
     if (!idFromUrl) setSelectedId(null);
   }
 

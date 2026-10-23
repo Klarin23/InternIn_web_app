@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, Globe } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
@@ -22,6 +29,9 @@ const LANGUAGES = [
     descKey: "entrepriseSpace.settings.language.englishDesc",
   },
 ];
+const subscribeToMount = () => () => {};
+const getMountedSnapshot = () => true;
+const getMountedServerSnapshot = () => false;
 
 /**
  * Sélecteur de langue premium — réutilise useI18nStore (persisté).
@@ -33,17 +43,17 @@ export default function LanguagePicker({ className }) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    subscribeToMount,
+    getMountedSnapshot,
+    getMountedServerSnapshot,
+  );
   const rootRef = useRef(null);
   const buttonRef = useRef(null);
   const listId = useId();
 
   const current =
     LANGUAGES.find((l) => l.code === locale) || LANGUAGES[0];
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   function updatePosition() {
     const el = buttonRef.current;

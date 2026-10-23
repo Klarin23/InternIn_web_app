@@ -4,13 +4,13 @@ import { checkExternalUrl, zUrlField } from "@/lib/utils/urlValidation";
 const optionalUrl = zUrlField(checkExternalUrl)(z.string().optional());
 
 export const universiteStep1Schema = z.object({
-  nomUniversite: z.string().min(1, "Le nom de l'établissement est requis"),
+  nomUniversite: z.string().min(1, "onboardingUniversite.validation.institutionNameRequired"),
   emailOfficiel: z
     .string()
-    .min(1, "L'e-mail officiel est requis")
-    .email("Adresse e-mail invalide"),
-  typeEtablissement: z.string().min(1, "Sélectionnez un type d'établissement"),
-  pays: z.literal("Cameroun", { errorMap: () => ({ message: "Le pays doit être le Cameroun" }) }),
+    .min(1, "onboardingUniversite.validation.emailRequired")
+    .email("onboardingUniversite.validation.emailInvalid"),
+  typeEtablissement: z.string().min(1, "onboardingUniversite.validation.typeRequired"),
+  pays: z.literal("Cameroun", { errorMap: () => ({ message: "onboardingUniversite.validation.countryInvalid" }) }),
   nombreEtudiants: z.string().optional(),
 });
 

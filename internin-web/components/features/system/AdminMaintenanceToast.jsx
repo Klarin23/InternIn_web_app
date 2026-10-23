@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FiTool, FiSettings } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 /**
  * Toast persistant réservé à l'espace administrateur.
@@ -11,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
  * dès que la maintenance est désactivée (poll + event).
  */
 export default function AdminMaintenanceToast() {
+  const { t } = useTranslation();
   const [state, setState] = useState({
     active: false,
     message: null,
@@ -86,18 +88,18 @@ export default function AdminMaintenanceToast() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-foreground">
-                  Plateforme en maintenance
+                  {t("adminSettings.maintenanceToastTitle")}
                 </p>
                 <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                   {state.message ||
-                    "Les espaces non administrateur sont temporairement indisponibles. Désactivez la maintenance une fois les opérations terminées."}
+                    t("adminSettings.maintenanceToastDescription")}
                 </p>
                 <Link
                   href="/parametres-admin"
                   className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 underline-offset-2 hover:underline dark:text-amber-400"
                 >
                   <FiSettings className="h-3.5 w-3.5" aria-hidden />
-                  Gérer la maintenance
+                  {t("adminSettings.manageMaintenance")}
                 </Link>
               </div>
             </div>

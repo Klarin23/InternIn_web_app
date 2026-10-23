@@ -403,20 +403,20 @@ export default function SupervisionStagesPage() {
                         </p>
                         <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground">
                           <span>
-                            <span className="text-muted-foreground/70">Student </span>
+                            <span className="text-muted-foreground/70">{t("adminStages.colStudent")} </span>
                             <span className="text-foreground/80">
                               {s.stagiaire?.nomComplet || "—"}
                             </span>
                           </span>
                           <span>
-                            <span className="text-muted-foreground/70">Company </span>
+                            <span className="text-muted-foreground/70">{t("adminStages.colCompany")} </span>
                             <span className="text-foreground/80">
                               {s.entreprise?.nom || "—"}
                             </span>
                           </span>
                           {s.universite?.nom && (
                             <span>
-                              <span className="text-muted-foreground/70">University </span>
+                              <span className="text-muted-foreground/70">{t("adminStages.colUniversity")} </span>
                               <span className="text-foreground/80">
                                 {s.universite.nom}
                               </span>

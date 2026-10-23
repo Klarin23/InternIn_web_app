@@ -113,7 +113,7 @@ export default function SignupForm({ role }) {
             />
           </div>
           {errors.email && (
-            <p className="text-xs text-destructive">{errors.email.message}</p>
+            <p className="text-xs text-destructive">{t(errors.email.message)}</p>
           )}
         </div>
 
@@ -167,7 +167,7 @@ export default function SignupForm({ role }) {
         </label>
         {errors.acceptTerms && (
           <p className="text-xs text-destructive">
-            {errors.acceptTerms.message}
+            {t(errors.acceptTerms.message)}
           </p>
         )}
 

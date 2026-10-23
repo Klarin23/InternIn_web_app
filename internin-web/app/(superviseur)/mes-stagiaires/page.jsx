@@ -173,7 +173,7 @@ function MesStagiairesPageContent() {
           <div
             className="inline-flex rounded-xl border border-border bg-muted/40 p-1"
             role="tablist"
-            aria-label="Choisir la vue"
+            aria-label={t("mesStagiaires.view.choose")}
           >
             <button
               type="button"
@@ -188,7 +188,7 @@ function MesStagiairesPageContent() {
               )}
             >
               <FiList className="h-4 w-4" />
-              Liste
+              {t("mesStagiaires.view.list")}
             </button>
             <button
               type="button"
@@ -203,7 +203,7 @@ function MesStagiairesPageContent() {
               )}
             >
               <FiBarChart2 className="h-4 w-4" />
-              Comparaison
+              {t("mesStagiaires.view.comparative")}
             </button>
           </div>
         </div>
@@ -282,7 +282,7 @@ function MesStagiairesPageContent() {
                       transition={{ duration: 0.15 }}
                       onClick={() => setRecherche("")}
                       className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                      aria-label="Effacer la recherche"
+                      aria-label={t("mesStagiaires.search.clear")}
                     >
                       <FiX className="h-4 w-4" />
                     </motion.button>

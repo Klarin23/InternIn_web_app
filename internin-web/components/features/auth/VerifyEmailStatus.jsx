@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -23,6 +23,15 @@ import {
 
 import { useAuthStore } from "@/lib/store/useAuthStore";
 
+const INVITATION_STORAGE_KEY = "internin_universite_invitation";
+const subscribeInvitation = (callback) => {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+};
+const getInvitationSnapshot = () =>
+  window.localStorage.getItem(INVITATION_STORAGE_KEY);
+const getInvitationServerSnapshot = () => null;
+
 export default function VerifyEmailStatus() {
   const searchParams = useSearchParams();
 
@@ -38,17 +47,15 @@ export default function VerifyEmailStatus() {
   const updateUser = useAuthStore((state) => state.updateUser);
 
   const [status, setStatus] = useState(token ? "checking" : "pending");
-  const [pendingInvitation, setPendingInvitation] = useState(null);
+  const pendingInvitation = useSyncExternalStore(
+    subscribeInvitation,
+    getInvitationSnapshot,
+    getInvitationServerSnapshot,
+  );
 
   const [cooldown, setCooldown] = useState(0);
 
   const [errorMessage, setErrorMessage] = useState(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const pending = window.localStorage.getItem("internin_universite_invitation");
-    if (pending) setPendingInvitation(pending);
-  }, []);
 
   /**
    * Vérification réelle du token.
@@ -167,7 +174,7 @@ export default function VerifyEmailStatus() {
             ? "/tableau-de-bord"
             : "/connexion";
       const nextLabel = user
-        ? "Accéder à mon espace"
+        ? t("auth.verifyEmail.goToWorkspace")
         : t("auth.verifyEmail.login");
 
       return (

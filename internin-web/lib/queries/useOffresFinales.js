@@ -9,8 +9,10 @@ import {
   getHistoriqueOffresFinalesRequest,
 } from "@/lib/api/offresFinales";
 import { useAuthStore } from "@/lib/store/useAuthStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export function useCreateOffreFinale() {
+  const { t } = useTranslation();
   const token = useAuthStore((state) => state.token);
   const queryClient = useQueryClient();
   return useMutation({
@@ -20,10 +22,10 @@ export function useCreateOffreFinale() {
       queryClient.invalidateQueries({
         queryKey: ["historiqueOffresFinales", variables.idEntretien],
       });
-      toast.success("Offre finale envoyée");
+      toast.success(t("actionFeedback.finalOfferSent"));
     },
     onError: (err) => {
-      toast.error(err?.message || "Impossible d'envoyer l'offre finale");
+      toast.error(err?.message || t("actionFeedback.finalOfferSendFailed"));
     },
   });
 }
@@ -67,6 +69,7 @@ export function useMesOffresFinales() {
 }
 
 export function useRepondreOffreFinale() {
+  const { t } = useTranslation();
   const token = useAuthStore((state) => state.token);
   const queryClient = useQueryClient();
   return useMutation({
@@ -84,14 +87,14 @@ export function useRepondreOffreFinale() {
       queryClient.invalidateQueries({ queryKey: ["historiqueOffresFinales"] });
       if (variables?.statutReponseStagiaire === "refusee") {
         toast.success(
-          "Votre refus a bien été enregistré. L'entreprise a été informée.",
+          t("actionFeedback.finalOfferDeclined"),
         );
       } else if (variables?.statutReponseStagiaire === "acceptee") {
-        toast.success("Offre acceptée");
+        toast.success(t("actionFeedback.finalOfferAccepted"));
       }
     },
     onError: (err) => {
-      toast.error(err?.message || "Impossible d'enregistrer votre réponse");
+      toast.error(err?.message || t("actionFeedback.finalOfferResponseFailed"));
     },
   });
 }

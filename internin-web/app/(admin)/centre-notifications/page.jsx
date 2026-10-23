@@ -224,7 +224,7 @@ export default function CentreNotificationsPage() {
     label: t(x.labelKey),
   }));
 
-  const rows = data?.notifications || [];
+  const rows = useMemo(() => data?.notifications || [], [data?.notifications]);
   const pagination = data?.pagination;
 
   const grouped = useMemo(() => {
@@ -294,7 +294,7 @@ export default function CentreNotificationsPage() {
         {/* Needs attention — from real stats.prioriteItems */}
         <section className="rounded-lg border border-border bg-card">
           <div className="border-b border-border px-4 py-2.5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
               Needs your attention
             </p>
           </div>
@@ -473,7 +473,7 @@ export default function CentreNotificationsPage() {
         {!isLoading && !isError && rows.length > 0 && (
           <div className="space-y-5">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                 Recent
               </p>
               {pagination && (
@@ -492,7 +492,7 @@ export default function CentreNotificationsPage() {
 
             {grouped.map(([key, items]) => (
               <section key={key}>
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                   {dayLabel(key, t)}
                 </p>
                 <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
@@ -657,7 +657,7 @@ export default function CentreNotificationsPage() {
               <div className="flex-1 space-y-5 overflow-y-auto px-4 py-4 text-sm">
                 {selected.message && (
                   <section>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                       Message
                     </p>
                     <p className="mt-2 whitespace-pre-wrap leading-relaxed text-foreground">
@@ -668,7 +668,7 @@ export default function CentreNotificationsPage() {
 
                 <section className="grid grid-cols-2 gap-3">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                       Source
                     </p>
                     <p className="mt-1 text-foreground">
@@ -678,7 +678,7 @@ export default function CentreNotificationsPage() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                       Status
                     </p>
                     <p className="mt-1 text-foreground">
@@ -688,7 +688,7 @@ export default function CentreNotificationsPage() {
                 </section>
 
                 <section>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                     Created
                   </p>
                   <p className="mt-1 text-foreground">
@@ -701,7 +701,7 @@ export default function CentreNotificationsPage() {
 
                 {selected.type && (
                   <section>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                       Type
                     </p>
                     <p className="mt-1 font-mono text-xs text-muted-foreground">
@@ -712,7 +712,7 @@ export default function CentreNotificationsPage() {
 
                 {selected.lien && (
                   <section>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                       {t("adminNotifications.relatedResource")}
                     </p>
                     <Button asChild type="button" size="sm" className="mt-2 w-full gap-1.5">

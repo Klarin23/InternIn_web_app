@@ -4,6 +4,12 @@ import { parametresPlateforme } from "../db/schema.js";
 import { redactSensitiveText, redactSensitiveUrl } from "./redactUrl.js";
 import { escapeHtml, stripControlChars } from "./htmlEscape.js";
 
+
+const isProduction = () => process.env.NODE_ENV === "production";
+const logText = (text) => (isProduction() ? redactSensitiveText(text) : text);
+const logUrl = (url) => (isProduction() ? redactSensitiveUrl(url) : url);
+
+
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
@@ -14,10 +20,7 @@ const from = process.env.EMAIL_FROM || "InternIn <onboarding@resend.dev>";
 let emailPrefCache = { at: 0, enabled: true };
 const EMAIL_PREF_TTL_MS = 15_000;
 
-/**
- * Lit le paramètre admin notificationsEmail (défaut: true).
- * En cas d'erreur DB, on laisse passer l'envoi pour ne pas bloquer auth/invitations.
- */
+
 async function areTransactionalEmailsEnabled() {
   const now = Date.now();
   if (now - emailPrefCache.at < EMAIL_PREF_TTL_MS) {
@@ -37,7 +40,7 @@ async function areTransactionalEmailsEnabled() {
   }
 }
 
-/** Invalide le cache (appelable après PATCH paramètres admin). */
+
 export function invalidateEmailPreferenceCache() {
   emailPrefCache = { at: 0, enabled: true };
 }
@@ -51,18 +54,18 @@ async function sendMail({ to, subject, text, html }) {
     console.log("────────────────────────────────────────");
     console.log("📧 À      :", to);
     console.log("📌 Sujet  :", subject);
-    console.log("📄 Contenu (non envoyé):\n", redactSensitiveText(text));
+    console.log("📄 Contenu (non envoyé):\n", logText(text));
     console.log("────────────────────────────────────────");
     return { skipped: true, reason: "notifications_email_disabled" };
   }
 
-  // En local sans Resend (ou si l'envoi échoue) → afficher dans le terminal
+  
   if (!resend) {
     console.warn("⚠️ RESEND_API_KEY absente — e-mail non envoyé");
     console.log("────────────────────────────────────────");
     console.log("📧 À      :", to);
     console.log("📌 Sujet  :", subject);
-    console.log("📄 Contenu:\n", redactSensitiveText(text));
+    console.log("📄 Contenu:\n", logText(text));
     console.log("────────────────────────────────────────");
     return { skipped: true, reason: "no_resend_key" };
   }
@@ -79,7 +82,7 @@ async function sendMail({ to, subject, text, html }) {
   } catch (err) {
     console.error("❌ Erreur Resend:", err.message || err);
     console.log("────────────────────────────────────────");
-    console.log("📧 Lien de secours (terminal):\n", redactSensitiveText(text));
+    console.log("📧 Lien de secours (terminal):\n", logText(text));
     console.log("────────────────────────────────────────");
     return { skipped: true, reason: "resend_error" };
   }
@@ -92,8 +95,8 @@ export async function sendVerificationEmail({ email, token }) {
   // Toujours logguer le lien en développement pour faciliter les tests locaux
   if (process.env.NODE_ENV !== "production") {
     console.log("────────────────────────────────────────");
-    console.log("✅ LIEN DE VÉRIFICATION (dev, token masqué) :");
-    console.log(redactSensitiveUrl(verificationUrl));
+    console.log("✅ LIEN DE VÉRIFICATION (dev) :");
+    console.log(logUrl(verificationUrl));
     console.log("────────────────────────────────────────");
   }
 
@@ -123,8 +126,8 @@ export async function sendPasswordResetEmail({ email, token }) {
 
   if (process.env.NODE_ENV !== "production") {
     console.log("────────────────────────────────────────");
-    console.log("🔑 LIEN RESET MDP (dev, token masqué) :");
-    console.log(redactSensitiveUrl(resetUrl));
+    console.log("🔑 LIEN RESET MDP (dev) :");
+    console.log(logUrl(resetUrl));
     console.log("────────────────────────────────────────");
   }
 
@@ -154,28 +157,11 @@ export async function sendInvitationEmail({
   roleEquipe,
   token,
 }) {
-  // L'URL d'invitation est construite ici, côté serveur, à partir d'un
-  // token cryptographiquement aléatoire (crypto.randomBytes, généré dans
-  // equipe.service.js) — jamais à partir d'une valeur fournie par
-  // l'entreprise. Même construction que sendVerificationEmail /
-  // sendPasswordResetEmail ci-dessus : aucune donnée non fiable ne peut
-  // devenir une URL arbitraire.
+  
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-  const invitationUrl = `${frontendUrl}/invitation/${encodeURIComponent(token)}`;
-
+  const invitationUrl = `${frontendUrl}/invitation/${encodeURIComponent(token)}`;           
   const roleLabel = roleEquipe || "membre";
-
-  // Sujet : pas un contexte HTML (pas besoin d'échappement HTML ici), mais
-  // on neutralise les caractères de contrôle (retour à la ligne, etc.) par
-  // précaution — uniquement pour le rendu du sujet, la donnée en base
-  // (entreprise.nomEntreprise) n'est jamais modifiée.
   const nomEntrepriseSujet = stripControlChars(nomEntreprise) || "une équipe";
-
-  // Contexte HTML : nomEntreprise (texte libre saisi par l'entreprise à
-  // l'onboarding) et roleLabel sont échappés avant insertion dans le
-  // template. La version texte brut ci-dessous n'est pas interprétée comme
-  // du HTML et n'a donc pas besoin de cet échappement — elle garde les
-  // valeurs telles quelles, exactement comme avant.
   const nomEntrepriseHtml = escapeHtml(nomEntreprise || "une entreprise");
   const roleLabelHtml = escapeHtml(roleLabel);
 
@@ -214,7 +200,6 @@ L'équipe InternIn
     `,
   });
 }
-
 
 export async function sendUniversiteStudentInvitationEmail({
   email,

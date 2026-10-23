@@ -35,7 +35,7 @@ export default function StepConditionsStage({ control, register, errors }) {
           {t("entrepriseSpace.offers.conditionsTitle")}
         </h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          Les informations pratiques que les candidats consultent en premier.
+          {t("entrepriseSpace.offers.conditionsHint")}
         </p>
       </div>
 
@@ -66,7 +66,7 @@ export default function StepConditionsStage({ control, register, errors }) {
         />
         {errors.modeTravail && (
           <p className="text-xs text-destructive">
-            {errors.modeTravail.message}
+            {t(errors.modeTravail.message)}
           </p>
         )}
       </div>
@@ -150,7 +150,7 @@ export default function StepConditionsStage({ control, register, errors }) {
           />
           {errors.nombrePostes && (
             <p className="text-xs text-destructive">
-              {errors.nombrePostes.message}
+              {t(errors.nombrePostes.message)}
             </p>
           )}
         </div>
@@ -197,7 +197,7 @@ export default function StepConditionsStage({ control, register, errors }) {
         />
         {errors.remunerationType && (
           <p className="text-xs text-destructive">
-            {errors.remunerationType.message}
+            {t(errors.remunerationType.message)}
           </p>
         )}
 
@@ -222,8 +222,8 @@ export default function StepConditionsStage({ control, register, errors }) {
                     placeholder="Ex. : 50000"
                     className="h-12 rounded-sm pr-16"
                     {...register("montantRemuneration", {
-                      required: "Le montant de la rémunération est requis",
-                      min: { value: 1, message: "Le montant doit être supérieur à 0" },
+                      required: "validation.offer.amountRequired",
+                      min: { value: 1, message: "validation.offer.amountPositive" },
                     })}
                   />
                   <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground">
@@ -235,7 +235,7 @@ export default function StepConditionsStage({ control, register, errors }) {
                 </p>
                 {errors.montantRemuneration && (
                   <p className="text-xs text-destructive">
-                    {errors.montantRemuneration.message}
+                    {t(errors.montantRemuneration.message)}
                   </p>
                 )}
               </div>
@@ -261,7 +261,7 @@ export default function StepConditionsStage({ control, register, errors }) {
               />
             </div>
             {errors.dateLimiteCandidature && (
-              <p id="deadline-date-error" className="text-xs text-destructive">{errors.dateLimiteCandidature.message}</p>
+              <p id="deadline-date-error" className="text-xs text-destructive">{t(errors.dateLimiteCandidature.message)}</p>
             )}
           </div>
           <div className="min-w-0 space-y-1.5">
@@ -278,7 +278,7 @@ export default function StepConditionsStage({ control, register, errors }) {
               />
             </div>
             {errors.heureLimiteCandidature && (
-              <p id="deadline-time-error" className="text-xs text-destructive">{errors.heureLimiteCandidature.message}</p>
+              <p id="deadline-time-error" className="text-xs text-destructive">{t(errors.heureLimiteCandidature.message)}</p>
             )}
           </div>
         </div>

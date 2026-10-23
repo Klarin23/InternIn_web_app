@@ -10,7 +10,7 @@ import { getPostLoginPath } from "@/lib/auth/getPostLoginPath";
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-function loadGoogleScript() {
+function loadGoogleScript(t) {
   return new Promise((resolve, reject) => {
     if (typeof window === "undefined") {
       reject(new Error("SSR"));
@@ -25,7 +25,7 @@ function loadGoogleScript() {
     if (existing) {
       existing.addEventListener("load", () => resolve());
       existing.addEventListener("error", () =>
-        reject(new Error("Impossible de charger Google")),
+        reject(new Error(t("auth.shared.googleLoadFailed"))),
       );
       return;
     }
@@ -36,7 +36,7 @@ function loadGoogleScript() {
     script.async = true;
     script.defer = true;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Impossible de charger Google"));
+    script.onerror = () => reject(new Error(t("auth.shared.googleLoadFailed")));
     document.head.appendChild(script);
   });
 }
@@ -53,7 +53,7 @@ export default function GoogleButton({ role, onError }) {
   const handleClick = async () => {
     if (!GOOGLE_CLIENT_ID) {
       onError?.(
-        "Google n'est pas configuré (NEXT_PUBLIC_GOOGLE_CLIENT_ID manquant).",
+        t("auth.shared.googleNotConfigured"),
       );
       return;
     }
@@ -61,10 +61,10 @@ export default function GoogleButton({ role, onError }) {
     onError?.(null);
 
     try {
-      await loadGoogleScript();
+      await loadGoogleScript(t);
 
       if (!window.google?.accounts?.oauth2) {
-        onError?.("Google Sign-In indisponible. Réessaie dans un instant.");
+        onError?.(t("auth.shared.googleUnavailable"));
         return;
       }
 
@@ -74,13 +74,13 @@ export default function GoogleButton({ role, onError }) {
         callback: async (tokenResponse) => {
           if (tokenResponse?.error) {
             onError?.(
-              tokenResponse.error_description || "Connexion Google annulée",
+              tokenResponse.error_description || t("auth.shared.googleCancelled"),
             );
             return;
           }
 
           if (!tokenResponse?.access_token) {
-            onError?.("Connexion Google annulée ou invalide");
+            onError?.(t("auth.shared.googleInvalid"));
             return;
           }
 
@@ -99,10 +99,10 @@ export default function GoogleButton({ role, onError }) {
             if (err.code === "GOOGLE_ACCOUNT_NOT_FOUND" || err.status === 404) {
               onError?.(
                 err.message ||
-                  "Aucun compte avec cet e-mail. Inscrivez-vous d'abord en choisissant un profil.",
+                  t("auth.shared.googleAccountNotFound"),
               );
             } else {
-              onError?.(err.message || "Connexion Google échouée");
+              onError?.(err.message || t("auth.shared.googleSignInFailed"));
             }
           } finally {
             setLoading(false);
@@ -113,7 +113,7 @@ export default function GoogleButton({ role, onError }) {
       // Popup Google classique — sans One Tap / FedCM
       client.requestAccessToken({ prompt: "consent" });
     } catch (err) {
-      onError?.(err.message || "Impossible de démarrer Google Sign-In");
+      onError?.(err.message || t("auth.shared.googleStartFailed"));
     }
   };
 
@@ -144,7 +144,7 @@ export default function GoogleButton({ role, onError }) {
         />
       </svg>
       {loading
-        ? t("auth.shared.loading") || "Chargement…"
+        ? t("auth.shared.loading")
         : t("auth.shared.continueWithGoogle")}
     </Button>
   );

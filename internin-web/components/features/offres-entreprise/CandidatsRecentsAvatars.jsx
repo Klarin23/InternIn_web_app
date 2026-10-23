@@ -16,7 +16,7 @@ export default function CandidatsRecentsAvatars({
     <div className={`flex items-center gap-2 ${compact ? "" : "mb-0"}`}>
       {!compact && (
         <span className="text-[11px] font-medium text-muted-foreground">
-          {t("entrepriseSpace.offers.recentCandidates") || "Candidats récents"}
+          {t("entrepriseSpace.offers.recentCandidates")}
         </span>
       )}
       <div className="flex -space-x-2">
@@ -42,8 +42,7 @@ export default function CandidatsRecentsAvatars({
       {reste > 0 && (
         <span className="text-[11px] font-medium text-muted-foreground">
           +{reste}{" "}
-          {t("entrepriseSpace.offers.otherCandidates", { count: reste }) ||
-            `autre${reste > 1 ? "s" : ""} candidat${reste > 1 ? "s" : ""}`}
+          {t("entrepriseSpace.offers.otherCandidates", { count: reste })}
         </span>
       )}
     </div>

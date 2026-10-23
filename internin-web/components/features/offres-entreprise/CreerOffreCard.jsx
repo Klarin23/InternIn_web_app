@@ -32,21 +32,19 @@ export default function CreerOffreCard({ onClick, disabled = false }) {
 
       <div className="max-w-[220px]">
         <span className="block text-sm font-semibold text-foreground">
-          {t("entrepriseSpace.offers.createNewOfferTitle") ||
-            "Créer une nouvelle offre"}
+          {t("entrepriseSpace.offers.createNewOfferTitle")}
         </span>
         <span className="mt-1.5 block text-xs leading-relaxed text-muted-foreground">
           {disabled
             ? t("entrepriseSpace.offers.adminVerificationRequired")
-            : t("entrepriseSpace.offers.createNewOfferHint") ||
-              "Publiez une opportunité et commencez à recevoir des candidatures qualifiées."}
+            : t("entrepriseSpace.offers.createNewOfferHint")}
         </span>
       </div>
 
       {!disabled && (
         <span className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground transition-opacity group-hover:opacity-90">
           <FiPlus className="h-3.5 w-3.5" />
-          {t("entrepriseSpace.offers.newOfferCta") || "Nouvelle offre"}
+          {t("entrepriseSpace.offers.newOfferCta")}
         </span>
       )}
     </button>

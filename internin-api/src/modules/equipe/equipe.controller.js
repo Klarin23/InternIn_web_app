@@ -15,6 +15,7 @@ import {
   accepterInvitation,
   getMonProfil,
 } from "./equipe.service.js";
+import { getRecrutementDashboardSection } from "./recrutementDashboard.service.js";
 import {
   PERMISSIONS_DISPONIBLES,
   ROLES_EQUIPE,
@@ -186,6 +187,19 @@ export async function postAccepterInvitation(req, res, next) {
 export async function getMoi(req, res, next) {
   try {
     res.json(await getMonProfil(req.user.idUtilisateur));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getRecrutementDashboard(req, res, next) {
+  try {
+    res.json(
+      await getRecrutementDashboardSection(
+        req.user.idUtilisateur,
+        req.params.section,
+      ),
+    );
   } catch (err) {
     next(err);
   }

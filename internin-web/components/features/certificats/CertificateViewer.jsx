@@ -55,16 +55,36 @@ export default function CertificateViewer({
 }) {
   const { t, locale } = useTranslation();
   const reduceMotion = useReducedMotion();
-  const [zoom, setZoom] = useState(1);
-  const [fullscreen, setFullscreen] = useState(false);
-
-  // reset zoom when opening a new cert
-  useEffect(() => {
-    if (open) {
-      setZoom(1);
-      setFullscreen(false);
-    }
-  }, [open, certificate?.idStage]);
+  const viewKey = open ? (certificate?.idStage ?? null) : undefined;
+  const [viewState, setViewState] = useState({
+    key: viewKey,
+    zoom: 1,
+    fullscreen: false,
+  });
+  if (viewState.key !== viewKey) {
+    setViewState({ key: viewKey, zoom: 1, fullscreen: false });
+  }
+  const zoom = viewState.zoom;
+  const fullscreen = viewState.fullscreen;
+  const setZoom = useCallback(
+    (update) =>
+      setViewState((current) => ({
+        ...current,
+        zoom: typeof update === "function" ? update(current.zoom) : update,
+      })),
+    [],
+  );
+  const setFullscreen = useCallback(
+    (update) =>
+      setViewState((current) => ({
+        ...current,
+        fullscreen:
+          typeof update === "function"
+            ? update(current.fullscreen)
+            : update,
+      })),
+    [],
+  );
 
   // Escape to close
   useEffect(() => {
@@ -88,13 +108,13 @@ export default function CertificateViewer({
 
   const zoomIn = useCallback(
     () => setZoom((z) => Math.min(1.75, Math.round((z + 0.15) * 100) / 100)),
-    [],
+    [setZoom],
   );
   const zoomOut = useCallback(
     () => setZoom((z) => Math.max(0.6, Math.round((z - 0.15) * 100) / 100)),
-    [],
+    [setZoom],
   );
-  const zoomFit = useCallback(() => setZoom(1), []);
+  const zoomFit = useCallback(() => setZoom(1), [setZoom]);
 
   const holder =
     certificate?.stagiaire ||
@@ -474,4 +494,3 @@ function InfoRow({ icon: Icon, label, value, mono }) {
     </div>
   );
 }
-

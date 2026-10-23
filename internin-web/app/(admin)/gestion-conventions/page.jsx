@@ -274,25 +274,25 @@ export default function GestionConventionsPage() {
             <option value="anomalie">{t("adminConventions.coherenceAnomalie")}</option>
           </select>
           <Button type="button" variant="ghost" size="sm" onClick={() => { setRecherche(""); setStatut("tous"); setCoherence("tous"); setPage(1); }}>
-            Réinitialiser
+            {t("adminConventions.resetFilters")}
           </Button>
         </div>
 
         {isLoading ? (
           <div className="flex justify-center py-16 text-muted-foreground">
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            Chargement des conventions…
+            {t("adminConventions.loadingList")}
           </div>
         ) : isError ? (
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center">
             <XCircle className="mx-auto h-6 w-6 text-destructive" />
-            <p className="mt-2 text-sm text-destructive">{error?.message || "Impossible de charger les conventions."}</p>
-            <Button type="button" size="sm" className="mt-3" onClick={() => refetch()}>Réessayer</Button>
+            <p className="mt-2 text-sm text-destructive">{error?.message || t("adminConventions.loadError")}</p>
+            <Button type="button" size="sm" className="mt-3" onClick={() => refetch()}>{t("adminConventions.retry")}</Button>
           </div>
         ) : rows.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border py-14 text-center">
             <FileText className="mx-auto h-8 w-8 text-muted-foreground/50" />
-            <p className="mt-3 text-sm font-medium">Aucune convention trouvée</p>
+            <p className="mt-3 text-sm font-medium">{t("adminConventions.empty")}</p>
           </div>
         ) : (
           <>
@@ -300,14 +300,14 @@ export default function GestionConventionsPage() {
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Convention</th>
+                    <th className="px-4 py-3 font-medium">{t("adminConventions.colAgreement")}</th>
                     <th className="px-4 py-3 font-medium">{t("adminConventions.colStudent")}</th>
                     <th className="px-4 py-3 font-medium">{t("adminConventions.colCompany")}</th>
-                    <th className="px-4 py-3 font-medium">Période</th>
+                    <th className="px-4 py-3 font-medium">{t("adminConventions.colPeriod")}</th>
                     <th className="px-4 py-3 font-medium">{t("adminConventions.colStatus")}</th>
                     <th className="px-4 py-3 font-medium">{t("adminConventions.colValidations")}</th>
-                    <th className="px-4 py-3 font-medium">Alertes</th>
-                    <th className="px-4 py-3 font-medium text-right">Actions</th>
+                    <th className="px-4 py-3 font-medium">{t("adminConventions.colAlerts")}</th>
+                    <th className="px-4 py-3 font-medium text-right">{t("adminConventions.colActions")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -373,9 +373,9 @@ export default function GestionConventionsPage() {
                   <select value={limit} onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }} className="h-8 rounded-md border border-border bg-background px-2 text-xs">
                     {[25, 50, 100].map((n) => (<option key={n} value={n}>{n} / page</option>))}
                   </select>
-                  <Button type="button" size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Préc.</Button>
+                  <Button type="button" size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>{t("adminConventions.previous")}</Button>
                   <span className="text-xs tabular-nums">{pagination.page} / {pagination.totalPages}</span>
-                  <Button type="button" size="sm" variant="outline" disabled={page >= pagination.totalPages} onClick={() => setPage((p) => p + 1)}>Suiv.</Button>
+                  <Button type="button" size="sm" variant="outline" disabled={page >= pagination.totalPages} onClick={() => setPage((p) => p + 1)}>{t("adminConventions.next")}</Button>
                 </div>
               </div>
             )}
@@ -392,9 +392,9 @@ export default function GestionConventionsPage() {
             className="relative z-10 flex h-full w-full max-w-lg flex-col border-l border-border bg-background shadow-xl"
           >
             <div className="border-b border-border p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Convention 360°</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("adminConventions.detailTitle")}</p>
               {detailLoading || !detail ? (
-                <p className="mt-2 text-sm text-muted-foreground">Chargement…</p>
+                <p className="mt-2 text-sm text-muted-foreground">{t("adminConventions.loading")}</p>
               ) : (
                 <>
                   <h2 className="mt-1 font-mono text-lg font-semibold">{detail.convention.code}</h2>
@@ -416,7 +416,7 @@ export default function GestionConventionsPage() {
                     <p className="font-medium">{detail.entreprise?.nom || "—"}</p>
                   </section>
                   <section>
-                    <p className="text-xs font-semibold uppercase text-muted-foreground">Stage</p>
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">{t("adminConventions.colInternship")}</p>
                     <p className="font-medium">{detail.stage?.intitulePoste || "—"}</p>
                     <p className="text-xs text-muted-foreground">{formatDate(detail.stage?.dateDebut, t)} → {formatDate(detail.stage?.dateFinPrevue, t)}</p>
                     {detail.stage?.idStage && (

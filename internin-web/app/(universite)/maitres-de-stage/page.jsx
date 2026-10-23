@@ -187,11 +187,11 @@ function SupervisorCard({ item, onOpen, t }) {
           <div className="mt-3 grid grid-cols-2 gap-2">
             <div className="rounded-lg bg-muted/40 px-3 py-2">
               <p className="text-sm font-bold tabular-nums text-foreground">{item.stagiairesActuels}</p>
-              <p className="text-[10px] text-muted-foreground">{t("universiteSpace.supervisors.currentStudents")}</p>
+              <p className="text-[10px] text-muted-foreground">{t("universiteSpace.supervisors.kpis.currentStudents")}</p>
             </div>
             <div className="rounded-lg bg-muted/40 px-3 py-2">
               <p className="text-sm font-bold tabular-nums text-foreground">{item.totalStages}</p>
-              <p className="text-[10px] text-muted-foreground">{t("universiteSpace.supervisors.totalStages")}</p>
+              <p className="text-[10px] text-muted-foreground">{t("universiteSpace.supervisors.headers.stages")}</p>
             </div>
           </div>
           <Button type="button" variant="outline" size="sm" className="mt-3 w-full" onClick={() => onOpen(item.idMembre)}>
@@ -354,13 +354,12 @@ export default function MaitresStagePage() {
   const [selectedId, setSelectedId] = useState(null);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setRecherche(searchInput.trim()), 300);
+    const timer = window.setTimeout(() => {
+      setRecherche(searchInput.trim());
+      setPage(1);
+    }, 300);
     return () => window.clearTimeout(timer);
   }, [searchInput]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [recherche, entreprise, statut, encadrement]);
 
   const params = useMemo(() => ({
     recherche,
@@ -417,14 +416,20 @@ export default function MaitresStagePage() {
                 className="pl-9"
               />
             </div>
-            <Select value={entreprise} onValueChange={setEntreprise}>
+            <Select value={entreprise} onValueChange={(value) => {
+              setEntreprise(value);
+              setPage(1);
+            }}>
               <SelectTrigger className="w-full"><SelectValue placeholder={t("universiteSpace.supervisors.filters.company")} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t("universiteSpace.supervisors.filters.allCompanies")}</SelectItem>
                 {companies.map((company) => <SelectItem key={company.idEntreprise} value={company.idEntreprise}>{company.nomEntreprise}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={statut} onValueChange={setStatut}>
+            <Select value={statut} onValueChange={(value) => {
+              setStatut(value);
+              setPage(1);
+            }}>
               <SelectTrigger className="w-full"><SelectValue placeholder={t("universiteSpace.supervisors.filters.status")} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t("universiteSpace.supervisors.filters.allStatuses")}</SelectItem>
@@ -433,7 +438,10 @@ export default function MaitresStagePage() {
                 <SelectItem value="desactive">{t("universiteSpace.supervisors.status.desactive")}</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={encadrement} onValueChange={setEncadrement}>
+            <Select value={encadrement} onValueChange={(value) => {
+              setEncadrement(value);
+              setPage(1);
+            }}>
               <SelectTrigger className="w-full"><SelectValue placeholder={t("universiteSpace.supervisors.filters.supervision")} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t("universiteSpace.supervisors.filters.allSupervision")}</SelectItem>

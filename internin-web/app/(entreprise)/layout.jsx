@@ -105,6 +105,7 @@ export default function EntrepriseLayout({ children }) {
                     "Entreprise",
                   subtitle:
                     membreProfile?.roleEquipe || t("roles.supervisorSpace"),
+                  logoUrl: membreProfile?.logoUrl,
                 }
               : null
         }

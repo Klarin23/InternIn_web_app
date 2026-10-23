@@ -345,14 +345,11 @@ function NotificationsSection() {
     return (
       <SectionCard
         title={t("entrepriseSpace.settings.notifications.title")}
-        description={
-          t("entrepriseSpace.settings.notifications.serverNote") ||
-          "Ces préférences sont enregistrées sur votre compte."
-        }
+        description={t("entrepriseSpace.settings.notifications.serverNote")}
       >
         <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin" aria-hidden />
-          {t("entrepriseSpace.settings.notifications.loading") || "Chargement…"}
+          {t("entrepriseSpace.settings.notifications.loading")}
         </div>
       </SectionCard>
     );
@@ -362,14 +359,10 @@ function NotificationsSection() {
     return (
       <SectionCard
         title={t("entrepriseSpace.settings.notifications.title")}
-        description={
-          t("entrepriseSpace.settings.notifications.serverNote") ||
-          "Ces préférences sont enregistrées sur votre compte."
-        }
+        description={t("entrepriseSpace.settings.notifications.serverNote")}
       >
         <p className="py-6 text-center text-sm text-destructive">
-          {t("entrepriseSpace.settings.notifications.loadError") ||
-            "Impossible de charger vos préférences."}
+          {t("entrepriseSpace.settings.notifications.loadError")}
         </p>
       </SectionCard>
     );
@@ -378,10 +371,7 @@ function NotificationsSection() {
   return (
     <SectionCard
       title={t("entrepriseSpace.settings.notifications.title")}
-      description={
-        t("entrepriseSpace.settings.notifications.serverNote") ||
-        "Ces préférences sont enregistrées sur votre compte et s'appliquent sur tous vos appareils."
-      }
+      description={t("entrepriseSpace.settings.notifications.serverNote")}
     >
       <div className="space-y-1">
         {items.map((item) => {
@@ -396,10 +386,8 @@ function NotificationsSection() {
               <div className="flex items-center gap-3">
                 <span className="hidden text-[11px] font-medium text-muted-foreground sm:inline">
                   {enabled
-                    ? t("entrepriseSpace.settings.notifications.enabled") ||
-                      "Activé"
-                    : t("entrepriseSpace.settings.notifications.disabled") ||
-                      "Désactivé"}
+                    ? t("entrepriseSpace.settings.notifications.enabled")
+                    : t("entrepriseSpace.settings.notifications.disabled")}
                 </span>
                 <button
                   type="button"
@@ -518,7 +506,7 @@ function EquipeSection() {
       {isError && (
         <div className="text-center">
           <p className="text-sm text-muted-foreground">
-            Impossible de charger l&apos;équipe.
+            {t("entrepriseSpace.settings.team.loadError")}
           </p>
           <Button
             type="button"

@@ -18,9 +18,19 @@ import {
   membresEquipe,
   affectationsSuperviseurStage,
 } from "../../db/schema.js";
+import fs from "node:fs";
+import path from "node:path";
 import { genererConventionPdf } from "../../utils/conventionPdf.js";
+import {
+  buildConventionPdfData,
+  getConventionEntrepriseById,
+} from "../conventions/conventions.service.js";
 import { peutActiverCompte } from "../../utils/emailVerificationGuard.js";
-import { creerNotification } from "../notifications/notifications.service.js";
+import { STAGE_TZ, todayYmdInAppTz } from "../../utils/dateValidation.js";
+import {
+  creerNotification,
+  emitNotificationCreated,
+} from "../notifications/notifications.service.js";
 import { isAutoValidationEnabled, ELEMENT_UNIVERSITES } from "../../utils/autoValidation.js"
 
 
@@ -47,9 +57,8 @@ export async function updateUniversiteProfile(idUtilisateur, payload) {
     .set({
       siteWeb: payload.siteWeb || null,
       logoUrl: payload.logoUrl || null,
-      nombreEtudiants: payload.nombreEtudiants
-        ? Number(payload.nombreEtudiants)
-        : null,
+      // Déjà validé et converti en entier par le schéma Zod.
+      nombreEtudiants: payload.nombreEtudiants ?? null,
       contactServiceCarriere: payload.contactServiceCarriere || null,
       periodeStageHabituelle: payload.periodeStageHabituelle || null,
       nomCoordinateurStage: payload.nomCoordinateurStage || null,
@@ -60,6 +69,34 @@ export async function updateUniversiteProfile(idUtilisateur, payload) {
   return maj;
 }
 
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Nombre de jours calendaires écoulés dans le fuseau métier InternIn.
+ * Contrairement à Date.now() - timestamp / 24h, ce calcul respecte le changement
+ * de jour civil en Africa/Douala et reste indépendant du fuseau du serveur Node.
+ */
+function calendarDaysElapsedInAppTz(input, now = new Date()) {
+  const date = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(date.getTime())) return 0;
+
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: STAGE_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  const toUtcDay = (ymd) => {
+    const [year, month, day] = ymd.split("-").map(Number);
+    return Date.UTC(year, month - 1, day);
+  };
+
+  const createdYmd = formatter.format(date);
+  const todayYmd = todayYmdInAppTz(now);
+  return Math.max(0, Math.floor((toUtcDay(todayYmd) - toUtcDay(createdYmd)) / DAY_MS));
+}
 
 export async function getUniversiteStats(idUtilisateur) {
   const universite = await getUniversiteProfile(idUtilisateur);
@@ -149,11 +186,10 @@ export async function getUniversiteStats(idUtilisateur) {
     .orderBy(conventionsStage.dateCreation)
     .limit(5);
 
+  const now = new Date();
   const alertes = alertesRows.map((a) => ({
     idConvention: a.idConvention,
-    joursAttente: Math.floor(
-      (Date.now() - new Date(a.dateCreation).getTime()) / (1000 * 60 * 60 * 24),
-    ),
+    joursAttente: calendarDaysElapsedInAppTz(a.dateCreation, now),
   }));
 
   return {
@@ -383,7 +419,13 @@ export async function listConventions(idUtilisateur, options = {}) {
       r.accepteeParEntreprise && r.accepteeParStagiaire && r.approuveeParPlateforme;
     let statutCalcule = "en_attente";
     if (conditionsReunies) {
-      statutCalcule = r.statutStage === "actif" ? "active" : "terminee";
+      if (r.statutStage === "actif") {
+        statutCalcule = "active";
+      } else if (r.statutStage === "termine") {
+        statutCalcule = "terminee";
+      } else if (r.statutStage === "interrompu") {
+        statutCalcule = "interrompue";
+      }
     }
 
     return {
@@ -438,7 +480,14 @@ export async function listConventions(idUtilisateur, options = {}) {
           r.accepteeParEntreprise &&
           r.accepteeParStagiaire &&
           r.approuveeParPlateforme &&
-          r.statutStage !== "actif",
+          r.statutStage === "termine",
+      ).length,
+      interrompues: rows.filter(
+        (r) =>
+          r.accepteeParEntreprise &&
+          r.accepteeParStagiaire &&
+          r.approuveeParPlateforme &&
+          r.statutStage === "interrompu",
       ).length,
       valideesUniversite: rows.filter((r) => r.valideeParUniversite).length,
     },
@@ -464,6 +513,7 @@ async function getConventionUniversiteOuThrow(idUniversite, idConvention) {
       idUniversiteStagiaire: stagiaires.idUniversite,
       nomEntreprise: entreprises.nomEntreprise,
       idUtilisateurEntreprise: entreprises.idUtilisateur,
+      idEntreprise: entreprises.idEntreprise,
     })
     .from(conventionsStage)
     .innerJoin(
@@ -504,33 +554,95 @@ export async function validerConvention(idUtilisateur, idConvention, valider) {
     idConvention,
   );
 
-  const [maj] = await db
-    .update(conventionsStage)
-    .set({
-      valideeParUniversite: !!valider,
-      dateValidationUniversite: valider ? new Date() : null,
-    })
-    .where(eq(conventionsStage.idConvention, idConvention))
-    .returning();
+  // La mise à jour de la convention et la persistance des notifications
+  // forment une seule opération atomique. Si une notification échoue,
+  // PostgreSQL annule aussi la validation de la convention.
+  //
+  // creerNotification accepte le client transactionnel `tx`. Le temps réel
+  // est volontairement émis seulement APRÈS le COMMIT afin qu'un client ne
+  // reçoive jamais une notification provenant d'une transaction annulée.
+  const { maj, notificationsCreees } = await db.transaction(async (tx) => {
+    const nouvelleValeur = !!valider;
 
-  if (valider) {
-    const message = `La convention de stage « ${convention.intitulePoste} » chez ${convention.nomEntreprise} a été validée par votre université.`;
-    await Promise.all([
-      creerNotification({
-        idUtilisateur: convention.idUtilisateurStagiaire,
-        type: "convention_validee_universite",
-        titre: "Convention validée par votre université",
-        message,
-        lien: "/stage",
-      }),
-      creerNotification({
-        idUtilisateur: convention.idUtilisateurEntreprise,
-        type: "convention_validee_universite",
-        titre: "Convention validée par l'université",
-        message,
-        lien: "/suivi-stagiaires",
-      }),
-    ]);
+    // Mise à jour conditionnelle : seule une VRAIE transition d'état est
+    // autorisée à modifier la ligne. Cela rend l'opération idempotente et
+    // protège également contre deux requêtes concurrentes true -> true.
+    // La première gagne ; la seconde ne met aucune ligne à jour et ne crée
+    // donc aucune notification en double.
+    const [conventionMaj] = await tx
+      .update(conventionsStage)
+      .set({
+        valideeParUniversite: nouvelleValeur,
+        dateValidationUniversite: nouvelleValeur ? new Date() : null,
+      })
+      .where(
+        and(
+          eq(conventionsStage.idConvention, idConvention),
+          eq(conventionsStage.valideeParUniversite, !nouvelleValeur),
+        ),
+      )
+      .returning();
+
+    // Aucune ligne modifiée signifie ici que l'état demandé est déjà celui
+    // enregistré (l'ownership a été vérifié juste avant la transaction).
+    // On renvoie l'état courant sans effet secondaire : true -> true et
+    // false -> false deviennent donc de vrais no-op.
+    if (!conventionMaj) {
+      const [conventionActuelle] = await tx
+        .select()
+        .from(conventionsStage)
+        .where(eq(conventionsStage.idConvention, idConvention))
+        .limit(1);
+
+      if (!conventionActuelle) {
+        const err = new Error("Convention introuvable");
+        err.status = 404;
+        throw err;
+      }
+
+      return { maj: conventionActuelle, notificationsCreees: [] };
+    }
+
+    const notifications = [];
+
+    // Les notifications ne sont créées que pour la transition false -> true.
+    // Une répétition true -> true n'arrive jamais dans ce bloc.
+    if (nouvelleValeur) {
+      const message = `La convention de stage « ${convention.intitulePoste} » chez ${convention.nomEntreprise} a été validée par votre université.`;
+
+      const notificationStagiaire = await creerNotification(
+        {
+          idUtilisateur: convention.idUtilisateurStagiaire,
+          type: "convention_validee_universite",
+          titre: "Convention validée par votre université",
+          message,
+          lien: "/stage",
+        },
+        tx,
+      );
+
+      const notificationEntreprise = await creerNotification(
+        {
+          idUtilisateur: convention.idUtilisateurEntreprise,
+          type: "convention_validee_universite",
+          titre: "Convention validée par l'université",
+          message,
+          lien: "/suivi-stagiaires",
+        },
+        tx,
+      );
+
+      if (notificationStagiaire) notifications.push(notificationStagiaire);
+      if (notificationEntreprise) notifications.push(notificationEntreprise);
+    }
+
+    return { maj: conventionMaj, notificationsCreees: notifications };
+  });
+
+  // La transaction est commitée à ce stade. On peut maintenant prévenir
+  // les clients connectés sans risque d'annoncer une écriture rollbackée.
+  for (const notification of notificationsCreees) {
+    emitNotificationCreated(notification);
   }
 
   return maj;
@@ -538,68 +650,57 @@ export async function validerConvention(idUtilisateur, idConvention, valider) {
 
 export async function genererPdfConvention(idUtilisateur, idConvention, lang = "fr") {
   const universite = await getUniversiteProfile(idUtilisateur);
-  const c = await getConventionUniversiteOuThrow(
+
+  // Contrôle d'accès Université en premier : une université ne peut générer
+  // que la convention d'un stagiaire qui lui est réellement rattaché.
+  const conventionUniversite = await getConventionUniversiteOuThrow(
     universite.idUniversite,
     idConvention,
   );
 
-  const numeroAffiche =
-    c.numero != null
-      ? `CS-${new Date().getFullYear()}-${String(c.numero).padStart(5, "0")}`
-      : null;
+  // Réutiliser le payload métier canonique des conventions au lieu de
+  // reconstruire ici une version partielle remplie de valeurs null.
+  // getConventionEntrepriseById effectue en plus son propre contrôle
+  // d'ownership côté entreprise.
+  const conventionData = await getConventionEntrepriseById(
+    conventionUniversite.idEntreprise,
+    idConvention,
+  );
+  const pdfData = buildConventionPdfData(conventionData);
 
-  const cheminRelatif = genererConventionPdf(
-    {
-      idConvention: c.idConvention,
-      numero: c.numero,
-      numeroAffiche,
-      dateGeneration: new Date(),
-      statut: null,
-      stagiaire: {
-        nomComplet: `${c.prenomStagiaire} ${c.nomStagiaire}`,
-        email: null,
-        telephone: null,
-        etablissement: null,
-        formationDiplome: null,
-        anneeEtude: null,
-      },
-      entreprise: {
-        nom: c.nomEntreprise,
-        secteur: null,
-        adresseComplete: null,
-        pays: null,
-      },
-      superviseur: null,
-      stage: {
-        intitulePoste: c.intitulePoste,
-        objectifsApprentissage: null,
-        dateDebut: c.dateDebut,
-        dureeStage: c.dureeStage,
-        volumeHoraireHebdo: c.volumeHoraireHebdo,
-        modeTravail: null,
-        remunerationType: null,
-      },
-      missions: [],
-      signatures: {
-        entreprise: !!c.accepteeParEntreprise,
-        stagiaire: !!c.accepteeParStagiaire,
-        plateforme: !!c.approuveeParPlateforme,
-        dateEntreprise: null,
-        dateStagiaire: null,
-        datePlateforme: null,
-      },
-      historique: {
-        dateCreation: c.dateCreation || null,
-        dateAcceptationEntreprise: null,
-        dateValidationPlateforme: null,
-        dateAcceptationStagiaire: null,
-      },
-    },
+  const cheminRelatif = await genererConventionPdf(
+    pdfData,
     lang === "en" ? "en" : "fr",
   );
 
-  const base = process.env.API_PUBLIC_URL || "http://localhost:4000";
-  return { url: `${base}/uploads/${cheminRelatif}` };
+  // Anti path-traversal : uniquement sous uploads/conventions
+  const root = path.resolve("uploads", "conventions");
+  const baseName = path.basename(
+    String(cheminRelatif).replace(/^conventions[/\\]/, ""),
+  );
+  if (!baseName || !baseName.toLowerCase().endsWith(".pdf")) {
+    const err = new Error("Document invalide");
+    err.status = 500;
+    throw err;
+  }
+  const filepath = path.resolve(root, baseName);
+  if (filepath !== root && !filepath.startsWith(root + path.sep)) {
+    const err = new Error("Document invalide");
+    err.status = 500;
+    throw err;
+  }
+  if (!fs.existsSync(filepath)) {
+    const err = new Error("Document introuvable");
+    err.status = 404;
+    throw err;
+  }
+
+  const suffix = lang === "en" ? "en" : "fr";
+  const fileLabel = numeroAffiche || String(c.idConvention).slice(0, 8);
+  return {
+    filepath,
+    filename: `convention-${fileLabel}-${suffix}.pdf`,
+  };
 }
 
 
@@ -703,9 +804,8 @@ export async function completeUniversiteOnboarding(idUtilisateur, payload) {
         siteWeb: payload.siteWeb || null,
         pays: payload.pays,
         typeEtablissement: payload.typeEtablissement,
-        nombreEtudiants: payload.nombreEtudiants
-          ? Number(payload.nombreEtudiants)
-          : null,
+        // Déjà validé et converti en entier par le schéma Zod.
+        nombreEtudiants: payload.nombreEtudiants ?? null,
         contactServiceCarriere: payload.contactServiceCarriere || null,
         periodeStageHabituelle: payload.periodeStageHabituelle || null,
         nomCoordinateurStage: payload.nomCoordinateurStage || null,
@@ -736,6 +836,72 @@ export async function listEtudiants(idUtilisateur, options = {}) {
   const universite = await getUniversiteProfile(idUtilisateur);
   const idUniversite = universite.idUniversite;
 
+  // La pagination doit être appliquée par PostgreSQL, avant de charger les
+  // formations, stages, superviseurs et évaluations. Cela évite de charger
+  // tous les étudiants de l'université en mémoire pour n'en retourner qu'une page.
+  // Défense en profondeur : l'API valide déjà ces valeurs avec Zod, mais le
+  // service peut aussi être appelé directement depuis un autre module. On garde
+  // donc ici des valeurs sûres et une limite maximale de 100 lignes par page.
+  const pageNumber =
+    Number.isFinite(Number(page)) && Number(page) >= 1
+      ? Math.floor(Number(page))
+      : 1;
+  const pageSize =
+    Number.isFinite(Number(parPage)) && Number(parPage) >= 1
+      ? Math.min(Math.floor(Number(parPage)), 100)
+      : 20;
+
+  const conditions = [eq(stagiaires.idUniversite, idUniversite)];
+  const rechercheNormalisee = String(recherche ?? "").trim().toLowerCase();
+
+  if (rechercheNormalisee) {
+    conditions.push(
+      sql`lower(concat_ws(' ', ${stagiaires.prenom}, ${stagiaires.nom})) like ${`%${rechercheNormalisee}%`}`,
+    );
+  }
+
+  // Le statut affiché par cette page est calculé à partir du stage actif et
+  // du statut académique. Le même calcul est reproduit dans la requête SQL
+  // afin que le filtre soit appliqué AVANT LIMIT/OFFSET.
+  const aUnStageActif = sql`exists (
+    select 1
+    from ${stages}
+    where ${stages.idStagiaire} = ${stagiaires.idStagiaire}
+      and ${stages.statut} = 'actif'
+  )`;
+
+  if (statut === "en_stage") {
+    conditions.push(aUnStageActif);
+  } else if (statut === "diplome") {
+    conditions.push(
+      and(
+        sql`not (${aUnStageActif})`,
+        eq(stagiaires.statutAcademique, "jeune_diplome"),
+      ),
+    );
+  } else if (statut === "sans_stage") {
+    conditions.push(
+      and(
+        sql`not (${aUnStageActif})`,
+        sql`${stagiaires.statutAcademique} is distinct from 'jeune_diplome'`,
+      ),
+    );
+  }
+
+  const whereEtudiants = and(...conditions);
+
+  // Le COUNT filtré permet de calculer la pagination sans charger toutes les lignes.
+  const [{ count: total }] = await db
+    .select({ count: sql`count(*)::int` })
+    .from(stagiaires)
+    .where(whereEtudiants);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const pageBornee = Math.min(pageNumber, totalPages);
+  const offset = (pageBornee - 1) * pageSize;
+
+  // Seule la page demandée est chargée en mémoire. L'ordre explicite rend la
+  // pagination stable entre deux requêtes lorsque les données ne changent pas.
   const stagiairesRows = await db
     .select({
       idStagiaire: stagiaires.idStagiaire,
@@ -746,7 +912,10 @@ export async function listEtudiants(idUtilisateur, options = {}) {
       dateCreation: stagiaires.dateCreation,
     })
     .from(stagiaires)
-    .where(eq(stagiaires.idUniversite, idUniversite));
+    .where(whereEtudiants)
+    .orderBy(desc(stagiaires.dateCreation), asc(stagiaires.idStagiaire))
+    .limit(pageSize)
+    .offset(offset);
 
   const idsStagiaires = stagiairesRows.map((s) => s.idStagiaire);
 
@@ -837,12 +1006,14 @@ export async function listEtudiants(idUtilisateur, options = {}) {
     notesParStage.set(ev.idStage, liste);
   }
 
-  let etudiants = stagiairesRows.map((s) => {
+  const etudiants = stagiairesRows.map((s) => {
     const formation = formationParStagiaire.get(s.idStagiaire);
     const stage = stageParStagiaire.get(s.idStagiaire);
     const notes = stage ? notesParStage.get(stage.idStage) : null;
     const noteSur20 = notes?.length
-      ? Math.round(((notes.reduce((a, b) => a + b, 0) / notes.length) * 4) * 10) / 10
+      ? Math.round(
+          ((notes.reduce((a, b) => a + b, 0) / notes.length) * 4) * 10,
+        ) / 10
       : null;
 
     let statutCalcule = "sans_stage";
@@ -866,43 +1037,57 @@ export async function listEtudiants(idUtilisateur, options = {}) {
     };
   });
 
-  if (statut) {
-    etudiants = etudiants.filter((e) => e.statut === statut);
-  }
-  if (recherche) {
-    const terme = recherche.toLowerCase();
-    etudiants = etudiants.filter((e) =>
-      e.nomComplet.toLowerCase().includes(terme),
-    );
-  }
+  // Les statistiques restent globales à l'université (elles ne dépendent pas
+  // de la page courante), mais sont maintenant calculées directement en DB.
+  const [[{ count: totalInscrits }], [{ count: enStage }], [{ count: diplomesRecents }]] =
+    await Promise.all([
+      db
+        .select({ count: sql`count(*)::int` })
+        .from(stagiaires)
+        .where(eq(stagiaires.idUniversite, idUniversite)),
+      db
+        .select({ count: sql`count(*)::int` })
+        .from(stagiaires)
+        .where(
+          and(
+            eq(stagiaires.idUniversite, idUniversite),
+            sql`exists (
+              select 1
+              from ${stages}
+              where ${stages.idStagiaire} = ${stagiaires.idStagiaire}
+                and ${stages.statut} = 'actif'
+            )`,
+          ),
+        ),
+      db
+        .select({ count: sql`count(*)::int` })
+        .from(stagiaires)
+        .where(
+          and(
+            eq(stagiaires.idUniversite, idUniversite),
+            eq(stagiaires.statutAcademique, "jeune_diplome"),
+          ),
+        ),
+    ]);
 
   const stats = {
-    totalInscrits: stagiairesRows.length,
-    enStage: stagiairesRows.filter(
-      (s) => stageParStagiaire.get(s.idStagiaire)?.statut === "actif",
-    ).length,
-    diplomesRecents: stagiairesRows.filter(
-      (s) => s.statutAcademique === "jeune_diplome",
-    ).length,
+    totalInscrits,
+    enStage,
+    diplomesRecents,
   };
+  // Conservation volontaire de la formule historique pour ne pas modifier
+  // le contrat fonctionnel du dashboard dans cette correction de performance.
   stats.sansStage = Math.max(
     0,
     stats.totalInscrits - stats.enStage - stats.diplomesRecents,
   );
 
-  const total = etudiants.length;
-  const totalPages = Math.max(1, Math.ceil(total / parPage));
-  const pageBornee = Math.min(Math.max(1, Number(page) || 1), totalPages);
-  const debut = (pageBornee - 1) * parPage;
-  const donneesPage = etudiants.slice(debut, debut + Number(parPage));
-
   return {
-    data: donneesPage,
-    pagination: { page: pageBornee, parPage: Number(parPage), total, totalPages },
+    data: etudiants,
+    pagination: { page: pageBornee, parPage: pageSize, total, totalPages },
     stats,
   };
 }
-
 
 // -----------------------------------------------------------------------
 // Annuaire institutionnel des maîtres de stage

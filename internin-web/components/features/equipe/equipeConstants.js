@@ -40,11 +40,6 @@ export const ROLES_INVITABLES = [
     labelKey: "equipe.roles.superviseur",
     descriptionKey: "equipe.roleDescriptions.superviseur",
   },
-  {
-    value: "lecture_seule",
-    labelKey: "equipe.roles.lecture_seule",
-    descriptionKey: "equipe.roleDescriptions.lecture_seule",
-  },
 ];
 
 export const STATUT_MEMBRE_LABEL_KEYS = {

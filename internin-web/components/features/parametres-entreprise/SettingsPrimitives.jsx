@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export function SectionCard({ title, description, children, className, danger }) {
   return (
@@ -69,8 +70,9 @@ export function InfoLine({ label, value }) {
 }
 
 export function SettingsSkeleton() {
+  const { t } = useTranslation();
   return (
-    <div className="space-y-4" role="status" aria-label="Chargement des paramètres">
+    <div className="space-y-4" role="status" aria-label={t("entrepriseSpace.settings.loadingAria")}>
       {[1, 2, 3].map((i) => (
         <div
           key={i}

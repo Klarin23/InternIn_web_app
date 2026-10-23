@@ -5,6 +5,7 @@ import {
 } from "@/lib/api/notifications";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { toast } from "@/lib/store/useToastStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export const ENTREPRISE_NOTIF_PREFS_KEY = "entrepriseNotifPrefs";
 
@@ -70,6 +71,7 @@ export function useEntrepriseNotifPrefs() {
 }
 
 export function useUpdateEntrepriseNotifPrefs() {
+  const { t } = useTranslation();
   const token = useAuthStore((s) => s.token);
   const userId = useAuthStore((s) => s.user?.idUtilisateur);
   const qc = useQueryClient();
@@ -90,7 +92,7 @@ export function useUpdateEntrepriseNotifPrefs() {
       if (ctx?.previous) {
         qc.setQueryData([ENTREPRISE_NOTIF_PREFS_KEY, userId], ctx.previous);
       }
-      toast.error("Impossible d'enregistrer votre préférence. Veuillez réessayer.");
+      toast.error(t("actionFeedback.notificationPreferenceSaveFailed"));
     },
     onSuccess: (data) => {
       qc.setQueryData([ENTREPRISE_NOTIF_PREFS_KEY, userId], {
@@ -103,7 +105,7 @@ export function useUpdateEntrepriseNotifPrefs() {
       } catch {
         /* ignore */
       }
-      toast.success("Préférences enregistrées");
+      toast.success(t("actionFeedback.preferencesSaved"));
     },
   });
 }

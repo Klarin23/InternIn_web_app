@@ -9,6 +9,7 @@ import {
 } from "@/lib/api/favoris";
 import { useAuthStore } from "@/lib/store/useAuthStore";
 import { toast } from "@/lib/store/useToastStore";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export function useFavoris() {
   const token = useAuthStore((s) => s.token);
@@ -49,6 +50,7 @@ function patchOffreIsFavorite(old, idOffre, next) {
 }
 
 export function useToggleFavori() {
+  const { t } = useTranslation();
   const token = useAuthStore((s) => s.token);
   const qc = useQueryClient();
 
@@ -101,14 +103,14 @@ export function useToggleFavori() {
         }
       }
       toast.error(
-        err?.message || "Impossible de mettre à jour vos favoris.",
+        err?.message || t("actionFeedback.favoritesUpdateFailed"),
       );
     },
     onSuccess: (data) => {
       if (data.isFavorite) {
-        toast.success("Offre ajoutée aux favoris");
+        toast.success(t("actionFeedback.favoriteAdded"));
       } else {
-        toast.success("Offre retirée des favoris");
+        toast.success(t("actionFeedback.favoriteRemoved"));
       }
     },
     onSettled: (_d, _e, vars) => {

@@ -22,12 +22,12 @@ export function useMesEntretiens() {
   });
 }
 
-export function useEntretiensEntreprise() {
+export function useEntretiensEntreprise({ enabled = true } = {}) {
   const token = useAuthStore((state) => state.token);
   return useQuery({
     queryKey: ["entretiensEntreprise"],
     queryFn: () => getEntretiensEntrepriseRequest(token),
-    enabled: !!token,
+    enabled: !!token && enabled,
   });
 }
 

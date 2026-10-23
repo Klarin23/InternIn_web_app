@@ -13,7 +13,7 @@ const passwordSchema = z
   );
 
 const roleEquipeInvitable = z.enum(
-  ["gestionnaire_recrutement", "superviseur", "lecture_seule"],
+  ["gestionnaire_recrutement", "superviseur"],
   {
     errorMap: () => ({
       message: "Sélectionnez un rôle",

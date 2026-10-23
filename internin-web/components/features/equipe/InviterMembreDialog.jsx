@@ -41,7 +41,7 @@ export default function InviterMembreDialog() {
   const [open, setOpen] = useState(false);
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
-  const [roleEquipe, setRoleEquipe] = useState("lecture_seule");
+  const [roleEquipe, setRoleEquipe] = useState("gestionnaire_recrutement");
   // null = l'administrateur n'a pas encore personnalisé la liste : on affiche
   // les permissions par défaut du rôle, calculées au rendu (pas d'effet).
   const [permissions, setPermissions] = useState(null);
@@ -83,7 +83,7 @@ export default function InviterMembreDialog() {
   function resetForm() {
     setNom("");
     setEmail("");
-    setRoleEquipe("lecture_seule");
+    setRoleEquipe("gestionnaire_recrutement");
     setPermissions(null);
     setEmailTouched(false);
     setShowSuccess(false);
