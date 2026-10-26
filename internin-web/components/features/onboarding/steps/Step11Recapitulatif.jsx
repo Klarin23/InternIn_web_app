@@ -83,7 +83,7 @@ export default function Step11Recapitulatif() {
 
       resetOnboarding();
       if (typeof window !== "undefined") {
-        window.localStorage.removeItem("internin_universite_invitation");
+        window.sessionStorage.removeItem("internin_universite_invitation");
       }
 
       router.push("/tableau-de-bord");

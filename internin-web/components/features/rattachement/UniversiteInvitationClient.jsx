@@ -41,9 +41,9 @@ export default function UniversiteInvitationClient({ token }) {
 
   function continueToSignup() {
     if (typeof window !== "undefined") {
-      window.localStorage.setItem("internin_universite_invitation", token);
+      window.sessionStorage.setItem("internin_universite_invitation", token);
     }
-    router.push(`/inscription/stagiaire?invitation=${encodeURIComponent(token)}`);
+    router.push("/inscription/stagiaire");
   }
 
   const compteEtudiantValide =
@@ -51,7 +51,7 @@ export default function UniversiteInvitationClient({ token }) {
 
   function continueToLogin() {
     if (typeof window !== "undefined") {
-      window.localStorage.setItem("internin_universite_invitation", token);
+      window.sessionStorage.setItem("internin_universite_invitation", token);
     }
     router.push("/connexion");
   }
@@ -64,12 +64,12 @@ export default function UniversiteInvitationClient({ token }) {
     try {
       await accepterInvitationUniversiteRequest(token, authToken);
       if (typeof window !== "undefined") {
-        window.localStorage.removeItem("internin_universite_invitation");
+        window.sessionStorage.removeItem("internin_universite_invitation");
       }
       router.push("/mon-etablissement");
     } catch (err) {
       if (err?.status === 404 && typeof window !== "undefined") {
-        window.localStorage.setItem("internin_universite_invitation", token);
+        window.sessionStorage.setItem("internin_universite_invitation", token);
         router.push("/onboarding/1");
         return;
       }
@@ -82,7 +82,7 @@ export default function UniversiteInvitationClient({ token }) {
   async function handleRefuse() {
     if (!authToken) {
       if (typeof window !== "undefined") {
-        window.localStorage.removeItem("internin_universite_invitation");
+        window.sessionStorage.removeItem("internin_universite_invitation");
       }
       router.push("/connexion");
       return;
@@ -91,6 +91,9 @@ export default function UniversiteInvitationClient({ token }) {
     setError(null);
     try {
       await refuserInvitationUniversiteRequest(token, authToken);
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem("internin_universite_invitation");
+      }
       router.push("/tableau-de-bord");
     } catch (err) {
       setError(err.message);

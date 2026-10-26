@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Copy, Link2, Mail, RefreshCw, UserPlus, X } from "lucide-react";
+import { AlertTriangle, Check, Copy, Link2, Mail, RefreshCw, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/lib/store/useAuthStore";
@@ -26,6 +26,21 @@ export default function RattachementUniversitePanel({ onChanged }) {
   const [loadedToken, setLoadedToken] = useState(null);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [verificationRequiredToken, setVerificationRequiredToken] = useState(null);
+  const verificationRequired = Boolean(token) && verificationRequiredToken === token;
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  function handleRequestError(err) {
+    if (err?.code === "UNIVERSITE_NON_VERIFIEE") {
+      setVerificationRequiredToken(token);
+      setDemandes([]);
+      setSecret(null);
+      setError(null);
+      setSuccess(null);
+      return;
+    }
+    setError(err?.message || "Une erreur est survenue. Veuillez réessayer.");
+  }
 
   async function loadDemandes() {
     if (!token) return;
@@ -33,7 +48,7 @@ export default function RattachementUniversitePanel({ onChanged }) {
     try {
       setDemandes(await getDemandesRattachementUniversiteRequest(token));
     } catch (err) {
-      setError(err.message);
+      handleRequestError(err);
     } finally {
       setLoadingDemandes(false);
     }
@@ -45,10 +60,13 @@ export default function RattachementUniversitePanel({ onChanged }) {
     let active = true;
     getDemandesRattachementUniversiteRequest(token)
       .then((result) => {
-        if (active) setDemandes(result);
+        if (active) {
+          setVerificationRequiredToken(null);
+          setDemandes(result);
+        }
       })
       .catch((err) => {
-        if (active) setError(err.message);
+        if (active) handleRequestError(err);
       })
       .finally(() => {
         if (active) {
@@ -60,7 +78,7 @@ export default function RattachementUniversitePanel({ onChanged }) {
     return () => {
       active = false;
     };
-  }, [token]);
+  }, [handleRequestError, token]);
 
   async function invite() {
     setError(null);
@@ -79,7 +97,7 @@ export default function RattachementUniversitePanel({ onChanged }) {
         );
       }
     } catch (err) {
-      setError(err.message);
+      handleRequestError(err);
     } finally {
       setLoading(false);
     }
@@ -94,7 +112,7 @@ export default function RattachementUniversitePanel({ onChanged }) {
       setSecret({ type: "code", value: result.code, expires: result.dateExpiration });
       setSuccess(t("universityLinking.university.secretCreated"));
     } catch (err) {
-      setError(err.message);
+      handleRequestError(err);
     } finally {
       setLoading(false);
     }
@@ -109,7 +127,7 @@ export default function RattachementUniversitePanel({ onChanged }) {
       setSecret({ type: "link", value: result.lien, expires: result.dateExpiration });
       setSuccess(t("universityLinking.university.secretCreated"));
     } catch (err) {
-      setError(err.message);
+      handleRequestError(err);
     } finally {
       setLoading(false);
     }
@@ -126,7 +144,7 @@ export default function RattachementUniversitePanel({ onChanged }) {
       await loadDemandes();
       onChanged?.();
     } catch (err) {
-      setError(err.message);
+      handleRequestError(err);
     }
   }
 
@@ -153,16 +171,34 @@ export default function RattachementUniversitePanel({ onChanged }) {
         </p>
       </div>
 
-      {error && (
-        <div className="mt-4 rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-          {error}
+      {verificationRequired ? (
+        <div
+          role="alert"
+          className="mt-5 flex gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-foreground"
+        >
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" aria-hidden="true" />
+          <div className="space-y-1">
+            <h3 className="font-semibold">{t("universityLinking.university.verificationRequiredTitle")}</h3>
+            <p className="text-sm text-muted-foreground">
+              {t("universityLinking.university.verificationRequiredMessage")}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {t("universityLinking.university.verificationRequiredNextStep")}
+            </p>
+          </div>
         </div>
-      )}
-      {success && (
-        <div className="mt-4 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-primary">
-          {success}
-        </div>
-      )}
+      ) : (
+        <>
+          {error && (
+            <div role="alert" className="mt-4 rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div role="status" className="mt-4 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-primary">
+              {success}
+            </div>
+          )}
 
       <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-lg border border-border p-4">
@@ -288,6 +324,8 @@ export default function RattachementUniversitePanel({ onChanged }) {
           </div>
         )}
       </div>
+        </>
+      )}
     </section>
   );
 }

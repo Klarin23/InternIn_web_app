@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import Link from "next/link";
 
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -146,7 +147,11 @@ export default function TalentsPage() {
       toast.success(t("talents.page.proposalSent"));
       queryClient.invalidateQueries({ queryKey: ["propositions-entreprise"] });
     } catch (err) {
-      toast.error(t("talents.page.proposalSendError"));
+      toast.error(
+        err?.code === "ENTREPRISE_NON_VERIFIEE"
+          ? t("talents.page.companyNotVerified")
+          : t("talents.page.proposalSendError"),
+      );
       throw err;
     } finally {
       setSending(false);
@@ -213,6 +218,20 @@ export default function TalentsPage() {
 
         {isLoading ? (
           <TalentGridSkeleton />
+        ) : isError && error?.code === "ENTREPRISE_NON_VERIFIEE" ? (
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 px-6 py-10 text-center">
+            <h2 className="text-base font-semibold text-foreground">
+              {t("talents.page.companyVerificationTitle")}
+            </h2>
+            <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
+              {t("talents.page.companyNotVerified")}
+            </p>
+            <Button asChild className="mt-5 rounded-lg">
+              <Link href="/profil-entreprise">
+                {t("talents.page.viewCompanyProfile")}
+              </Link>
+            </Button>
+          </div>
         ) : isError ? (
           <div className="rounded-2xl border border-destructive/25 bg-destructive/5 px-6 py-12 text-center">
             <p className="font-medium text-foreground">

@@ -9,6 +9,8 @@ export function useConventionsUniversite(params = {}) {
       "conventionsUniversite",
       params.recherche || "",
       params.statut || "",
+      params.page || 1,
+      params.parPage || 20,
     ],
     queryFn: () => getConventionsUniversiteRequest(token, params),
     enabled: !!token,

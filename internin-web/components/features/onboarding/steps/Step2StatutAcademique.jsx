@@ -22,7 +22,7 @@ const subscribeInvitation = (callback) => {
   return () => window.removeEventListener("storage", callback);
 };
 const getInvitationSnapshot = () =>
-  window.localStorage.getItem(INVITATION_STORAGE_KEY);
+  window.sessionStorage.getItem(INVITATION_STORAGE_KEY);
 const getInvitationServerSnapshot = () => null;
 
 export default function Step2StatutAcademique() {

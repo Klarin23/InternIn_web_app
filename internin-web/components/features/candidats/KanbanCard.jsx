@@ -6,7 +6,6 @@ import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { motion } from "framer-motion";
 import { FiMapPin, FiCalendar, FiAlertCircle, FiArrowRight } from "react-icons/fi";
-import { calculerAge } from "@/lib/utils/calculerAge";
 
 const ENTRETIEN_ACTION_LABELS = {
   reprogramme: "entrepriseSpace.candidatures.interviewRescheduleRequested",
@@ -35,7 +34,7 @@ export default function KanbanCard({
     cursor: dragDisabled ? "pointer" : undefined,
   };
 
-  const age = calculerAge(candidature.dateNaissance);
+  const age = candidature.age ?? null;
   const date = new Date(candidature.dateCandidature).toLocaleDateString(
     locale === "en" ? "en-GB" : "fr-FR",
     {
@@ -112,7 +111,7 @@ export default function KanbanCard({
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-foreground">
               {candidature.prenom} {candidature.nom}
-              {age && (
+              {age !== null && (
                 <span className="ml-1 font-normal text-muted-foreground">
                   · {t("entrepriseSpace.candidatures.yearsOld", { age })}
                 </span>

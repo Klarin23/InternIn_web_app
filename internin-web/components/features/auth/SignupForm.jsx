@@ -28,7 +28,17 @@ export default function SignupForm({ role }) {
     if (role !== "stagiaire" || typeof window === "undefined") return;
     const invitation = searchParams.get("invitation");
     if (invitation && invitation.length >= 32 && invitation.length <= 128) {
-      window.localStorage.setItem("internin_universite_invitation", invitation);
+      window.sessionStorage.setItem("internin_universite_invitation", invitation);
+
+      // Compatibilité avec les anciens liens d'inscription : ne pas laisser
+      // le jeton d'invitation dans la barre d'adresse ou l'historique courant.
+      const url = new URL(window.location.href);
+      url.searchParams.delete("invitation");
+      const cleanUrl =
+        url.pathname +
+        (url.searchParams.toString() ? `?${url.searchParams}` : "") +
+        url.hash;
+      window.history.replaceState(window.history.state, "", cleanUrl);
     }
   }, [role, searchParams]);
 

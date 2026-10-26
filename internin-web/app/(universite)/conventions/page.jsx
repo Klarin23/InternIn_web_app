@@ -13,7 +13,9 @@ import {
   FiShield,
   FiAlertTriangle,
   FiAlertCircle,
-  FiRefreshCw
+  FiRefreshCw,
+  FiChevronLeft,
+  FiChevronRight
 } from "react-icons/fi";
 import AppHeader from "@/components/layout/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -180,13 +182,17 @@ export default function ConventionsPage() {
   const { t, locale } = useTranslation();
   const [recherche, setRecherche] = useState("");
   const [onglet, setOnglet] = useState(undefined);
+  const [page, setPage] = useState(1);
 
   const { data, isLoading, isError, isFetching, refetch } = useConventionsUniversite({
     recherche,
     statut: onglet,
+    page,
+    parPage: 20,
   });
   const conventions = data?.data || [];
   const stats = data?.stats;
+  const pagination = data?.pagination;
 
   return (
     <>
@@ -194,7 +200,10 @@ export default function ConventionsPage() {
         title={t("universiteSpace.conventions.title")}
         subtitle={t("universiteSpace.conventions.subtitle")}
         searchValue={recherche}
-        onSearchChange={setRecherche}
+        onSearchChange={(value) => {
+          setRecherche(value);
+          setPage(1);
+        }}
         refreshKeys={["conventionsUniversite"]}
       />
 
@@ -245,7 +254,10 @@ export default function ConventionsPage() {
             <button
               key={o.value || "all"}
               type="button"
-              onClick={() => setOnglet(o.value)}
+              onClick={() => {
+                setOnglet(o.value);
+                setPage(1);
+              }}
               className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
                 onglet === o.value
                   ? "border-primary/40 bg-primary/5 text-primary"
@@ -299,6 +311,41 @@ export default function ConventionsPage() {
             {conventions.map((c) => (
               <LigneConvention key={c.idConvention} convention={c} t={t} locale={locale} />
             ))}
+
+            {pagination && pagination.totalPages > 1 ? (
+              <div className="flex items-center justify-between gap-3 pt-3">
+                <p className="text-xs text-muted-foreground">
+                  {t("universiteSpace.conventions.pageOf", {
+                    page: pagination.page,
+                    total: pagination.totalPages,
+                  })}
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon-sm"
+                    disabled={pagination.page <= 1 || isFetching}
+                    onClick={() => setPage((value) => Math.max(1, value - 1))}
+                    aria-label={t("universiteSpace.conventions.previousPage")}
+                  >
+                    <FiChevronLeft aria-hidden />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon-sm"
+                    disabled={pagination.page >= pagination.totalPages || isFetching}
+                    onClick={() =>
+                      setPage((value) => Math.min(pagination.totalPages, value + 1))
+                    }
+                    aria-label={t("universiteSpace.conventions.nextPage")}
+                  >
+                    <FiChevronRight aria-hidden />
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
       </div>

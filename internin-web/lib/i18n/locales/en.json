@@ -5548,7 +5548,10 @@
       "next": "Next",
       "pageOf": "Page {page} / {total}",
       "proposalSent": "Proposal sent",
-      "proposalSendError": "Error sending the proposal"
+      "proposalSendError": "Error sending the proposal",
+      "companyVerificationTitle": "Complete your company verification",
+      "companyNotVerified": "Talent discovery and sending proposals will be available once InternIn has verified your company. Visit your company profile to check its status.",
+      "viewCompanyProfile": "View my company profile"
     },
     "search": {
       "placeholder": "Name, skill, field, education…",
@@ -7758,7 +7761,10 @@
       "loading": "Loading…",
       "noRequests": "No pending requests.",
       "confirm": "Confirm",
-      "refuse": "Decline"
+      "refuse": "Decline",
+      "verificationRequiredTitle": "Your institution must be verified",
+      "verificationRequiredMessage": "Your institution must first be verified by the InternIn team before you can access affiliation requests and manage invitations.",
+      "verificationRequiredNextStep": "These features will become available once verification is complete."
     },
     "student": {
       "eyebrow": "My institution",
@@ -8027,7 +8033,7 @@
       "onlinePresence": "Online presence",
       "logo": "Institution logo",
       "logoDescription": "Visible to partner companies",
-"logoRequirements": "PNG/JPEG · 2 MB max.",
+      "logoRequirements": "PNG/JPEG · 2 MB max.",
       "changeLogo": "Change",
       "addLogo": "Add a logo",
       "remove": "Remove",

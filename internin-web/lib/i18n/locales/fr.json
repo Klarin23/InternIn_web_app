@@ -5548,7 +5548,10 @@
       "next": "Suivant",
       "pageOf": "Page {page} / {total}",
       "proposalSent": "Proposition envoyée",
-      "proposalSendError": "Erreur lors de l'envoi de la proposition"
+      "proposalSendError": "Erreur lors de l'envoi de la proposition",
+      "companyVerificationTitle": "Finalisez la vérification de votre entreprise",
+      "companyNotVerified": "L’accès aux talents et l’envoi de propositions seront disponibles après la validation de votre entreprise par InternIn. Consultez votre profil entreprise pour suivre son statut.",
+      "viewCompanyProfile": "Consulter mon profil entreprise"
     },
     "search": {
       "placeholder": "Nom, compétence, domaine, formation…",
@@ -7758,7 +7761,10 @@
       "loading": "Chargement…",
       "noRequests": "Aucune demande en attente.",
       "confirm": "Confirmer",
-      "refuse": "Refuser"
+      "refuse": "Refuser",
+      "verificationRequiredTitle": "Vérification de votre établissement requise",
+      "verificationRequiredMessage": "Vous devez d'abord faire vérifier votre établissement par l'équipe InternIn pour accéder aux demandes de rattachement et gérer les invitations.",
+      "verificationRequiredNextStep": "Une fois la vérification terminée, ces fonctionnalités seront accessibles."
     },
     "student": {
       "eyebrow": "Mon établissement",
@@ -8027,7 +8033,7 @@
       "onlinePresence": "Présence en ligne",
       "logo": "Logo de l'établissement",
       "logoDescription": "Visible par les entreprises partenaires",
-"logoRequirements": "PNG/JPEG · 2 Mo max.",
+      "logoRequirements": "PNG/JPEG · 2 Mo max.",
       "changeLogo": "Changer",
       "addLogo": "Ajouter un logo",
       "remove": "Retirer",

@@ -44,7 +44,7 @@ export default function LoginForm() {
 
         let pendingInvitation = null;
         if (typeof window !== "undefined" && user.typeUtilisateur === "stagiaire") {
-          pendingInvitation = window.localStorage.getItem(
+          pendingInvitation = window.sessionStorage.getItem(
             "internin_universite_invitation",
           );
         }

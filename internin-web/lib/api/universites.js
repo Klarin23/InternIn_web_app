@@ -43,6 +43,8 @@ export function getConventionsUniversiteRequest(token, params = {}) {
   const query = new URLSearchParams();
   if (params.recherche) query.set("recherche", params.recherche);
   if (params.statut) query.set("statut", params.statut);
+  if (params.page) query.set("page", String(params.page));
+  if (params.parPage) query.set("parPage", String(params.parPage));
   const qs = query.toString();
   return apiFetch(`/universites/conventions${qs ? `?${qs}` : ""}`, { token });
 }

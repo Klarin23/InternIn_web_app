@@ -149,7 +149,10 @@ export async function apiFetch(
     }
 
     if (!response.ok) {
-      let message = data.error || "Une erreur est survenue";
+      let message =
+        data.code === "UNIVERSITE_NON_VERIFIEE"
+          ? (data.message || data.error || "Votre établissement doit d'abord être vérifié par l'équipe InternIn pour accéder à ces données et fonctionnalités.")
+          : (data.error || data.message || "Une erreur est survenue");
       if (data.details && typeof data.details === "object") {
         const parts = [];
         for (const [, msgs] of Object.entries(data.details)) {
