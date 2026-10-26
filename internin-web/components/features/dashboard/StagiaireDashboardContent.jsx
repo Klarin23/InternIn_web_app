@@ -1,6 +1,4 @@
 "use client";
-// Contenu du tableau de bord stagiaire, extrait de l'ancienne page pour
-// être réutilisable depuis la route partagée /tableau-de-bord.
 
 import { FiLoader } from "react-icons/fi";
 import AppHeader from "@/components/layout/AppHeader";

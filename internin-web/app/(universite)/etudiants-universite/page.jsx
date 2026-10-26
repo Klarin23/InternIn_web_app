@@ -1,15 +1,5 @@
 "use client";
-// Page "Étudiants" de l'espace université — recrée la maquette fournie.
-//
-// Écarts assumés vis-à-vis de la maquette, aucune donnée n'est inventée :
-// - Colonne "Superviseur" = contact CÔTÉ ENTREPRISE (stages.idContactSuperviseur),
-//   pas un tuteur académique interne (cette fonctionnalité n'existe pas encore).
-// - "Année" = année d'obtention si connue, sinon année d'étude déclarée
-//   (pas de notion de "promotion 2024-2025" en base).
-// - "Note" = moyenne des 6 critères d'évaluation hebdomadaire (échelle 1-5)
-//   du stage le plus pertinent, ramenée sur 20. "—" si pas encore évalué.
-// - Les boutons "Exporter", "Filtres" et "+ Inscrire" sont désactivés : ces
-//   fonctionnalités n'existent pas encore côté backend.
+
 
 import { useState } from "react";
 import { useTranslation } from "@/lib/i18n/useTranslation";

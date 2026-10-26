@@ -5,10 +5,7 @@ import { motion } from "framer-motion";
 import { FiCheckCircle } from "react-icons/fi";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
-// En-tête "Hero" du tableau de bord stagiaire : nom, établissement, niveau,
-// barre de progression du profil, avatar + badge vérifié + bouton d'édition.
-// L'illustration est une composition SVG décorative (pas d'image externe),
-// pour rester cohérente avec la charte de couleurs (turquoise/violet).
+
 export default function WelcomeBanner({
   prenom,
   nomEtablissement,

@@ -1,8 +1,4 @@
-/**
- * Gestion centralisée des conventions — espace administrateur.
- * Réutilise conventions_stage + deriveConventionStatus (pas de système parallèle).
- * Pas de table de versions : 1 convention / offre finale (contrainte unique).
- */
+
 import fs from "node:fs";
 import path from "node:path";
 import {

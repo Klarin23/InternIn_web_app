@@ -1,18 +1,5 @@
 "use client";
-// Page "Conventions" de l'espace université.
-//
-// Écarts assumés vis-à-vis d'une maquette générique (aucune donnée
-// inventée) :
-// - Le schéma ne porte pas de statut de refus distinct sur une convention
-//   (seulement 3 booléens : acceptée par l'entreprise / le stagiaire /
-//   approuvée par la plateforme). Le statut affiché est donc calculé :
-//   "En attente" tant que les 3 accords ne sont pas réunis, sinon calqué
-//   sur l'état réel du stage (actif/terminé/interrompu).
-// - "Valider" est une validation administrative INTERNE à l'université
-//   (pour ses propres dossiers) : elle ne conditionne pas la création du
-//   stage, qui reste déclenchée uniquement par les 3 accords existants.
-// - Le PDF généré est un récapitulatif simple à usage de suivi — il ne
-//   remplace pas la convention signée entre les parties.
+
 
 import { useState } from "react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -25,6 +12,8 @@ import {
   FiDownload,
   FiShield,
   FiAlertTriangle,
+  FiAlertCircle,
+  FiRefreshCw
 } from "react-icons/fi";
 import AppHeader from "@/components/layout/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -126,7 +115,7 @@ function LigneConvention({ convention, t, locale }) {
         </p>
       </div>
 
-      <div className="flex flex-shrink-0 flex-col items-start gap-2 sm:items-end">
+      <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
         <div className="flex flex-col items-start gap-1 sm:items-end">
           <EtapeSignature
             ok={convention.accepteeParEntreprise}

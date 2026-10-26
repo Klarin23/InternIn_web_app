@@ -1,7 +1,5 @@
 "use client";
-// Bloc "Prochaine étape" du tableau de bord stagiaire : checklist des
-// actions de complétion de profil, avec petite animation quand une étape
-// passe de "à faire" à "validée".
+
 
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
